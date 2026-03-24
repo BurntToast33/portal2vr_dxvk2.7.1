@@ -10,6 +10,7 @@
 #include "material.h"
 #include "worldsize.h"
 #include <unordered_map>
+#include "vector.h"
 
 #define IN_ATTACK		(1 << 0)
 #define IN_JUMP			(1 << 1)
@@ -39,6 +40,22 @@
 #define	IN_LOOKSPIN		(1 << 25)
 
 #define MAX_LINEAR_SPEED 175
+
+
+static inline uint64_t GetSteamID64()
+{
+	typedef void*(__cdecl* tSteamUser)();
+	typedef uint64_t(__cdecl* tGetSteamID)(void* steamUser);
+
+	static tSteamUser oSteamUser = (tSteamUser)(g_Game->m_Offsets->SteamUser.address);
+	static tGetSteamID oGetSteamID = (tGetSteamID)(g_Game->m_Offsets->GetSteamID.address);
+
+	void* steamUser = oSteamUser();
+	if (!steamUser)
+		return 0;
+
+	return oGetSteamID(steamUser);
+}
 
 class C_BaseCombatWeapon;
 class C_WeaponCSBase;
@@ -83,7 +100,7 @@ struct PositionAngle
 class IClientEntityList
 {
 public:
-	virtual	~IClientEntityList() { }
+	virtual	~IClientEntityList() {}
 
 	// Get IClientNetworkable interface for specified entity
 	virtual void* GetClientNetworkable(int entnum) = 0;
@@ -104,15 +121,96 @@ public:
 
 
 
-    // Returns highest index actually used
-    virtual int					GetHighestEntityIndex(void) = 0;
+	// Returns highest index actually used
+	virtual int					GetHighestEntityIndex(void) = 0;
 
-    // Sizes entity list to specified size
-    virtual void				SetMaxEntities(int maxents) = 0;
-    virtual int					GetMaxEntities() = 0;
+	// Sizes entity list to specified size
+	virtual void				SetMaxEntities(int maxents) = 0;
+	virtual int					GetMaxEntities() = 0;
 };
 
+class Color
+{
+public:
+	// constructors
+	Color()
+	{
+		*((int*)this) = 0;
+	}
+	Color(int _r, int _g, int _b)
+	{
+		SetColor(_r, _g, _b, 0);
+	}
+	Color(int _r, int _g, int _b, int _a)
+	{
+		SetColor(_r, _g, _b, _a);
+	}
 
+	// set the color
+	// r - red component (0-255)
+	// g - green component (0-255)
+	// b - blue component (0-255)
+	// a - alpha component, controls transparency (0 - transparent, 255 - opaque);
+	void SetColor(int _r, int _g, int _b, int _a = 0)
+	{
+		_color[0] = (unsigned char)_r;
+		_color[1] = (unsigned char)_g;
+		_color[2] = (unsigned char)_b;
+		_color[3] = (unsigned char)_a;
+	}
+
+	void GetColor(int& _r, int& _g, int& _b, int& _a) const
+	{
+		_r = _color[0];
+		_g = _color[1];
+		_b = _color[2];
+		_a = _color[3];
+	}
+
+	void SetRawColor(int color32)
+	{
+		*((int*)this) = color32;
+	}
+
+	int GetRawColor() const
+	{
+		return *((int*)this);
+	}
+
+	inline int r() const { return _color[0]; }
+	inline int g() const { return _color[1]; }
+	inline int b() const { return _color[2]; }
+	inline int a() const { return _color[3]; }
+
+	unsigned char& operator[](int index)
+	{
+		return _color[index];
+	}
+
+	const unsigned char& operator[](int index) const
+	{
+		return _color[index];
+	}
+
+	bool operator == (const Color& rhs) const
+	{
+		return (*((int*)this) == *((int*)&rhs));
+	}
+
+	bool operator != (const Color& rhs) const
+	{
+		return !(operator==(rhs));
+	}
+
+	Color& operator=(const Color& rhs)
+	{
+		SetRawColor(rhs.GetRawColor());
+		return *this;
+	}
+
+private:
+	unsigned char _color[4];
+};
 
 typedef struct player_info_s
 {
@@ -164,46 +262,46 @@ public:
 	virtual int GetPlayerForUserID(int userID) = 0;
 	virtual void TextMessageGet(char const*) = 0;
 	virtual bool Con_IsVisible() = 0;
-	virtual int GetLocalPlayer(void) = 0;
+	virtual int GetLocalPlayer() = 0;
 	virtual int fn13() = 0;
-	virtual int fn14() = 0;
-	virtual int fn15() = 0;
+	virtual float Time() = 0;
+	virtual float GetLastTimeStamp() = 0;
 	virtual int fn16() = 0;
 	virtual int fn17() = 0;
 	virtual QAngle* GetViewAngles(QAngle &angle) = 0;
 	virtual QAngle* SetViewAngles(QAngle &angle) = 0;
-	virtual void *sub_1005D230() = 0;
+	virtual int GetMaxClients() = 0;
 	virtual void *sub_1005D280() = 0;
 	virtual void *sub_1005D2A0() = 0;
-	virtual void *sub_1005D2C0() = 0;
+	virtual void StartKeyTrapMode() = 0;
 	virtual void *sub_1005D2D0() = 0;
 	virtual bool IsInGame() = 0;
-	virtual void *sub_1005F150() = 0;
-	virtual void *sub_1005D2F0() = 0;
+	virtual bool IsConnected() = 0;
+	virtual bool IsDrawingLoadingImage() = 0;
 	virtual void *sub_1005D300() = 0;
 	virtual void *sub_1005D350() = 0;
 	virtual void *sub_1005D3B0() = 0;
 	virtual void *sub_1005D430() = 0;
 	virtual void *sub_1005D460() = 0;
-	virtual void *sub_1005D5A0() = 0;
-	virtual void *sub_1005D4F0() = 0;
+	virtual void Sound_ExtraUpdate() = 0;
+	virtual const char * GetGameDirectory() = 0;
 	virtual void *sub_1005D5B0() = 0;
 	virtual void *sub_1005D5C0() = 0;
 	virtual void *sub_1005D5D0() = 0;
 	virtual void *sub_1005D5E0() = 0;
 	virtual void *sub_1005D600() = 0;
-	virtual void *sub_1005D620() = 0;
+	virtual int LevelLeafCount() const = 0;
 	virtual void *sub_1005D640() = 0;
 	virtual void *sub_1005D710() = 0;
 	virtual void *sub_1005D720() = 0;
 	virtual void *sub_1005D790() = 0;
 	virtual void *sub_1005D7C0() = 0;
-	virtual void *sub_1005D840() = 0;
-	virtual void *sub_1005D880() = 0;
+	virtual int GetDXSupportLevel() = 0;
+	virtual bool SupportsHDR() = 0;
 	virtual void *sub_1005D890() = 0;
-	virtual void *sub_1005D8A0() = 0;
-	virtual void *sub_1005D8D0() = 0;
-	virtual void *sub_1005F160() = 0;
+	virtual void GetChapterName(char* pchBuff, int iMaxLength) = 0;
+	virtual char const* GetLevelName() = 0;
+	virtual int	GetLevelVersion() = 0;
 	virtual void *sub_1005F190() = 0;
 	virtual void *sub_1005DA90() = 0;
 	virtual void *sub_1005DAA0() = 0;
@@ -239,27 +337,27 @@ public:
 	virtual void *sub_1005DE10() = 0;
 	virtual void *sub_1005DE20() = 0;
 	virtual bool IsPaused() = 0;
-	virtual void *sub_1005DD90() = 0;
-	virtual void *sub_1005DDA0() = 0;
-	virtual void *sub_1005DE30() = 0;
-	virtual void *sub_1005D900() = 0;
+	virtual bool IsTakingScreenshot() = 0;
+	virtual bool IsHLTV() = 0;
+	virtual bool IsLevelMainMenuBackground() = 0;
+	virtual void GetMainMenuBackgroundName(char* dest, int destlen) = 0;
 	virtual void *sub_1005D910() = 0;
 	virtual void *sub_1005D9B0() = 0;
-	virtual void *sub_1005DE40() = 0;
+	virtual void GetUILanguage(char* dest, int destlen) = 0;
 	virtual void *sub_1005F1C0() = 0;
 	virtual void *sub_1005DE80() = 0;
 	virtual void *sub_1005DE90() = 0;
-	virtual void *sub_1005DEB0() = 0;
+	virtual float GetScreenAspectRatio() = 0;
 	virtual void *sub_1005CB30() = 0;
 	virtual void *sub_1005CB40() = 0;
-	virtual void *sub_1005DF00() = 0;
-	virtual void *sub_1005DF20() = 0;
+	virtual unsigned int GetEngineBuildNumber() = 0;
+	virtual const char* GetProductVersionString() = 0;
 	virtual void *sub_1005CF70() = 0;
-	virtual void *sub_1005D000() = 0;
+	virtual bool IsHammerRunning() = 0;
 	virtual void *sub_1005DED0() = 0;
 	virtual void *sub_1005CBB0() = 0;
-	virtual void* sub_1005CBB0_1() = 0;
-	virtual void* sub_1005CBB0_2() = 0;
+	virtual void *sub_1005CBB0_1() = 0;
+	virtual void *sub_1005CBB0_2() = 0;
 	virtual void *ClientCmd_Unrestricted(const char *szCmdString) = 0;
 };
 
@@ -711,52 +809,236 @@ public:
 	void AddRefAssignTo(T *&pTo) { ::SafeRelease(pTo); if (BaseClass::m_pObject) BaseClass::m_pObject->AddRef(); pTo = BaseClass::m_pObject; }
 };
 
+typedef unsigned char uint8;
+
+class MaterialVarSym_t;
+
+class CUtlSymbolTableMT;
+
+typedef unsigned short UtlSymId_t;
+
+#define UTL_INVAL_SYMBOL  ((UtlSymId_t)~0)
+
+class CUtlSymbol
+{
+public:
+	// constructor, destructor
+	CUtlSymbol() : m_Id(UTL_INVAL_SYMBOL) {}
+	CUtlSymbol(UtlSymId_t id) : m_Id(id) {}
+	CUtlSymbol(const char* pStr);
+	CUtlSymbol(CUtlSymbol const& sym) : m_Id(sym.m_Id) {}
+
+	// operator=
+	CUtlSymbol& operator=(CUtlSymbol const& src) { m_Id = src.m_Id; return *this; }
+
+	// operator==
+	bool operator==(CUtlSymbol const& src) const { return m_Id == src.m_Id; }
+	bool operator==(const char* pStr) const;
+
+	// Is valid?
+	bool IsValid() const { return m_Id != UTL_INVAL_SYMBOL; }
+
+	// Gets at the symbol
+	operator UtlSymId_t const() const { return m_Id; }
+
+	// Gets the string associated with the symbol
+	const char* String() const;
+
+	// Modules can choose to disable the static symbol table so to prevent accidental use of them.
+	static void DisableStaticSymbolTable();
+
+protected:
+	UtlSymId_t   m_Id;
+
+	// Initializes the symbol table
+	static void Initialize();
+
+	// returns the current symbol table
+	static CUtlSymbolTableMT* CurrTable();
+
+	// The standard global symbol table
+	static CUtlSymbolTableMT* s_pSymbolTable;
+
+	static bool s_bAllowStaticSymbolTable;
+
+	friend class CCleanupUtlSymbolTable;
+};
+
+class IMaterialVar
+{
+public:
+	typedef unsigned long FourCC;
+
+protected:
+	// base data and accessors
+	char* m_pStringVal;
+	int m_intVal;
+	Vector4D m_VecVal;
+
+	// member data. total = 4 bytes
+	uint8 m_Type : 4;
+	uint8 m_nNumVectorComps : 3;
+	uint8 m_bFakeMaterialVar : 1;
+	uint8 m_nTempIndex;
+	CUtlSymbol m_Name;
+
+public:
+	// class factory methods
+	static IMaterialVar* Create(IMaterial* pMaterial, char const* pKey, VMatrix const& matrix);
+	static IMaterialVar* Create(IMaterial* pMaterial, char const* pKey, char const* pVal);
+	static IMaterialVar* Create(IMaterial* pMaterial, char const* pKey, float* pVal, int numcomps);
+	static IMaterialVar* Create(IMaterial* pMaterial, char const* pKey, float val);
+	static IMaterialVar* Create(IMaterial* pMaterial, char const* pKey, int val);
+	static IMaterialVar* Create(IMaterial* pMaterial, char const* pKey);
+	static void Destroy(IMaterialVar* pVar);
+	static MaterialVarSym_t	GetSymbol(char const* pName);
+	static MaterialVarSym_t	FindSymbol(char const* pName);
+	static bool SymbolMatches(char const* pName, MaterialVarSym_t symbol);
+	static void DeleteUnreferencedTextures(bool enable);
+
+	virtual ITexture* GetTextureValue(void) = 0;
+
+	virtual char const* GetName(void) const = 0;
+	virtual MaterialVarSym_t	GetNameAsSymbol() const = 0;
+
+	virtual void			SetFloatValue(float val) = 0;
+
+	virtual void			SetIntValue(int val) = 0;
+
+	virtual void			SetStringValue(char const* val) = 0;
+	virtual char const* GetStringValue(void) const = 0;
+
+	// Use FourCC values to pass app-defined data structures between
+	// the proxy and the shader. The shader should ignore the data if
+	// its FourCC type not correct.	
+	virtual void			SetFourCCValue(FourCC type, void* pData) = 0;
+	virtual void			GetFourCCValue(FourCC* type, void** ppData) = 0;
+
+	// Vec (dim 2-4)
+	virtual void			SetVecValue(float const* val, int numcomps) = 0;
+	virtual void			SetVecValue(float x, float y) = 0;
+	virtual void			SetVecValue(float x, float y, float z) = 0;
+	virtual void			SetVecValue(float x, float y, float z, float w) = 0;
+	virtual void			GetLinearVecValue(float* val, int numcomps) const = 0;
+
+	// revisit: is this a good interface for textures?
+	virtual void			SetTextureValue(ITexture*) = 0;
+
+};
+
+class VertexFormat_t;
+
+class PreviewImageRetVal_t;
+
+class MorphFormat_t;
+
+class MaterialPropertyTypes_t;
+
+class KeyValues;
+
 class IMaterial
 {
 public:
-	virtual const char *GetName() const = 0;
-	virtual const char *GetTextureGroupName() const = 0;
-	virtual void * GetPreviewImageProperties(int *width, int *height, ImageFormat *imageFormat, bool *isTranslucent) const = 0;
-	virtual void* GetPreviewImage(unsigned char *data, int width, int height, ImageFormat imageFormat) const = 0;
+	// Get the name of the material.  This is a full path to 
+	// the vmt file starting from "hl2/materials" (or equivalent) without
+	// a file extension.
+	virtual const char* GetName() const = 0;
+	virtual const char* GetTextureGroupName() const = 0;
+
+	// Get the preferred size/bitDepth of a preview image of a material.
+	// This is the sort of image that you would use for a thumbnail view
+	// of a material, or in WorldCraft until it uses materials to render.
+	// separate this for the tools maybe
+	virtual PreviewImageRetVal_t GetPreviewImageProperties(int* width, int* height,
+		ImageFormat* imageFormat, bool* isTranslucent) const = 0;
+
+	// Get a preview image at the specified width/height and bitDepth.
+	// Will do resampling if necessary.(not yet!!! :) )
+	// Will do color format conversion. (works now.)
+	virtual PreviewImageRetVal_t GetPreviewImage(unsigned char* data,
+		int width, int height,
+		ImageFormat imageFormat) const = 0;
+	// 
 	virtual int				GetMappingWidth() = 0;
 	virtual int				GetMappingHeight() = 0;
+
 	virtual int				GetNumAnimationFrames() = 0;
+
+	// For material subrects (material pages).  Offset(u,v) and scale(u,v) are normalized to texture.
 	virtual bool			InMaterialPage(void) = 0;
-	virtual	void			GetMaterialOffset(float *pOffset) = 0;
-	virtual void			GetMaterialScale(float *pScale) = 0;
-	virtual IMaterial *GetMaterialPage(void) = 0;
-	virtual void *FindVar(const char *varName, bool *found, bool complain = true) = 0;
+	virtual	void			GetMaterialOffset(float* pOffset) = 0;
+	virtual void			GetMaterialScale(float* pScale) = 0;
+	virtual IMaterial* GetMaterialPage(void) = 0;
+
+	// find a vmt variable.
+	// This is how game code affects how a material is rendered.
+	// The game code must know about the params that are used by
+	// the shader for the material that it is trying to affect.
+	virtual IMaterialVar* FindVar(const char* varName, bool* found, bool complain = true) = 0;
+
+	// The user never allocates or deallocates materials.  Reference counting is
+	// used instead.  Garbage collection is done upon a call to 
+	// IMaterialSystem::UncacheUnusedMaterials.
 	virtual void			IncrementReferenceCount(void) = 0;
 	virtual void			DecrementReferenceCount(void) = 0;
+
+	inline void AddRef() { IncrementReferenceCount(); }
+	inline void Release() { DecrementReferenceCount(); }
+
+	// Each material is assigned a number that groups it with like materials
+	// for sorting in the application.
 	virtual int 			GetEnumerationID(void) const = 0;
-	virtual void			GetLowResColorSample(float s, float t, float *color) const = 0;
+
+	virtual void			GetLowResColorSample(float s, float t, float* color) const = 0;
+
+	// This computes the state snapshots for this material
 	virtual void			RecomputeStateSnapshots() = 0;
+
+	// Are we translucent?
 	virtual bool			IsTranslucent() = 0;
+
+	// Are we alphatested?
 	virtual bool			IsAlphaTested() = 0;
+
+	// Are we vertex lit?
 	virtual bool			IsVertexLit() = 0;
-	virtual void *GetVertexFormat() const = 0;
+
+	// Gets the vertex format
+	virtual VertexFormat_t	GetVertexFormat() const = 0;
+
+	// returns true if this material uses a material proxy
 	virtual bool			HasProxy(void) const = 0;
+
 	virtual bool			UsesEnvCubemap(void) = 0;
+
 	virtual bool			NeedsTangentSpace(void) = 0;
+
 	virtual bool			NeedsPowerOfTwoFrameBufferTexture(bool bCheckSpecificToThisFrame = true) = 0;
 	virtual bool			NeedsFullFrameBufferTexture(bool bCheckSpecificToThisFrame = true) = 0;
+
+	// returns true if the shader doesn't do skinning itself and requires
+	// the data that is sent to it to be preskinned.
 	virtual bool			NeedsSoftwareSkinning(void) = 0;
+
+	// Apply constant color or alpha modulation
 	virtual void			AlphaModulate(float alpha) = 0;
 	virtual void			ColorModulate(float r, float g, float b) = 0;
+
+	// Material Var flags...
 	virtual void			SetMaterialVarFlag(MaterialVarFlags_t flag, bool on) = 0;
-	virtual bool			GetMaterialVarFlag(void) const = 0;
+	virtual bool			GetMaterialVarFlag(MaterialVarFlags_t flag) const = 0;
 
 	// Gets material reflectivity
-	virtual void			GetReflectivity(Vector &reflect) = 0;
+	virtual void			GetReflectivity(Vector& reflect) = 0;
 
 	// Gets material property flags
-	virtual bool			GetPropertyFlag(void) = 0;
+	virtual bool			GetPropertyFlag(MaterialPropertyTypes_t type) = 0;
 
 	// Is the material visible from both sides?
 	virtual bool			IsTwoSided() = 0;
 
 	// Sets the shader associated with the material
-	virtual void			SetShader(const char *pShaderName) = 0;
+	virtual void			SetShader(const char* pShaderName) = 0;
 
 	// Can't be const because the material might have to precache itself.
 	virtual int				GetNumPasses(void) = 0;
@@ -777,7 +1059,7 @@ public:
 
 	// Gets at the shader parameters
 	virtual int				ShaderParamCount() const = 0;
-	virtual void **GetShaderParams(void) = 0;
+	virtual IMaterialVar** GetShaderParams(void) = 0;
 
 	// Returns true if this is the error material you get back from IMaterialSystem::FindMaterial if
 	// the material can't be found.
@@ -787,25 +1069,25 @@ public:
 
 	// Gets the current alpha modulation
 	virtual float			GetAlphaModulation() = 0;
-	virtual void			GetColorModulation(float *r, float *g, float *b) = 0;
+	virtual void			GetColorModulation(float* r, float* g, float* b) = 0;
 
 	// Gets the morph format
-	virtual void	GetMorphFormat() const = 0;
+	virtual MorphFormat_t	GetMorphFormat() const = 0;
 
 	// fast find that stores the index of the found var in the string table in local cache
-	virtual void *FindVarFast(char const *pVarName, unsigned int *pToken) = 0;
+	virtual IMaterialVar* FindVarFast(char const* pVarName, unsigned int* pToken) = 0;
 
 	// Sets new VMT shader parameters for the material
-	virtual void			SetShaderAndParams(void) = 0;
-	virtual const char *GetShaderName() const = 0;
+	virtual void			SetShaderAndParams(KeyValues* pKeyValues) = 0;
+	virtual const char* GetShaderName() const = 0;
 
 	virtual void			DeleteIfUnreferenced() = 0;
 
 	virtual bool			IsSpriteCard() = 0;
 
-	virtual void			CallBindProxy(void *proxyData) = 0;
+	virtual void			CallBindProxy(void* proxyData) = 0;
 
-	virtual IMaterial *CheckProxyReplacement(void *proxyData) = 0;
+	virtual IMaterial* CheckProxyReplacement(void* proxyData) = 0;
 
 	virtual void			RefreshPreservingMaterialVars() = 0;
 
@@ -844,6 +1126,27 @@ public:
 
 };
 
+enum RenderParamInt_t
+{
+	INT_RENDERPARM_ENABLE_FIXED_LIGHTING = 0,
+	INT_RENDERPARM_MORPH_ACCUMULATOR_X_OFFSET,
+	INT_RENDERPARM_MORPH_ACCUMULATOR_Y_OFFSET,
+	INT_RENDERPARM_MORPH_ACCUMULATOR_SUBRECT_WIDTH,
+	INT_RENDERPARM_MORPH_ACCUMULATOR_SUBRECT_HEIGHT,
+	INT_RENDERPARM_MORPH_ACCUMULATOR_4TUPLE_COUNT,
+
+	INT_RENDERPARM_MORPH_WEIGHT_X_OFFSET,
+	INT_RENDERPARM_MORPH_WEIGHT_Y_OFFSET,
+	INT_RENDERPARM_MORPH_WEIGHT_SUBRECT_WIDTH,
+	INT_RENDERPARM_MORPH_WEIGHT_SUBRECT_HEIGHT,
+
+	INT_RENDERPARM_WRITE_DEPTH_TO_DESTALPHA,
+
+	INT_RENDERPARM_BACK_BUFFER_INDEX,
+
+	MAX_INT_RENDER_PARMS = 20
+};
+
 class IRefCounted
 {
 public:
@@ -851,17 +1154,41 @@ public:
 	virtual int Release() = 0;
 };
 
+enum MaterialMatrixMode_t
+{
+	MATERIAL_VIEW = 0,
+	MATERIAL_PROJECTION,
+
+	// Texture matrices
+	MATERIAL_TEXTURE0,
+	MATERIAL_TEXTURE1,
+	MATERIAL_TEXTURE2,
+	MATERIAL_TEXTURE3,
+	MATERIAL_TEXTURE4,
+	MATERIAL_TEXTURE5,
+	MATERIAL_TEXTURE6,
+	MATERIAL_TEXTURE7,
+
+	MATERIAL_MODEL,
+
+	// Total number of matrices
+	NUM_MATRIX_MODES = MATERIAL_MODEL + 1,
+
+	// Number of texture transforms
+	NUM_TEXTURE_TRANSFORMS = MATERIAL_TEXTURE7 - MATERIAL_TEXTURE0 + 1
+};
+
 class IMatRenderContext : public IRefCounted
 {
 public:
-	virtual void BeginRender();
+	virtual void BeginRender(); //Vtable[2]
 	virtual void EndRender();
 	virtual void Flush(bool flushHardware = false);
 	virtual void BindLocalCubemap();
 	virtual void SetRenderTarget(ITexture *pTexture);
 	virtual ITexture *GetRenderTarget();
 	virtual void GetRenderTargetDimensions(int& width, int& height) const = 0;
-	virtual void Bind();
+	virtual void Bind(IMaterial* material, void* proxyData = 0);
 	virtual void BindLightmapPage();
 	virtual void DepthRange();
 	virtual void ClearBuffers(bool bClearColor, bool bClearDepth, bool bClearStencil = false);
@@ -870,9 +1197,9 @@ public:
 	virtual void SetLights();
 	virtual void SetAmbientLightCube();
 	virtual void CopyRenderTargetToTexture(ITexture* pTexture);
-	virtual void SetFrameBufferCopyTexture();
-	virtual void GetFrameBufferCopyTexture();
-	virtual void MatrixMode();
+	virtual void SetFrameBufferCopyTexture(ITexture* pTexture, int textureIndex = 0);
+	virtual ITexture* GetFrameBufferCopyTexture(int textureIndex);
+	virtual void MatrixMode(MaterialMatrixMode_t matrixMode);
 	virtual void PushMatrix();
 	virtual void PopMatrix();
 	virtual void sub_10028460();
@@ -883,15 +1210,15 @@ public:
 	virtual void sub_10028590();
 	virtual void sub_1002CE30();
 	virtual void sub_1002CDF0();
-	virtual void sub_10028670();
-	virtual void sub_100286A0();
-	virtual void sub_10028710();
-	virtual void sub_100287F0();
-	virtual void sub_10028850();
-	virtual void sub_100288B0();
-	virtual void sub_10028910();
-	virtual void sub_100276D0();
+	virtual void LoadIdentity();
+	virtual void Ortho(double left, double top, double right, double bottom, double zNear, double zFar);
+	virtual void PerspectiveX(double fovx, double aspect, double zNear, double zFar);
+	virtual void PickMatrix(int x, int y, int width, int height);
+	virtual void Rotate(float angle, float x, float y, float z);
+	virtual void Translate(float x, float y, float z);
+	virtual void Scale(float x, float y, float z);
 	virtual void Viewport(int x, int y, int width, int height);
+	virtual void GetViewport(int& x, int& y, int& width, int& height);
 	virtual void sub_10016F00();
 	virtual void sub_100173B0();
 	virtual void sub_100173E0();
@@ -927,7 +1254,7 @@ public:
 	virtual void sub_10016FB0();
 	virtual void sub_10016FE0();
 	//virtual void sub_10017000();
-	virtual void ClearColor4ub(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
+	virtual void ClearColor4ub(unsigned char r, unsigned char g, unsigned char b, unsigned char a); //Vtable[74]
 	virtual void sub_100170E0();
 	virtual void sub_100172C0();
 	virtual void sub_10028DF0();
@@ -957,8 +1284,18 @@ public:
 	virtual void sub_10029100();
 	virtual void sub_1002A400();
 	virtual void sub_10024150();
-	virtual void GetWindowSize(int &, int &);
-	virtual void DrawScreenSpaceRectangle() = 0;
+	virtual void GetWindowSize(int &, int &); //104
+	virtual void DrawScreenSpaceRectangle(IMaterial* pMaterial,
+		int destx, int desty,
+		int width, int height,
+		float src_texture_x0, float src_texture_y0,			// which texel you want to appear at
+		// destx/y
+		float src_texture_x1, float src_texture_y1,			// which texel you want to appear at
+		// destx+width-1, desty+height-1
+		int src_texture_width, int src_texture_height,		// needed for fixup
+		void* pClientRenderable = NULL,
+		int nXDice = 1,
+		int nYDice = 1) = 0;
 	virtual void sub_10027EA0() = 0;
 	virtual void PushRenderTargetAndViewport() = 0;
 	virtual void PushRenderTargetAndViewport(ITexture*) = 0;
@@ -969,9 +1306,9 @@ public:
 	virtual void CopyRenderTargetToTextureEx(ITexture*, int, Rect_t*, Rect_t*) = 0;
 	virtual void sub_10028030() = 0;
 	virtual void sub_10028770() = 0;
-	virtual void sub_10017640() = 0;
-	virtual void sub_100176E0() = 0;
-	virtual void sub_10017820() = 0;
+	virtual void SetFloatRenderingParameter(int, float) = 0;
+	virtual void SetIntRenderingParameter(int, int) = 0;
+	virtual void SetVectorRenderingParameter(int, Vector) = 0;
 	virtual void sub_10017870() = 0;
 	virtual void sub_100178B0() = 0;
 	virtual void sub_10027620() = 0;
@@ -2017,7 +2354,7 @@ public:
 	virtual void sub_1000D940() = 0;
 	virtual void sub_10009A30() = 0;
 	virtual void sub_10008490() = 0;
-	virtual void sub_10008450() = 0;
+	virtual void DrawSetTextureFile(int id, const char* filename, int hardwareFilter, bool forceReload) = 0;
 	virtual void sub_1000E890() = 0;
 	virtual void nullsub_28() = 0;
 	virtual void sub_10008EC0() = 0;
@@ -2025,7 +2362,7 @@ public:
 	virtual void nullsub_29() = 0;
 	virtual void sub_10008D60() = 0;
 	virtual void sub_10008DB0() = 0;
-	virtual void GetScreenSize(int& iWide, int& iTall) = 0;
+	virtual void GetScreenSize(int& iWide, int& iTall) = 0; //Vtable[42]
 	virtual void sub_10013B40() = 0;
 	virtual void nullsub_31() = 0;
 	virtual void sub_10013BC0() = 0;
@@ -2094,8 +2431,8 @@ public:
 	virtual void sub_10004A70() = 0;
 	virtual void sub_100055F0() = 0;
 	virtual void sub_10007470() = 0;
-	virtual void sub_10007650() = 0;
-	virtual void sub_100069D0() = 0;
+	virtual void DrawSetAlphaMultiplier(float alpha) = 0;
+	virtual float DrawGetAlphaMultiplier() = 0;
 	virtual void sub_100064F0() = 0;
 	virtual void OnScreenSizeChanged(int nOldWidth, int nOldHeight) = 0;
 	virtual void sub_100069E0() = 0;
@@ -2139,13 +2476,25 @@ public:
 	int m_iLastFiredPortal; //0xE9C
 }; static_assert(sizeof(CWeaponPortalBase) == 0xEA0);
 
+class CBaseCombatWeapon
+{
+public:
+	inline int LookupAttachment(const char* szName) {
+		typedef int(__fastcall* tLookupAttachment)(CBaseCombatWeapon* thisptr, void* edx, const char* szName);
+		uintptr_t table = *(uintptr_t*)((uintptr_t)this + 4);
+		tLookupAttachment oLookupAttachment = (tLookupAttachment)(table + 0x84);
+
+		return oLookupAttachment(this, nullptr, szName);
+	}
+};
+
 class C_Portal_Player
 {
 public:
 	inline CWeaponPortalBase* GetActivePortalWeapon() {
-		typedef CWeaponPortalBase* (__thiscall* tGetActivePortalWeapon)(void* thisptr);
-		//static tGetActivePortalWeapon oGetActivePortalWeapon = (tGetActivePortalWeapon)(g_Game->m_Offsets->GetActivePortalWeapon.address);
-		static tGetActivePortalWeapon oGetActivePortalWeapon = (tGetActivePortalWeapon)(*(uintptr_t*)this + 968);
+		uintptr_t* vtable = *(uintptr_t**)this;
+		auto oGetActivePortalWeapon = (CWeaponPortalBase * (__thiscall*)(void*))vtable[242]; // index 242 / this + 968 bytes
+
 		return oGetActivePortalWeapon(this);
 	};
 
@@ -2231,3 +2580,246 @@ public:
 public:
 	virtual void GetInternalAbsPos(int& x, int& y);
 };
+
+typedef uint32 VPANEL;
+
+class IBaseInterface
+{
+public:
+	virtual	~IBaseInterface() {}
+};
+
+class SurfacePlat;
+class Panel
+{
+public:
+	inline void InvalidateLayout(bool layoutNow = false, bool reloadScheme = false) {
+		uintptr_t* vtable = *(uintptr_t**)this;
+		auto oInvalidateLayout = (void(__thiscall*)(void*, bool, bool))vtable[67]; // index 67 / this + 268 bytes
+
+		oInvalidateLayout(this, layoutNow, reloadScheme);
+	};
+
+	inline void SetSize(int wide, int tall) {
+		typedef void(__thiscall* tSetSize)(void* thisptr, int wide, int tall);
+		static tSetSize oSetSize = (tSetSize)(g_Game->m_Offsets->SetPanelSize.address);
+
+		oSetSize(this, wide, tall);
+	}
+
+	inline int GetWide() {
+		typedef int(__thiscall* tGetWide)(void* thisptr);
+		static tGetWide oGetWide = (tGetWide)(g_Game->m_Offsets->GetPanelWide.address);
+
+		return oGetWide(this);
+	}
+};
+
+
+class IPanel : public IBaseInterface
+{
+public:
+	virtual void *sub_0() = 0;
+
+	// methods
+	virtual void SetPos(VPANEL vguiPanel, int x, int y) = 0;
+	virtual void GetPos(VPANEL vguiPanel, int& x, int& y) = 0;
+	virtual void SetSize(VPANEL vguiPanel, int wide, int tall) = 0;
+	virtual void GetSize(VPANEL vguiPanel, int& wide, int& tall) = 0;
+	virtual void SetMinimumSize(VPANEL vguiPanel, int wide, int tall) = 0;
+	virtual void GetMinimumSize(VPANEL vguiPanel, int& wide, int& tall) = 0;
+	virtual void SetZPos(VPANEL vguiPanel, int z) = 0;
+	virtual int  GetZPos(VPANEL vguiPanel) = 0;
+
+	virtual void GetAbsPos(VPANEL vguiPanel, int& x, int& y) = 0;
+	virtual void GetClipRect(VPANEL vguiPanel, int& x0, int& y0, int& x1, int& y1) = 0;
+	virtual void SetInset(VPANEL vguiPanel, int left, int top, int right, int bottom) = 0;
+	virtual void GetInset(VPANEL vguiPanel, int& left, int& top, int& right, int& bottom) = 0;
+
+	virtual void SetVisible(VPANEL vguiPanel, bool state) = 0;
+	virtual bool IsVisible(VPANEL vguiPanel) = 0;
+	virtual void SetParent(VPANEL vguiPanel, VPANEL newParent) = 0;
+	virtual int GetChildCount(VPANEL vguiPanel) = 0;
+	virtual VPANEL GetChild(VPANEL vguiPanel, int index) = 0;
+	virtual void *sub_1() = 0;
+	virtual VPANEL GetParent(VPANEL vguiPanel) = 0;
+	virtual void MoveToFront(VPANEL vguiPanel) = 0;
+	virtual void MoveToBack(VPANEL vguiPanel) = 0;
+	virtual bool HasParent(VPANEL vguiPanel, VPANEL potentialParent) = 0;
+	virtual bool IsPopup(VPANEL vguiPanel) = 0;
+	virtual void SetPopup(VPANEL vguiPanel, bool state) = 0;
+	virtual bool IsFullyVisible(VPANEL vguiPanel) = 0;
+
+	// gets the scheme this panel uses
+	virtual void* sub_2() = 0;
+	// gets whether or not this panel should scale with screen resolution
+	virtual bool IsProportional(VPANEL vguiPanel) = 0;
+	// returns true if auto-deletion flag is set
+	virtual bool IsAutoDeleteSet(VPANEL vguiPanel) = 0;
+	// deletes the Panel * associated with the vpanel
+	virtual void DeletePanel(VPANEL vguiPanel) = 0;
+
+	// input interest
+	virtual void SetKeyBoardInputEnabled(VPANEL vguiPanel, bool state) = 0;
+	virtual void SetMouseInputEnabled(VPANEL vguiPanel, bool state) = 0;
+	virtual bool IsKeyBoardInputEnabled(VPANEL vguiPanel) = 0;
+	virtual bool IsMouseInputEnabled(VPANEL vguiPanel) = 0;
+
+	// calculates the panels current position within the hierarchy
+	virtual void Solve(VPANEL vguiPanel) = 0;
+
+	// gets names of the object (for debugging purposes)
+	virtual const char* GetName(VPANEL vguiPanel) = 0;
+	virtual const char* GetClassName(VPANEL vguiPanel) = 0;
+
+	// delivers a message to the panel
+	virtual void SendMessage(VPANEL vguiPanel, KeyValues* params, VPANEL ifromPanel) = 0;
+
+	// these pass through to the IClientPanel
+	virtual void Think(VPANEL vguiPanel) = 0;
+	virtual void PerformApplySchemeSettings(VPANEL vguiPanel) = 0;
+	virtual void PaintTraverse(VPANEL vguiPanel, bool forceRepaint, bool allowForce = true) = 0;
+	virtual void Repaint(VPANEL vguiPanel) = 0;
+	virtual VPANEL IsWithinTraverse(VPANEL vguiPanel, int x, int y, bool traversePopups) = 0;
+	virtual void OnChildAdded(VPANEL vguiPanel, VPANEL child) = 0;
+	virtual void OnSizeChanged(VPANEL vguiPanel, int newWide, int newTall) = 0;
+
+	virtual void InternalFocusChanged(VPANEL vguiPanel, bool lost) = 0;
+	virtual bool RequestInfo(VPANEL vguiPanel, KeyValues* outputData) = 0;
+	virtual void RequestFocus(VPANEL vguiPanel, int direction = 0) = 0;
+	virtual bool RequestFocusPrev(VPANEL vguiPanel, VPANEL existingPanel) = 0;
+	virtual bool RequestFocusNext(VPANEL vguiPanel, VPANEL existingPanel) = 0;
+	virtual VPANEL GetCurrentKeyFocus(VPANEL vguiPanel) = 0;
+	virtual int GetTabPosition(VPANEL vguiPanel) = 0;
+
+	// used by ISurface to store platform-specific data
+	virtual SurfacePlat* Plat(VPANEL vguiPanel) = 0;
+	virtual void SetPlat(VPANEL vguiPanel, SurfacePlat* Plat) = 0;
+
+	// returns a pointer to the vgui controls baseclass Panel *
+	// destinationModule needs to be passed in to verify that the returned Panel * is from the same module
+	// it must be from the same module since Panel * vtbl may be different in each module
+	virtual Panel* GetPanel(VPANEL vguiPanel, const char* destinationModule) = 0;
+
+	virtual bool IsEnabled(VPANEL vguiPanel) = 0;
+	virtual void SetEnabled(VPANEL vguiPanel, bool state) = 0;
+
+	// Used by the drag/drop manager to always draw on top
+	virtual bool IsTopmostPopup(VPANEL vguiPanel) = 0;
+	virtual void SetTopmostPopup(VPANEL vguiPanel, bool state) = 0;
+
+	// sibling pins
+	virtual void SetSiblingPin(VPANEL vguiPanel, VPANEL newSibling, byte iMyCornerToPin = 0, byte iSiblingCornerToPinTo = 0) = 0;
+};
+
+enum SkyboxVisibility_t
+{
+	SKYBOX_NOT_VISIBLE = 0,
+	SKYBOX_3DSKYBOX_VISIBLE,
+	SKYBOX_2DSKYBOX_VISIBLE,
+};
+
+enum view_id_t
+{
+	VIEW_ILLEGAL = -2,
+	VIEW_NONE = -1,
+	VIEW_MAIN = 0,
+	VIEW_3DSKY = 1,
+	VIEW_MONITOR = 2,
+	VIEW_REFLECTION = 3,
+	VIEW_REFRACTION = 4,
+	VIEW_INTRO_PLAYER = 5,
+	VIEW_INTRO_CAMERA = 6,
+	VIEW_SHADOW_DEPTH_TEXTURE = 7,
+	VIEW_SSAO = 8,
+	VIEW_ID_COUNT
+};
+
+#define MAX_VIS_LEAVES 32
+
+struct VisOverrideData_t
+{
+	Vector		m_vecVisOrigin;					// The point to to use as the viewpoint for area portal backface cull checks.
+	float		m_fDistToAreaPortalTolerance;	// The distance from an area portal before using the full screen as the viewable portion.
+};
+
+struct ViewCustomVisibility_t
+{
+	ViewCustomVisibility_t()
+	{
+		m_nNumVisOrigins = 0;
+		m_VisData.m_fDistToAreaPortalTolerance = FLT_MAX;
+		m_iForceViewLeaf = -1;
+	}
+
+	void AddVisOrigin(const Vector& origin)
+	{
+		// Don't allow them to write past array length
+		AssertMsg(m_nNumVisOrigins < MAX_VIS_LEAVES, "Added more origins than will fit in the array!");
+
+		// If the vis origin count is greater than the size of our array, just fail to add this origin
+		if (m_nNumVisOrigins >= MAX_VIS_LEAVES)
+			return;
+
+		m_rgVisOrigins[m_nNumVisOrigins++] = origin;
+	}
+
+	void ForceVisOverride(VisOverrideData_t& visData)
+	{
+		m_VisData = visData;
+	}
+
+	void ForceViewLeaf(int iViewLeaf)
+	{
+		m_iForceViewLeaf = iViewLeaf;
+	}
+
+	// Set to true if you want to use multiple origins for doing client side map vis culling
+	// NOTE:  In generaly, you won't want to do this, and by default the 3d origin of the camera, as above,
+	//  will be used as the origin for vis, too.
+	int				m_nNumVisOrigins;
+	// Array of origins
+	Vector			m_rgVisOrigins[MAX_VIS_LEAVES];
+
+	// The view data overrides for visibility calculations with area portals
+	VisOverrideData_t m_VisData;
+
+	// The starting leaf to determing which area to start in when performing area portal culling on the engine
+	// Default behavior is to use the leaf the camera position is in.
+	int				m_iForceViewLeaf;
+};
+
+enum VGuiPanel_t
+{
+	PANEL_ROOT = 0, //"SDK Root Panel"
+	PANEL_GAMEUIDLL, //"GameUI Panel", "engine.dll"
+	PANEL_CLIENTDLL, //"staticClientDLLPanel", "client.dll"
+	PANEL_TOOLS, //"Engine Tools", "engine.dll"
+	PANEL_INGAMESCREENS,
+	PANEL_GAMEDLL, //"staticGameDLLPanel"
+	PANEL_CLIENTDLL_TOOLS, //"staticClientDLLToolsPanel", "client.dll"
+	PANEL_SIZING,
+};
+
+typedef uint32 HScheme;
+
+struct WorkshopMapDesc_t
+{
+	char	szMapName[MAX_PATH];
+	char	szOriginalMapName[MAX_PATH];
+	uint32	uTimestamp;
+	bool	bDownloaded;
+};
+
+class IEngineVGui
+{
+public:
+	virtual					~IEngineVGui(void) {}
+
+	virtual VPANEL	GetPanel(VGuiPanel_t type) = 0;
+
+	virtual bool			IsGameUIVisible() = 0;
+
+	virtual bool			GetWorkshopMap(uint32 uIndex, WorkshopMapDesc_t* pDesc) = 0;
+};
+

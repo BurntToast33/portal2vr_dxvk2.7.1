@@ -2,6 +2,9 @@
 #include "openvr.h"
 #include "vector.h"
 #include <chrono>
+#include <thread>
+#include <unordered_map>
+#include "dxvk/src/dxvk/dxvk_image.h"
 
 #define MAX_STR_LEN 256
 
@@ -24,6 +27,11 @@ struct SharedTextureHolder
 {
 	vr::VRVulkanTextureData_t m_VulkanData;
 	vr::Texture_t m_VRTexture;
+
+	ITexture* m_ITex = nullptr;
+
+	IDirect3DSurface9* m_Surface = nullptr;
+	IDirect3DSurface9* m_MSAASurface = nullptr;
 };
 
 class VR
@@ -35,23 +43,20 @@ public:
 	vr::IVRInput *m_Input = nullptr;
 	vr::IVROverlay *m_Overlay = nullptr;
 
-	vr::VROverlayHandle_t m_MainMenuHandle;
+	vr::VROverlayHandle_t m_MainMenuHandle = 0;
 	//vr::VROverlayHandle_t m_HUDHandle;
 
-	float m_HorizontalOffsetLeft;
-	float m_VerticalOffsetLeft;
-	float m_HorizontalOffsetRight;
-	float m_VerticalOffsetRight;
+	float m_HorizontalOffsetLeft = 0;
+	float m_VerticalOffsetLeft = 0;
+	float m_HorizontalOffsetRight = 0;
+	float m_VerticalOffsetRight = 0;
 
-	uint32_t m_RenderWidth;
-	uint32_t m_RenderHeight;
-	uint32_t m_AntiAliasing;
-	uint32_t m_RenderWindow;
-	float m_Aspect;
-	float m_Fov;
+	uint32_t m_RenderWidth = 0, m_RenderHeight = 0;
+	float m_Aspect = 0;
+	float m_Fov = 0;
 
 	vr::VRTextureBounds_t m_TextureBounds[2];
-	vr::TrackedDevicePose_t m_Poses[vr::k_unMaxTrackedDeviceCount];
+	vr::TrackedDevicePose_t m_Poses[vr::k_unMaxTrackedDeviceCount] = {};
 
 	Vector m_EyeToHeadTransformPosLeft = { 0,0,0 };
 	Vector m_EyeToHeadTransformPosRight = { 0,0,0 };
@@ -102,76 +107,76 @@ public:
 	Vector m_ViewmodelPosCustomOffset; // Custom (from config) viewmodel position offset applied on top of hardcoded ones
     QAngle m_ViewmodelAngCustomOffset; // Custom (from config) viewmodel angle offset applied on top of hardcoded ones
 
-	float m_Ipd;																	
-	float m_EyeZ;
+	float m_Ipd = 0;																	
+	float m_EyeZ = 0;
 
 	Vector m_IntendedPositionOffset = { 0,0,0 };
 
 	enum TextureID
 	{
-		Texture_None = -1,
+		Texture_None = 0,
 		Texture_LeftEye,
 		Texture_RightEye,
-		Texture_HUD,
-		Texture_Blank
+		Texture_Blank,
+		Texture_Menu,
+		Texture_MenuCapture
 	};
 
-	ITexture *m_LeftEyeTexture;
-	ITexture *m_RightEyeTexture;
-	ITexture *m_HUDTexture;
-	ITexture *m_BlankTexture = nullptr;
+	SharedTextureHolder m_LeftEye;
+	SharedTextureHolder m_RightEye;
+	SharedTextureHolder m_BackBuffer;
+	SharedTextureHolder m_BlankTexture;
+	SharedTextureHolder m_MenuTexture;
+	SharedTextureHolder m_MenuCaptureTexture;
 
-	IDirect3DSurface9 *m_D9LeftEyeSurface;
-	IDirect3DSurface9 *m_D9RightEyeSurface;
-	IDirect3DSurface9 *m_D9HUDSurface;
-	IDirect3DSurface9 *m_D9BlankSurface;
-
-	SharedTextureHolder m_VKLeftEye;
-	SharedTextureHolder m_VKRightEye;
-	SharedTextureHolder m_VKBackBuffer;
-	SharedTextureHolder m_VKHUD;
-	SharedTextureHolder m_VKBlankTexture;
+	bool m_ResolveTex = false;
 
 	bool m_IsVREnabled = false;
 	bool m_IsInitialized = false;
-	bool m_RenderedNewFrame = false;
 	bool m_RenderedHud = false;
 	bool m_CreatedVRTextures = false;
 	bool m_DrawCrosshair = false;
 	TextureID m_CreatingTextureID = Texture_None;
 
 	bool m_PressedTurn = false;
-	bool m_PushingThumbstick = false;
-	bool m_PointerCreated = false;
+	bool m_LastOverlayRepos = false; //False = world space, True = headset space
+
+	float m_WScaleDownRatio, m_HScaleDownRatio, m_WScaleUpRatio, m_HScaleUpRatio;
+
+	std::unordered_map<std::string, std::string> m_BackgroundMapping;
+	std::unordered_map<VR::TextureID, SharedTextureHolder*> m_TextureMap;
+	bool m_IsLevelBackground = false;
+	bool m_StopLoading3DBgr = false;
+	bool m_IsCredits = false;
 
 	// action set
-	vr::VRActionSetHandle_t m_ActionSet;
-	vr::VRActiveActionSet_t m_ActiveActionSet;
+	vr::VRActionSetHandle_t m_ActionSet = {};
+	vr::VRActiveActionSet_t m_ActiveActionSet = {};
 
 	// actions
-	vr::VRActionHandle_t m_ActionJump;
-	vr::VRActionHandle_t m_ActionPrimaryAttack;
-	vr::VRActionHandle_t m_ActionSecondaryAttack;
-	vr::VRActionHandle_t m_ActionReload;
-	vr::VRActionHandle_t m_ActionWalk;
-	vr::VRActionHandle_t m_ActionTurn;
-	vr::VRActionHandle_t m_ActionUse;
-	vr::VRActionHandle_t m_ActionNextItem;
-	vr::VRActionHandle_t m_ActionPrevItem;
-	vr::VRActionHandle_t m_ActionResetPosition;
-	vr::VRActionHandle_t m_ActionCrouch;
-	vr::VRActionHandle_t m_ActionFlashlight;
-	vr::VRActionHandle_t m_ActionActivateVR;
-	vr::VRActionHandle_t m_MenuSelect;
-	vr::VRActionHandle_t m_MenuBack;
-	vr::VRActionHandle_t m_MenuUp;
-	vr::VRActionHandle_t m_MenuDown;
-	vr::VRActionHandle_t m_MenuLeft;
-	vr::VRActionHandle_t m_MenuRight;
-	vr::VRActionHandle_t m_Spray; 
-	vr::VRActionHandle_t m_Scoreboard;
-	vr::VRActionHandle_t m_ShowHUD;
-	vr::VRActionHandle_t m_Pause;
+	vr::VRActionHandle_t m_ActionJump = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ActionPrimaryAttack = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ActionSecondaryAttack = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ActionReload = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ActionWalk = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ActionTurn = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ActionUse = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ActionNextItem = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ActionPrevItem = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ActionResetPosition = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ActionCrouch = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ActionFlashlight = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ActionActivateVR = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_MenuSelect = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_MenuBack = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_MenuUp = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_MenuDown = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_MenuLeft = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_MenuRight = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_Spray = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_Scoreboard = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_ShowHUD = vr::k_ulInvalidActionHandle;
+	vr::VRActionHandle_t m_Pause = vr::k_ulInvalidActionHandle;
 
 	TrackedDevicePoseData m_HmdPose;
 	TrackedDevicePoseData m_LeftControllerPose;
@@ -183,6 +188,7 @@ public:
 	bool m_OverrideEyeAngles = false;
 	std::chrono::steady_clock::time_point m_PrevFrameTime;
 
+	//Settings
 	float m_TurnSpeed = 0.15;
 	bool m_SnapTurning = false;
 	float m_SnapTurnAngle = 45.0;
@@ -194,12 +200,23 @@ public:
 	float m_HudSize = 4.0;
 	bool m_HudAlwaysVisible = false;
 	int m_AimMode = 2;
+	bool m_3DMenu = false;
+	bool m_RenderWindow = false;
+	uint32_t m_AntiAliasing = 0;
+
+
+	uint64_t m_SteamID = 0; //Used to know the exact directory to find the save files
+
 
 	VR() {};
 	VR(Game *game);
+	~VR();
+	void CreateHashMaps();
 	int SetActionManifest(const char *fileName);
 	void InstallApplicationManifest(const char *fileName);
-	void Update();
+	void PreUpdate();
+	void PostUpdate();
+	void FirstFrameUpdate();
 	void SetScreenSizeOverride(bool bState);
 	void CreateVRTextures();
 	void SubmitVRTextures();
@@ -227,9 +244,13 @@ public:
 	bool PressedDigitalAction(vr::VRActionHandle_t &actionHandle, bool checkIfActionChanged = false);
 	bool GetAnalogActionData(vr::VRActionHandle_t &actionHandle, vr::InputAnalogActionData_t &analogDataOut);
 	void ResetPosition();
-	void GetPoseData(vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseData &poseOut);
+	void GetPoseData(const vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseData &poseOut);
 	void ParseConfigFile();
 	void WaitForConfigUpdate();
 	Vector Trace(uint32_t* localPlayer);
 	Vector TraceEye(uint32_t* localPlayer, Vector cameraPos, Vector eyePos, QAngle& eyeAngle);
+	void Load3DMenu();
+	std::string GetMapFromSave(const char* fileName);
+	std::string GetNewestPortal2SavePath(const std::string& baseDir);
+	bool ShouldCapture();
 };

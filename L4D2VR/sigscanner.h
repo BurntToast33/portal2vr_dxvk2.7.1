@@ -9,7 +9,7 @@ class SigScanner
 public:
 	// Returns 0 if current offset matches, -1 if no matches found.
 	// A value > 0 is the new offset.
-	static int VerifyOffset(std::string moduleName, int currentOffset, std::string signature, int sigOffset = 0)
+	static int VerifyOffset(std::string hookName, std::string moduleName, int currentOffset, std::string signature, int sigOffset = 0)
 	{
 		HMODULE hModule = GetModuleHandle(moduleName.c_str());
 		MODULEINFO moduleInfo;
@@ -62,7 +62,27 @@ public:
 				return i + sigOffset;
 			}
 		}
-		return -1;
 
+		uint8_t* testAddr = bytes + (currentOffset - sigOffset);
+		DumpBytes(hookName, testAddr, patternLen);
+		return -1;
+	}
+
+	static void DumpBytes(std::string hookName, uint8_t* addr, int length)
+	{
+		std::ostringstream msg;
+
+		msg << hookName << "'s raw bytes: ";
+		for (int i = 0; i < length; i++)
+		{
+			msg << std::hex
+				<< std::setw(2)
+				<< std::setfill('0')
+				<< (int)addr[i] << " ";
+		}
+
+		msg << std::dec;
+
+		g_Game->logMsg(LOGTYPE_DEBUG, msg.str().c_str());
 	}
 };

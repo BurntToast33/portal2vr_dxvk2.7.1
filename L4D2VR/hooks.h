@@ -27,17 +27,20 @@ struct Hook {
 	T fOriginal;
 	LPVOID pTarget;
 	bool isEnabled;
+	std::string* hookName;
 
-	int createHook(LPVOID targetFunc, LPVOID detourFunc)
+	int createHook(std::string* hookName, LPVOID targetFunc, LPVOID detourFunc)
 	{
-		if (MH_CreateHook(targetFunc, detourFunc, reinterpret_cast<LPVOID *>(&fOriginal)) != MH_OK)
+		MH_STATUS status = MH_CreateHook(targetFunc, detourFunc, reinterpret_cast<LPVOID*>(&fOriginal));
+		if ( status != MH_OK)
 		{
-			char errorString[512];
-			sprintf_s(errorString, 512, "Failed to create hook with this signature: %s", typeid(T).name());
-			Game::errorMsg(errorString);
+			Game::errorMsg(("Failed to create hook: " + *hookName + " with status: " + MH_StatusToString(status)).c_str());
 			return 1;
 		}
 		pTarget = targetFunc;
+		this->hookName = hookName;
+
+		return 0;
 	}
 
 	int enableHook()
@@ -48,22 +51,25 @@ struct Hook {
 		MH_STATUS status = MH_EnableHook(pTarget);
 		if (status != MH_OK)
 		{
-			char errorString[256];
-			sprintf_s(errorString, 256, "Failed to enable hook: %i", status);
-			Game::errorMsg(errorString);
+			Game::errorMsg(("Failed to enable hook: " + *this->hookName + ", status: " + MH_StatusToString(status)).c_str());
 			return 1;
 		}
 		isEnabled = true;
+
+		return 0;
 	}
 
 	int disableHook()
 	{
-		if (MH_DisableHook(pTarget) != MH_OK)
+		MH_STATUS status = MH_DisableHook(pTarget);
+		if ( status != MH_OK)
 		{
-			Game::errorMsg("Failed to disable hook");
+			Game::errorMsg(("Failed to disable hook: " + *this->hookName + ", status: " + MH_StatusToString(status)).c_str());
 			return 1;
 		}
 		isEnabled = false;
+
+		return 0;
 	}
 };
 
@@ -89,10 +95,10 @@ typedef void(__thiscall *tPopRenderTargetAndViewport)(void *thisptr);
 typedef void(__thiscall *tVgui_Paint)(void *thisptr, int mode);
 typedef int(__cdecl *tIsSplitScreen)();
 typedef DWORD *(__thiscall *tPrePushRenderTarget)(void *thisptr, int a2);
-typedef ITexture* (__thiscall* tGetFullScreenTexture)();
+typedef ITexture* (__thiscall *tGetFullScreenTexture)();
+typedef void(__thiscall* tPaintTraverse)(void* thisptr, VPANEL vguiPanel, bool forceRepaint, bool allowForce);
 
 typedef bool(__thiscall* tTraceFirePortal)(void* thisptr, const Vector& vTraceStart, const Vector& vDirection, bool bPortal2, int iPlacedBy, void* tr);
-
 typedef void(__thiscall* tPlayerPortalled)(void* thisptr, void* a2, __int64 a3);
 
 typedef int(__thiscall* tGetModeHeight)(void* thisptr);
@@ -104,11 +110,11 @@ typedef void(__cdecl* tVGui_GetPanelBounds)(int slot, int& x, int& y, int& w, in
 // HUD
 typedef void(__cdecl* tVGUI_UpdateScreenSpaceBounds)(int nNumSplits, int sx, int sy, int sw, int sh);
 typedef void(__cdecl* tVGui_GetTrueScreenSize)(int &w, int &h);
+typedef void(__thiscall* tPrepareCredits)(void* thisptr, const char* pKeyName);
 
 typedef void(__cdecl* tGetHudSize)(int& w, int& h);
 
 typedef void(__thiscall* tSetBounds)(void* thisptr, int x, int y, int w, int h);
-typedef void(__thiscall* tSetSize)(void* thisptr, int wide, int tall);
 typedef void(__thiscall* tGetScreenSize)(void* thisptr, int& wide, int& tall);
 typedef void(__thiscall* tPush2DView)(void* thisptr, IMatRenderContext* pRenderContext, const CViewSetup& view, int nFlags, ITexture* pRenderTarget, void* frustumPlanes);
 typedef void(__thiscall* tRender)(void* thisptr, vrect_t* rect);
@@ -127,7 +133,7 @@ typedef int(__cdecl* tGetDefaultFOV)(void*& thisptr);
 typedef double(__cdecl* tGetFOV)(void*& thisptr);
 typedef double(__cdecl* tGetViewModelFOV)(void*& thisptr);
 
-typedef void(__thiscall* tCreatePingPointer)(void* thisptr, Vector vecDestintaion);
+typedef void(__thiscall* tCreatePingPointer)(void* thisptr, VectorByValue vecDestintaion);
 typedef void(__thiscall* tSetDrawOnlyForSplitScreenUser)(void* thisptr, int nSlot);
 typedef void(__thiscall* tClientThink)(void* thisptr);
 typedef void*(__cdecl* tGetPortalPlayer)(int index);
@@ -141,6 +147,9 @@ typedef void(__cdecl* tUTIL_Portal_AngleTransform)(const VMatrix& matThisToLinke
 typedef int(__thiscall* tEntindex)(void* thisptr);
 typedef void*(__thiscall* tGetOwner)(void* thisptr);
 typedef void* (__thiscall* tCWeaponPortalgun_FirePortal)(void* thisptr, bool bPortal2, Vector* pVector);
+
+//Map related
+typedef bool(__thiscall* tLevelInit)(void* thisptr, const char* pMapName, char const* pMapEntities, char const* pOldLevel, char const* pLandmarkName, bool loadGame, bool background);
 
 class Hooks
 {
@@ -188,7 +197,6 @@ public:
 	static inline Hook<tRender> hkRender;
 	static inline Hook<tGetClipRect> hkGetClipRect;
 	static inline Hook<tGetHudSize> hkGetHudSize;
-	static inline Hook<tSetSize> hkSetSize;
 	
 	static inline Hook<tComputeError> hkComputeError;
 	static inline Hook<tUpdateObject> hkUpdateObject;
@@ -208,20 +216,30 @@ public:
 	static inline Hook<tCHudCrosshair_ShouldDraw> hkCHudCrosshair_ShouldDraw;
 	static inline Hook<tCWeaponPortalgun_FirePortal> hkCWeaponPortalgun_FirePortal;
 
-	//Precache
+	static inline Hook<tPaintTraverse> hkPaintTraverse;
+	static inline Hook<tLevelInit> hkLevelInit;
+	static inline Hook<tPrepareCredits> hkPrepareCredits;
+
+
+	static inline bool m_FirstFrame = true;
 
 	Hooks() {};
 	Hooks(Game *game);
 
 	~Hooks();
 
-	int initSourceHooks();
+	template <typename T>
+	void BuildHook(Hook<T>* hook, Offset* offset, LPVOID detourFunc, bool enabled = true) {
+		int res = hook->createHook(&offset->hookName, reinterpret_cast<LPVOID>(offset->address), detourFunc);
+
+		if (res) m_Game->logMsg(LOGTYPE_WARNING, "Failed to create hook: %s", hook->hookName);
+		if (enabled && !res) hook->enableHook();
+	}
+
 
 	// Detour functions
-	static ITexture *__fastcall dGetRenderTarget(void *ecx, void *edx);
 	static void __fastcall dRenderView(void *ecx, void *edx, CViewSetup &setup, CViewSetup &hudViewSetup, int nClearFlags, int whatToDraw);
 	static bool __fastcall dCreateMove(void *ecx, void *edx, float flInputSampleTime, CUserCmd *cmd);
-	static void __fastcall dEndFrame(void *ecx, void *edx);
 	static void __fastcall dCalcViewModelView(void *ecx, void *edx, const Vector &eyePosition, const QAngle &eyeAngles);
 	static int dServerFireTerrorBullets(int playerId, const Vector &vecOrigin, const QAngle &vecAngles, int a4, int a5, int a6, float a7);
 	static int dClientFireTerrorBullets(int playerId, const Vector &vecOrigin, const QAngle &vecAngles, int a4, int a5, int a6, float a7);
@@ -238,14 +256,13 @@ public:
 	static int __fastcall dPrimaryAttackServer(void *ecx, void *edx);
 	static void __fastcall dItemPostFrameServer(void *ecx, void *edx);
 	static int __fastcall dGetPrimaryAttackActivity(void *ecx, void *edx, void* meleeInfo);
-	static Vector *__fastcall dEyePosition(void *ecx, void *edx, Vector *eyePos);
 	static void __fastcall dDrawModelExecute(void *ecx, void* edx, void *state, const ModelRenderInfo_t &info, void *pCustomBoneToWorld);
 	static void __fastcall dPushRenderTargetAndViewport(void *ecx, void *edx, ITexture *pTexture, ITexture *pDepthTexture, int nViewX, int nViewY, int nViewW, int nViewH);
 	static void __fastcall dPopRenderTargetAndViewport(void *ecx, void *edx);
 	static void __fastcall dVGui_Paint(void *ecx, void *edx, int mode);
 	static int __fastcall dIsSplitScreen();
 	static DWORD *__fastcall dPrePushRenderTarget(void *ecx, void *edx, int a2);
-	static ITexture *__fastcall dGetFullScreenTexture();
+	
 
 	// Fire portals from right controller
 	static bool __fastcall dTraceFirePortal(void* ecx, void* edx, const Vector& vTraceStart, const Vector& vDirection, bool bPortal2, int iPlacedBy, void* tr);
@@ -254,11 +271,9 @@ public:
 	static void __fastcall dPlayerPortalled(void* ecx, void* edx, void* a2, __int64 a3);
 
 	// Crosshair
-	static int __fastcall dGetModeHeight(void* ecx, void* edx);
 	static int __fastcall dDrawSelf(void* ecx, void* edx, int x, int y, int w, int h, const void* clr, float flApparentZ);
 	static bool dClipTransform(const Vector& point, Vector* pScreen);
 	static void __fastcall dSetBounds(void* ecx, void* edx, int x, int y, int w, int h);
-	static void __fastcall dSetSize(void* ecx, void* edx, int wide, int tall);
 	static void __fastcall dGetScreenSize(void* ecx, void* edx, int& wide, int& tall);
 	static void dGetHudSize(int& w, int& h);
 	static void dVGui_GetHudBounds(int slot, int& x, int& y, int& w, int& h);
@@ -285,12 +300,14 @@ public:
 	static double __fastcall dGetViewModelFOV(void* ecx, void* edx);
 
 	static void __fastcall dSetDrawOnlyForSplitScreenUser(void* ecx, void* edx, int nSlot);
-	static void __fastcall dClientThink(void* ecx, void* edx);
-	static void __fastcall dPrecache(void* ecx, void* edx);
 	static bool __fastcall dCHudCrosshair_ShouldDraw(void* ecx, void* edx);
 
 	static void* __fastcall dCWeaponPortalgun_FirePortal(void* ecx, void* edx, bool bPortal2, Vector* pVector = 0);
 
+	static void __fastcall dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bool forceRepaint, bool allowForce = true);
+	static bool __fastcall dLevelInit(void* ecx, void* edx, const char* pMapName, char const* pMapEntities, char const* pOldLevel, char const* pLandmarkName, bool loadGame, bool background);
+	static void __fastcall dPrepareCredits(void* ecx, void* edx, const char* pKeyName);
+	
 	static inline int m_PushHUDStep;
 	static inline bool m_PushedHud;
 

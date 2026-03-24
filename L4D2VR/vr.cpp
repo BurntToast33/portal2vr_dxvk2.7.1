@@ -7,7 +7,6 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <unordered_map>
 #include <string>
 #include <filesystem>
 #include <thread>
@@ -15,10 +14,14 @@
 #include <algorithm>
 #include <d3d9_vr.h>
 
+
+//Toggles
+#define GetControllerTipMatrix_HeapBuffer //Moves some memory allocation of function to heap because it was larger then 32kb
+
+
 VR::VR(Game *game) 
 {
     m_Game = game;
-
     char errorString[MAX_STR_LEN];
 
     vr::HmdError error = vr::VRInitError_None;
@@ -43,7 +46,11 @@ VR::VR(Game *game)
     m_System = vr::OpenVRInternal_ModuleContext().VRSystem();
 
     m_System->GetRecommendedRenderTargetSize(&m_RenderWidth, &m_RenderHeight);
-    m_AntiAliasing = 0;
+
+    m_WScaleDownRatio = (float)m_Game->m_WindowWidth / m_RenderWidth;
+    m_HScaleDownRatio = (float)m_Game->m_WindowHeight / m_RenderHeight;
+    m_WScaleUpRatio = (float)m_RenderWidth / m_Game->m_WindowWidth;
+    m_HScaleUpRatio = (float)m_RenderHeight / m_Game->m_WindowHeight;
 
     float l_left = 0.0f, l_right = 0.0f, l_top = 0.0f, l_bottom = 0.0f;
     m_System->GetProjectionRaw(vr::EVREye::Eye_Left, &l_left, &l_right, &l_top, &l_bottom);
@@ -78,7 +85,7 @@ VR::VR(Game *game)
     while (!g_D3DVR9) 
         Sleep(10);
 
-    g_D3DVR9->GetBackBufferData(&m_VKBackBuffer);
+    g_D3DVR9->GetBackBufferData(&m_BackBuffer);
     m_Overlay = vr::VROverlay();
     m_Overlay->CreateOverlay("MenuOverlayKey", "MenuOverlay", &m_MainMenuHandle);
     //m_Overlay->CreateOverlay("HUDOverlayKey", "HUDOverlay", &m_HUDHandle);
@@ -86,9 +93,6 @@ VR::VR(Game *game)
    // m_Overlay->SetOverlayInputMethod(m_HUDHandle, vr::VROverlayInputMethod_Mouse);
     m_Overlay->SetOverlayFlag(m_MainMenuHandle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
     //m_Overlay->SetOverlayFlag(m_HUDHandle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
-
-    int windowWidth, windowHeight;
-    m_Game->m_MaterialSystem->GetRenderContext()->GetWindowSize(windowWidth, windowHeight);
 
     //const vr::HmdVector2_t mouseScaleHUD = {windowWidth, windowHeight};
     //m_Overlay->SetOverlayMouseScale(m_HUDHandle, &mouseScaleHUD);
@@ -99,16 +103,93 @@ VR::VR(Game *game)
 
     UpdatePosesAndActions();
 
+    m_SteamID = GetSteamID64();
     m_IsInitialized = true;
     m_IsVREnabled = true;
 }
 
+VR::~VR()
+{
+    m_IsInitialized = false;
+    m_IsVREnabled = false;
+}
+
+//Creates the hash maps used to later
+void VR::CreateHashMaps()
+{
+    //Texture mappings
+    m_TextureMap = {
+        { VR::Texture_LeftEye, &m_LeftEye},
+        { VR::Texture_RightEye, &m_RightEye},
+        { VR::Texture_Blank, &m_BlankTexture },
+        { VR::Texture_Menu, &m_MenuTexture },
+        { VR::Texture_MenuCapture, &m_MenuCaptureTexture }
+    };
+
+    m_Game->logMsg(LOGTYPE_DEBUG, "Loaded texture mappings.");
+
+    //Background mappings
+    char path[MAX_STR_LEN]{};
+    sprintf_s(path, MAX_STR_LEN, "%s\\VR\\backgrounds.txt", m_Game->m_GameDir);
+
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        m_Game->logMsg(LOGTYPE_WARNING, "Failed to open: %s%s", path, "\nDisabling 3D backgrounds");
+        m_3DMenu = false;
+        return;
+    }
+
+    m_BackgroundMapping.clear();
+
+    std::string line;
+    while (std::getline(file, line))
+    {
+        //Trimming whitespace before and after data entry
+        line.erase(0, line.find_first_not_of(" \t\r\n"));
+        line.erase(line.find_last_not_of(" \t\r\n") + 1);
+
+        //Skipping empty lines or comments
+        if (line.empty() || line[0] == '#')
+            continue;
+
+        //Finding middle point
+        size_t MiddlePos = line.find('=');
+        if (MiddlePos == std::string::npos)
+            continue;
+
+        //Getting data
+        std::string chapter = line.substr(0, MiddlePos);
+        std::string background = line.substr(MiddlePos + 1);
+
+        //Trimming redundant white space of data
+        chapter.erase(0, chapter.find_first_not_of(" \t\r\n"));
+        chapter.erase(chapter.find_last_not_of(" \t\r\n") + 1);
+
+        background.erase(0, background.find_first_not_of(" \t\r\n"));
+        background.erase(background.find_last_not_of(" \t\r\n") + 1);
+
+        if (!chapter.empty() && !background.empty())
+            m_BackgroundMapping[chapter] = background;
+    }
+
+    file.close();
+
+    if (m_BackgroundMapping.size())
+        m_Game->logMsg(LOGTYPE_DEBUG, "Loaded %zu background mappings.", m_BackgroundMapping.size());
+
+    else
+    {
+        m_Game->logMsg(LOGTYPE_WARNING, "Failed to parse backgrounds.txt or there are no entries.%s", "\nDisabling 3D backgrounds");
+        m_3DMenu = false;
+    }
+}
+
+//Binds actions to variables
 int VR::SetActionManifest(const char *fileName) 
 {
-    char currentDir[MAX_STR_LEN];
-    GetCurrentDirectory(MAX_STR_LEN, currentDir);
     char path[MAX_STR_LEN];
-    sprintf_s(path, MAX_STR_LEN, "%s\\VR\\SteamVRActionManifest\\%s", currentDir, fileName);
+    sprintf_s(path, MAX_STR_LEN, "%s\\VR\\SteamVRActionManifest\\%s", m_Game->m_GameDir, fileName);
 
     if (m_Input->SetActionManifestPath(path) != vr::VRInputError_None) 
     {
@@ -148,10 +229,8 @@ int VR::SetActionManifest(const char *fileName)
 
 void VR::InstallApplicationManifest(const char *fileName)
 {
-    char currentDir[MAX_STR_LEN];
-    GetCurrentDirectory(MAX_STR_LEN, currentDir);
     char path[MAX_STR_LEN];
-    sprintf_s(path, MAX_STR_LEN, "%s\\VR\\%s", currentDir, fileName);
+    sprintf_s(path, MAX_STR_LEN, "%s\\VR\\%s", m_Game->m_GameDir, fileName);
 
     vr::VRApplications()->AddApplicationManifest(path);
 }
@@ -178,158 +257,191 @@ void VR::SetScreenSizeOverride(bool bState) {
     }
 }
 
-void VR::Update()
+void VR::PreUpdate()
+{
+    //Compositing the rendered frame to the back buffer
+    if (m_RenderWindow && m_Game->m_EngineClient->IsInGame())
+    {
+        m_Game->m_DxDevice->StretchRect(
+            m_RightEye.m_Surface, nullptr,
+            m_BackBuffer.m_Surface, nullptr,
+            D3DTEXF_NONE
+        );
+    }
+
+    //Scaling Menu textures
+    if (ShouldCapture()) 
+    {
+        m_Game->m_DxDevice->StretchRect(
+            m_MenuCaptureTexture.m_Surface, nullptr,
+            m_MenuTexture.m_Surface, nullptr,
+            D3DTEXF_LINEAR
+        );
+    } 
+}
+
+
+void VR::PostUpdate()
 {
     if (!m_IsInitialized || !m_Game->m_Initialized)
         return;
 
-    
+    if (!m_IsVREnabled && !g_D3DVR9)
+        return;
 
-    if (m_IsVREnabled && g_D3DVR9)
+    // Prevents crashing at menu
+    if (!m_Game->m_EngineClient->IsInGame())
     {
-        bool inGame = m_Game->m_EngineClient->IsInGame();
+        m_IsCredits = false; //Reset once out of level
+        m_Game->m_CachedArmsModel = false;
+        //m_CreatedVRTextures = false; // Have to recreate textures otherwise some workshop maps won't render
 
-        //SetScreenSizeOverride(inGame);
-
-        // Prevents crashing at menu
-        if (!inGame)
-        {
-            IMatRenderContext *rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
-            rndrContext->SetRenderTarget(NULL);
-            rndrContext->Release();
-
-            m_Game->m_CachedArmsModel = false;
-            m_CreatedVRTextures = false; // Have to recreate textures otherwise some workshop maps won't render
-        } 
+        Load3DMenu();
     }
-
+      
     SubmitVRTextures();
-    UpdatePosesAndActions();
     UpdateTracking();
-
+    UpdatePosesAndActions();
+    
     if (m_Game->m_VguiSurface->IsCursorVisible()) {
         ProcessMenuInput();
     } else {
         ProcessInput();
     }
+
+    //Clearing menu ui for next frame
+    if (m_Game->m_EngineClient->IsInGame())
+    {
+        m_Game->m_DxDevice->SetRenderTarget(0, m_MenuCaptureTexture.m_Surface);
+        m_Game->m_DxDevice->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
+    }
+    else
+        m_Game->m_DxDevice->SetRenderTarget(0, m_BackBuffer.m_Surface);
 }
 
+void VR::FirstFrameUpdate()
+{
+    m_Game->ClientCmd_Unrestricted("mat_motion_blur_enabled 0");
+
+    if (m_Game->m_EngineClient->IsPaused())
+        m_Game->ClientCmd_Unrestricted("pause");
+
+    ResetPosition();
+}
+
+//Creates the target textures on the engine side to get picked up on dxvk side
 void VR::CreateVRTextures()
 {
-    int windowWidth, windowHeight;
-
-    IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
-    rndrContext->GetWindowSize(windowWidth, windowHeight);
-    rndrContext->Release();
-
-    std::cout << "RenderTexture - Width: " << m_RenderWidth << ", Height: " << m_RenderHeight << "\n";
-
     m_Game->m_MaterialSystem->isGameRunning = false;
     m_Game->m_MaterialSystem->BeginRenderTargetAllocation();
     m_Game->m_MaterialSystem->isGameRunning = true;
 
+    //Blank texture gets created when the game is loading
+    if (!m_BlankTexture.m_ITex)
+    {
+        m_CreatingTextureID = Texture_Blank;
+        m_BlankTexture.m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("blankTexture", 512, 512, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SHARED, TEXTUREFLAGS_NOMIP);
+        m_CreatingTextureID = Texture_None;
+    }
+    if (!m_Game->m_EngineClient->IsInGame())
+    {
+        m_Game->m_MaterialSystem->EndRenderTargetAllocation();
+        return;
+    }
+
+
+    //Textures will be recreated every map load
+    m_Game->logMsg(LOGTYPE_DEBUG, "RenderTexture - Width: %d, Height: %d", m_RenderWidth, m_RenderHeight);
+    if (m_LeftEye.m_ITex) m_LeftEye.m_ITex->Release();
+
     m_CreatingTextureID = Texture_LeftEye;
-    m_LeftEyeTexture = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("leftEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
-    
+    m_LeftEye.m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("leftEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
+
+    if (m_RightEye.m_ITex) m_RightEye.m_ITex->Release();
+
     m_CreatingTextureID = Texture_RightEye;
-    m_RightEyeTexture = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("rightEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
+    m_RightEye.m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("rightEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
+    
+    if (m_MenuTexture.m_ITex) m_MenuTexture.m_ITex->Release();
 
-    m_CreatingTextureID = Texture_HUD;
-    m_HUDTexture = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("vrHUD", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SHARED, TEXTUREFLAGS_NOMIP);
-    
-    m_CreatingTextureID = Texture_Blank;
-    m_BlankTexture = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("blankTexture", 512, 512, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SHARED, TEXTUREFLAGS_NOMIP);
-    
+    m_CreatingTextureID = Texture_Menu;
+    m_MenuTexture.m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("menuTex", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SHARED, TEXTUREFLAGS_NOMIP);
+
+    if (m_MenuCaptureTexture.m_ITex) m_MenuCaptureTexture.m_ITex->Release();
+
+    m_CreatingTextureID = Texture_MenuCapture;
+    m_MenuCaptureTexture.m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("menuCapTex", m_Game->m_WindowWidth, m_Game->m_WindowHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SHARED, TEXTUREFLAGS_NOMIP);
+
     m_CreatingTextureID = Texture_None;
-
     m_Game->m_MaterialSystem->EndRenderTargetAllocation();
 
     m_CreatedVRTextures = true;
 }
 
+//Submits vr textures and handles menus
 void VR::SubmitVRTextures()
 {
-    if (!m_RenderedNewFrame)
+    if (!m_CreatedVRTextures)
+        CreateVRTextures();
+
+    //2D mode
+    if (!g_Game->m_EngineClient->IsInGame())
     {
-        if (!m_BlankTexture)
-            CreateVRTextures();
-
-        if (!vr::VROverlay()->IsOverlayVisible(m_MainMenuHandle))
+        if (!m_Overlay->IsOverlayVisible(m_MainMenuHandle) || m_LastOverlayRepos)
+        {
             RepositionOverlays();
-
-        vr::VRTextureBounds_t bounds{ 0, 0, 1, 1 };
-        if (m_Game->m_EngineClient->IsInGame())
-        {
-            // menu only renders to the window portion of the texture. Until we figure out a proper fix,
-            // as a workaround only show that portion of the texture
-            int windowWidth, windowHeight;
-            IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
-            rndrContext->GetWindowSize(windowWidth, windowHeight);
-            rndrContext->Release();
-
-            bounds.uMax = (float)windowWidth / m_RenderWidth;
-            bounds.vMax = (float)windowHeight / m_RenderHeight;
-            vr::VROverlay()->SetOverlayTexelAspect(m_MainMenuHandle, bounds.vMax / bounds.uMax);
-        }
-        else
+            vr::VRTextureBounds_t bounds{ 0, 0, 1, 1 };
+            m_Overlay->SetOverlayTextureBounds(m_MainMenuHandle, &bounds);
             vr::VROverlay()->SetOverlayTexelAspect(m_MainMenuHandle, 1.0f);
-
-        vr::VROverlay()->SetOverlayTextureBounds(m_MainMenuHandle, &bounds);
-        vr::VROverlay()->SetOverlayTexture(m_MainMenuHandle, &m_VKBackBuffer.m_VRTexture);
-        vr::VROverlay()->ShowOverlay(m_MainMenuHandle);
-        //vr::VROverlay()->HideOverlay(m_HUDHandle);
-
-        //if (!m_Game->m_EngineClient->IsInGame())
-        {
-            vr::VRCompositor()->Submit(vr::Eye_Left, &m_VKBlankTexture.m_VRTexture, NULL, vr::Submit_Default);
-            vr::VRCompositor()->Submit(vr::Eye_Right, &m_VKBlankTexture.m_VRTexture, NULL, vr::Submit_Default);
+            m_LastOverlayRepos = false;
         }
+            
+        m_Overlay->SetOverlayTexture(m_MainMenuHandle, &m_BackBuffer.m_VRTexture);
+        m_Overlay->ShowOverlay(m_MainMenuHandle);
 
+        vr::VRCompositor()->Submit(vr::Eye_Left, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
+        vr::VRCompositor()->Submit(vr::Eye_Right, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
         return;
     }
-    vr::VROverlay()->HideOverlay(m_MainMenuHandle);
 
-    //vr::VROverlay()->SetOverlayTexture(m_HUDHandle, &m_VKHUD.m_VRTexture);
-
-    if (m_Game->m_VguiSurface->IsCursorVisible())
+    //3D mode
+    if (ShouldCapture())
     {
-        // We're in the pause menu
-        //vr::VROverlay()->ShowOverlay(m_HUDHandle);
+        if (!m_Overlay->IsOverlayVisible(m_MainMenuHandle) || !m_LastOverlayRepos)
+        {
+            RepositionOverlays();
+            m_LastOverlayRepos = true;
+        }
+
+        m_Overlay->SetOverlayTexture(m_MainMenuHandle, &m_MenuTexture.m_VRTexture);
+        m_Overlay->ShowOverlay(m_MainMenuHandle);
     }
-
-    vr::VRCompositor()->Submit(vr::Eye_Left, &m_VKLeftEye.m_VRTexture, &(m_TextureBounds)[0], vr::Submit_Default);
-    vr::VRCompositor()->Submit(vr::Eye_Right, &m_VKRightEye.m_VRTexture, &(m_TextureBounds)[1], vr::Submit_Default);
-
-    m_RenderedNewFrame = false;
+    else m_Overlay->HideOverlay(m_MainMenuHandle);
+    
+    vr::VRCompositor()->Submit(vr::Eye_Left, &m_LeftEye.m_VRTexture, &(m_TextureBounds)[0], vr::Submit_Default);
+    vr::VRCompositor()->Submit(vr::Eye_Right, &m_RightEye.m_VRTexture, &(m_TextureBounds)[1], vr::Submit_Default);
 }
 
-void VR::GetPoseData(vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseData &poseOut)
+//Converts the raw pose data to usable pose data
+void VR::GetPoseData(const vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseData &poseOut)
 {
-    if (poseRaw.bPoseIsValid) 
-    {
-        vr::HmdMatrix34_t mat = poseRaw.mDeviceToAbsoluteTracking;
-        Vector pos;
-        Vector vel;
-        QAngle ang;
-        QAngle angvel;
-        pos.x = -mat.m[2][3];
-        pos.y = -mat.m[0][3];
-        pos.z = mat.m[1][3];
-        ang.x = asin(mat.m[1][2]) * (180.0 / 3.141592654);
-        ang.y = atan2f(mat.m[0][2], mat.m[2][2]) * (180.0 / 3.141592654);
-        ang.z = atan2f(-mat.m[1][0], mat.m[1][1]) * (180.0 / 3.141592654);
-        vel.x = -poseRaw.vVelocity.v[2];
-        vel.y = -poseRaw.vVelocity.v[0];
-        vel.z = poseRaw.vVelocity.v[1];
-        angvel.x = -poseRaw.vAngularVelocity.v[2] * (180.0 / 3.141592654);
-        angvel.y = -poseRaw.vAngularVelocity.v[0] * (180.0 / 3.141592654);
-        angvel.z = poseRaw.vAngularVelocity.v[1] * (180.0 / 3.141592654);
+    const vr::HmdMatrix34_t mat = poseRaw.mDeviceToAbsoluteTracking;
 
-        poseOut.TrackedDevicePos = pos;
-        poseOut.TrackedDeviceVel = vel;
-        poseOut.TrackedDeviceAng = ang;
-        poseOut.TrackedDeviceAngVel = angvel;
-    }
+    poseOut.TrackedDevicePos.x = -mat.m[2][3];
+    poseOut.TrackedDevicePos.y = -mat.m[0][3];
+    poseOut.TrackedDevicePos.z = mat.m[1][3];
+
+    poseOut.TrackedDeviceAng.x = asinf(mat.m[1][2]) * PRECALC_RAD_TO_DEG;
+    poseOut.TrackedDeviceAng.y = atan2f(mat.m[0][2], mat.m[2][2]) * PRECALC_RAD_TO_DEG;
+    poseOut.TrackedDeviceAng.z = atan2f(-mat.m[1][0], mat.m[1][1]) * PRECALC_RAD_TO_DEG;
+
+    poseOut.TrackedDeviceVel.x = -poseRaw.vVelocity.v[2];
+    poseOut.TrackedDeviceVel.y = -poseRaw.vVelocity.v[0];
+    poseOut.TrackedDeviceVel.z = poseRaw.vVelocity.v[1];
+
+    poseOut.TrackedDeviceAngVel.x = -poseRaw.vAngularVelocity.v[2] * PRECALC_RAD_TO_DEG;
+    poseOut.TrackedDeviceAngVel.y = -poseRaw.vAngularVelocity.v[0] * PRECALC_RAD_TO_DEG;
+    poseOut.TrackedDeviceAngVel.z = poseRaw.vAngularVelocity.v[1] * PRECALC_RAD_TO_DEG;
 }
 
 void VR::RepositionOverlays()
@@ -338,11 +450,9 @@ void VR::RepositionOverlays()
     vr::HmdMatrix34_t hmdMat = hmdPose.mDeviceToAbsoluteTracking;
     Vector hmdPosition = { hmdMat.m[0][3], hmdMat.m[1][3], hmdMat.m[2][3] };
     Vector hmdForward = { -hmdMat.m[0][2], 0, -hmdMat.m[2][2] };
+    VectorNormalize(hmdForward);
 
-    int windowWidth, windowHeight;
-    m_Game->m_MaterialSystem->GetRenderContext()->GetWindowSize(windowWidth, windowHeight);
-
-    vr::HmdMatrix34_t menuTransform = 
+    vr::HmdMatrix34_t menuTransform =
     {
         1.0f, 0.0f, 0.0f, 0.0f,
         0.0f, 1.0f, 0.0f, 1.0f,
@@ -351,82 +461,83 @@ void VR::RepositionOverlays()
 
     vr::ETrackingUniverseOrigin trackingOrigin = vr::VRCompositor()->GetTrackingSpace();
 
-    // Reposition main menu overlay
-    float renderWidth = m_VKBackBuffer.m_VulkanData.m_nWidth;
-    float renderHeight = m_VKBackBuffer.m_VulkanData.m_nHeight;
+    menuTransform.m[0][0] *= m_WScaleDownRatio;
+    menuTransform.m[1][1] *= m_HScaleDownRatio;
 
-    float widthRatio = windowWidth / renderWidth;
-    float heightRatio = windowHeight / renderHeight;
-    menuTransform.m[0][0] *= widthRatio;
-    menuTransform.m[1][1] *= heightRatio;
-
-    hmdForward[1] = 0;
-    VectorNormalize(hmdForward);
-
-    Vector menuDistance = hmdForward * 3;
-    Vector menuNewPos = menuDistance + hmdPosition;
-
-    menuTransform.m[0][3] = menuNewPos.x;
-    menuTransform.m[1][3] = menuNewPos.y - 0.25;
-    menuTransform.m[2][3] = menuNewPos.z;
-
-    float xScale = menuTransform.m[0][0];
-    float hmdRotationDegrees = atan2f(hmdMat.m[0][2], hmdMat.m[2][2]);
-
-    menuTransform.m[0][0] *= cos(hmdRotationDegrees);
-    menuTransform.m[0][2] = sin(hmdRotationDegrees);
-    menuTransform.m[2][0] = -sin(hmdRotationDegrees) * xScale;
-    menuTransform.m[2][2] *= cos(hmdRotationDegrees);
-
-    vr::VROverlay()->SetOverlayTransformAbsolute(m_MainMenuHandle, trackingOrigin, &menuTransform);
-    vr::VROverlay()->SetOverlayWidthInMeters(m_MainMenuHandle, 1.5 * (1.0 / heightRatio));
-
-    // Reposition HUD overlay
-    /*vr::HmdMatrix34_t hudTransform =
+    if (m_Game->m_EngineClient->IsInGame())
     {
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f
-    };
+        //Headspace overlay
+        Vector menuDistance = hmdForward * 3.0f;
+        Vector menuNewPos = hmdPosition + menuDistance;
 
-    Vector hudDistance = hmdForward * m_HudDistance;
-    Vector hudNewPos = hudDistance + hmdPosition;
+        menuTransform.m[0][3] = menuNewPos.x;
+        menuTransform.m[1][3] = menuNewPos.y - 0.25f;
+        menuTransform.m[2][3] = menuNewPos.z;
 
-    hudTransform.m[0][3] = hudNewPos.x;
-    hudTransform.m[1][3] = hudNewPos.y - 0.25;
-    hudTransform.m[2][3] = hudNewPos.z;
+        float xScale = menuTransform.m[0][0];
+        float hmdRotationDegrees = atan2f(hmdMat.m[0][2], hmdMat.m[2][2]);
 
-    hudTransform.m[0][0] *= cos(hmdRotationDegrees);
-    hudTransform.m[0][2] = sin(hmdRotationDegrees);
-    hudTransform.m[2][0] = -sin(hmdRotationDegrees);
-    hudTransform.m[2][2] *= cos(hmdRotationDegrees);
+        menuTransform.m[0][0] *= cos(hmdRotationDegrees);
+        menuTransform.m[0][2] = sin(hmdRotationDegrees);
+        menuTransform.m[2][0] = -sin(hmdRotationDegrees) * xScale;
+        menuTransform.m[2][2] *= cos(hmdRotationDegrees);
+    }
+    else
+    {
+        //World space
+        Vector worldCenter = { 0.0f, 0.0f, 0.0f };
 
-    vr::VROverlay()->SetOverlayTransformAbsolute(m_HUDHandle, trackingOrigin, &hudTransform);
-    vr::VROverlay()->SetOverlayWidthInMeters(m_HUDHandle, m_HudSize);*/
+        Vector vrForward = { 0.0f, 0.0f, -1.0f };
+        Vector overlayPos = worldCenter + vrForward * 3.0f; // Foward Distance
+        overlayPos.y = 1.0f; // Height
+
+        Vector forward = worldCenter - overlayPos;
+        forward.y = 0.0f;
+        VectorNormalize(forward);
+
+        float yaw = atan2f(forward.x, forward.z);
+        float cosYaw = cosf(yaw);
+        float sinYaw = sinf(yaw);
+
+        menuTransform.m[0][0] = cosYaw * m_WScaleDownRatio;
+        menuTransform.m[0][1] = 0.0f;
+        menuTransform.m[0][2] = -sinYaw;
+        menuTransform.m[0][3] = overlayPos.x;
+
+        menuTransform.m[1][0] = 0.0f;
+        menuTransform.m[1][1] = 1.0f * m_HScaleDownRatio;
+        menuTransform.m[1][2] = 0.0f;
+        menuTransform.m[1][3] = overlayPos.y;
+
+        menuTransform.m[2][0] = sinYaw;
+        menuTransform.m[2][1] = 0.0f;
+        menuTransform.m[2][2] = cosYaw;
+        menuTransform.m[2][3] = overlayPos.z;
+    }
+
+    m_Overlay->SetOverlayTransformAbsolute(m_MainMenuHandle, trackingOrigin, &menuTransform);
+    m_Overlay->SetOverlayWidthInMeters(m_MainMenuHandle, 1.5f * (1.0f / m_HScaleDownRatio));
 }
 
-void VR::GetPoses() 
+//Gets raw pose data
+void VR::GetPoses()
 {
-    vr::TrackedDevicePose_t hmdPose = m_Poses[vr::k_unTrackedDeviceIndex_Hmd];
-
     vr::TrackedDeviceIndex_t leftControllerIndex = m_System->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_LeftHand);
     vr::TrackedDeviceIndex_t rightControllerIndex = m_System->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_RightHand);
-
+    
     if (m_LeftHanded)
         std::swap(leftControllerIndex, rightControllerIndex);
 
-    vr::TrackedDevicePose_t leftControllerPose = m_Poses[leftControllerIndex];
-    vr::TrackedDevicePose_t rightControllerPose = m_Poses[rightControllerIndex];
-
-    GetPoseData(hmdPose, m_HmdPose);
-    GetPoseData(leftControllerPose, m_LeftControllerPose);
-    GetPoseData(rightControllerPose, m_RightControllerPose);
+    GetPoseData(m_Poses[vr::k_unTrackedDeviceIndex_Hmd], m_HmdPose);
+    GetPoseData(m_Poses[leftControllerIndex], m_LeftControllerPose);
+    GetPoseData(m_Poses[rightControllerIndex], m_RightControllerPose);
 }
 
+//Gets poses and inputs
 void VR::UpdatePosesAndActions() 
 {
-    vr::VRCompositor()->WaitGetPoses(m_Poses, vr::k_unMaxTrackedDeviceCount, NULL, 0);
     m_Input->UpdateActionState(&m_ActiveActionSet, sizeof(vr::VRActiveActionSet_t), 1);
+    vr::VRCompositor()->WaitGetPoses(m_Poses, vr::k_unMaxTrackedDeviceCount, NULL, 0);
 }
 
 void VR::GetViewParameters() 
@@ -481,32 +592,18 @@ void VR::ProcessMenuInput()
     // only activate laser if a controller is pointing at the overlay
     if (isHoveringOverlay)
     {
-        vr::VROverlay()->SetOverlayFlag(currentOverlay, vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible, true);
-
-        int windowWidth, windowHeight;
-        m_Game->m_MaterialSystem->GetRenderContext()->GetWindowSize(windowWidth, windowHeight);
+        m_Overlay->SetOverlayFlag(currentOverlay, vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible, true);
 
         vr::VREvent_t vrEvent;
-        while (vr::VROverlay()->PollNextOverlayEvent(currentOverlay, &vrEvent, sizeof(vrEvent)))
+        while (m_Overlay->PollNextOverlayEvent(currentOverlay, &vrEvent, sizeof(vrEvent)))
         {
             INPUT input;
             switch (vrEvent.eventType)
             {
             case vr::VREvent_MouseMove:
             {
-                float laserX = vrEvent.data.mouse.x;
-                float laserY = vrEvent.data.mouse.y;
-
-                if (m_Game->m_EngineClient->IsInGame())
-                {
-                    laserY -= (m_RenderHeight - windowHeight);
-                    laserY = windowHeight - laserY;
-                }
-                else // main menu (uses render sized texture)
-                {
-                    laserX = (laserX / m_RenderWidth) * windowWidth;
-                    laserY = ((-laserY + m_RenderHeight) / m_RenderHeight) * windowHeight;
-                }
+                float laserX = (vrEvent.data.mouse.x / m_RenderWidth) * m_Game->m_WindowWidth;
+                float laserY = ((-vrEvent.data.mouse.y + m_RenderHeight) / m_RenderHeight) * m_Game->m_WindowHeight;
 
                 m_Game->m_VguiInput->SetCursorPos(laserX, laserY);
                 break;
@@ -543,7 +640,7 @@ void VR::ProcessMenuInput()
     }
     else
     {
-        vr::VROverlay()->SetOverlayFlag(currentOverlay, vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible, false);
+        m_Overlay->SetOverlayFlag(currentOverlay, vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible, false);
         
         if (PressedDigitalAction(m_MenuSelect, true))
         {
@@ -609,12 +706,6 @@ void VR::ProcessInput()
 
     //vr::VROverlay()->SetOverlayFlag(m_HUDHandle, vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible, false);
 
-    typedef std::chrono::duration<float, std::milli> duration;
-    auto currentTime = std::chrono::steady_clock::now();
-    duration elapsed = currentTime - m_PrevFrameTime;
-    float deltaTime = elapsed.count();
-    m_PrevFrameTime = currentTime;
-
     vr::InputAnalogActionData_t analogActionData;
 
     if (GetAnalogActionData(m_ActionTurn, analogActionData))
@@ -637,6 +728,12 @@ void VR::ProcessInput()
         // Smooth turning
         else
         {
+            typedef std::chrono::duration<float, std::milli> duration;
+            auto currentTime = std::chrono::steady_clock::now();
+            duration elapsed = currentTime - m_PrevFrameTime;
+            float deltaTime = elapsed.count();
+            m_PrevFrameTime = currentTime;
+
             float deadzone = 0.2;
             // smoother turning
             float xNormalized = (abs(analogActionData.x) - deadzone) / (1 - deadzone);
@@ -811,15 +908,21 @@ vr::HmdMatrix34_t VR::GetControllerTipMatrix(vr::ETrackedControllerRole controll
 
     if (inputValue != vr::k_ulInvalidInputValueHandle)
     {
+#ifdef GetControllerTipMatrix_HeapBuffer
+        std::vector<char> buffer(vr::k_unMaxPropertyStringSize);
+        char* bufferPtr = buffer.data();
+#else
         char buffer[vr::k_unMaxPropertyStringSize];
+        char* bufferPtr = buffer;
+#endif
 
         m_System->GetStringTrackedDeviceProperty(vr::VRSystem()->GetTrackedDeviceIndexForControllerRole(controllerRole), vr::Prop_RenderModelName_String, 
-                                                 buffer, vr::k_unMaxPropertyStringSize);
+                                                 bufferPtr, vr::k_unMaxPropertyStringSize);
 
         vr::RenderModel_ControllerMode_State_t controllerState = {0};
         vr::RenderModel_ComponentState_t componentState = {0};
 
-        if (vr::VRRenderModels()->GetComponentStateForDevicePath(buffer, vr::k_pch_Controller_Component_Tip, inputValue, &controllerState, &componentState))
+        if (vr::VRRenderModels()->GetComponentStateForDevicePath(bufferPtr, vr::k_pch_Controller_Component_Tip, inputValue, &controllerState, &componentState))
         {
             return componentState.mTrackingToComponentLocal;
         }
@@ -941,8 +1044,7 @@ void VR::UpdateTracking()
 {
     GetPoses();
 
-    int playerIndex = m_Game->m_EngineClient->GetLocalPlayer();
-    C_BasePlayer* localPlayer = (C_BasePlayer*)m_Game->GetClientEntity(playerIndex);
+    C_BasePlayer* localPlayer = m_Game->GetPlayer();
     if (!localPlayer)
         return;
 
@@ -956,7 +1058,7 @@ void VR::UpdateTracking()
 
     Vector hmdPosCorrected = hmdPosCentered;
     VectorPivotXY(hmdPosCorrected, { 0, 0, 0 }, m_RotationOffset.y);
-    
+
     UpdateHMDAngles();
 
     m_HmdPosRelative = hmdPosCorrected * m_VRScale;
@@ -976,28 +1078,26 @@ void VR::UpdateTracking()
     if ((cameraFollowing < 0 && cameraDistance > 1) || (m_PushingThumbstick))
         m_RoomscaleActive = false;*/
 
-    m_AimPos = Trace((uint32_t*)localPlayer);
 
+    //Laser pointer thingy
     if (m_AimMode == 2) {
-        C_Portal_Player* portalPlayer = (C_Portal_Player*)localPlayer;
+        m_AimPos = Trace((uint32_t*)localPlayer);
+        C_Portal_Player* portalPlayer = m_Game->GetPortalPlayer(localPlayer);
+        CWeaponPortalBase* activeWeapon = portalPlayer->GetActivePortalWeapon();
 
-        auto activeWeaponAddr = (*(int(__thiscall**)(void*))(*(uintptr_t*)portalPlayer + 968))(portalPlayer);
-        //auto activeWeaponAddr = (*(int(__thiscall**)(void*))(*(uintptr_t*)m_Game->m_Offsets->GetActivePortalWeapon.address))(portalPlayer);
-
-        if (activeWeaponAddr && m_DrawCrosshair) {
-            CWeaponPortalBase* activeWeapon = (CWeaponPortalBase*)activeWeaponAddr;
-
+        if (activeWeapon && m_DrawCrosshair) {
             if (portalPlayer->m_PointLaser) {
                 portalPlayer->m_PointLaser->SetControlPoint(1, m_AimPos);
                 portalPlayer->m_PointLaser->SetControlPoint(2, m_Game->m_singlePlayerPortalColors[activeWeapon->m_iLastFiredPortal] * 0.5f);
             }
             else {
-                std::cout << "Creating Point Laser Beam Sight Thingy" << "\n";
+                m_Game->logMsg(LOGTYPE_DEBUG, "Creating Point Laser Beam Sight Thingy");
                 m_Game->m_Hooks->CreatePingPointer(localPlayer, m_AimPos);
             }
         }
-        else if (portalPlayer->m_PointLaser){
-            portalPlayer->m_PointLaser->StopEmission(false, true, false);
+        else if (portalPlayer->m_PointLaser) {
+            m_Game->logMsg(LOGTYPE_DEBUG, "Destroying Point Laser Beam Sight Thingy");
+            portalPlayer->m_PointLaser->StopEmission(false, true);
             portalPlayer->m_PointLaser = NULL;
         }
     }
@@ -1147,9 +1247,9 @@ void AngleMatrix(const QAngle& angles, matrix3x4_t& matrix)
 {
     float sr, sp, sy, cr, cp, cy;
 
-    SinCos(DEG2RAD(angles[YAW]), &sy, &cy);
-    SinCos(DEG2RAD(angles[PITCH]), &sp, &cp);
-    SinCos(DEG2RAD(angles[ROLL]), &sr, &cr);
+    SinCos(angles[YAW] * PRECALC_DEG_TO_RAD, &sy, &cy);
+    SinCos(angles[PITCH] * PRECALC_DEG_TO_RAD, &sp, &cp);
+    SinCos(angles[ROLL] * PRECALC_DEG_TO_RAD, &sr, &cr);
 
     // matrix = (YAW * PITCH) * ROLL
     matrix[0][0] = cp * cy;
@@ -1247,21 +1347,21 @@ void MatrixAngles(const matrix3x4_t& matrix, float* angles)
     if (xyDist > 0.001f)
     {
         // (yaw)	y = ATAN( forward.y, forward.x );		-- in our space, forward is the X axis
-        angles[1] = RAD2DEG(atan2f(forward[1], forward[0]));
+        angles[1] = atan2f(forward[1], forward[0]) * PRECALC_RAD_TO_DEG;
 
         // (pitch)	x = ATAN( -forward.z, sqrt(forward.x*forward.x+forward.y*forward.y) );
-        angles[0] = RAD2DEG(atan2f(-forward[2], xyDist));
+        angles[0] = atan2f(-forward[2], xyDist) * PRECALC_RAD_TO_DEG;
 
         // (roll)	z = ATAN( left.z, up.z );
-        angles[2] = RAD2DEG(atan2f(left[2], up[2]));
+        angles[2] = atan2f(left[2], up[2]) * PRECALC_RAD_TO_DEG;
     }
     else	// forward is mostly Z, gimbal lock-
     {
         // (yaw)	y = ATAN( -left.x, left.y );			-- forward is mostly z, so use right for yaw
-        angles[1] = RAD2DEG(atan2f(-left[0], left[1]));
+        angles[1] = atan2f(-left[0], left[1]) * PRECALC_RAD_TO_DEG;
 
         // (pitch)	x = ATAN( -forward.z, sqrt(forward.x*forward.x+forward.y*forward.y) );
-        angles[0] = RAD2DEG(atan2f(-forward[2], xyDist));
+        angles[0] = atan2f(-forward[2], xyDist) * PRECALC_RAD_TO_DEG;
 
         // Assume no roll in this case as one degree of freedom has been lost (i.e. yaw == roll)
         angles[2] = 0;
@@ -1317,7 +1417,7 @@ Vector VR::TraceEye(uint32_t* localPlayer, Vector cameraPos, Vector eyePos, QAng
         //return pPortal->MatrixThisToLinked() * vHitPoint;
     }
 
-    return eyePos;
+    return cameraPos;
 }
 
 // [CONFIG PARSING UTILITY FUNCTION]
@@ -1354,7 +1454,12 @@ try
 
     if constexpr (std::is_same_v<T, bool>)
     {
-        return configValue == "true";
+        std::string val = configValue;
+
+        val.erase(std::remove_if(val.begin(), val.end(), ::isspace), val.end());
+        std::transform(val.begin(), val.end(), val.begin(), ::tolower);
+
+        return val == "true";
     }
     else if constexpr(std::is_floating_point_v<T>)
     {
@@ -1409,7 +1514,7 @@ void VR::ParseConfigFile()
                                     const auto& defaultValue) 
     { 
         target = parseConfigEntry(userConfig, *m_Game, key, defaultValue);
-        std::cout << "Setting '" << key << "' to '" << target << "'\n";
+        m_Game->logMsg(LOGTYPE_DEBUG, "Setting %s to %s", key, std::to_string(target).c_str());
     };
 
     // Parses a vector or angle from the config into 'target'. The XYZ coordinates
@@ -1434,18 +1539,16 @@ void VR::ParseConfigFile()
     parseOrDefault("HudSize", m_HudSize, 4.0f);
     parseOrDefault("HudAlwaysVisible", m_HudAlwaysVisible, false);*/
     parseOrDefault("AimMode", m_AimMode, 2);
-    parseOrDefault("AntiAliasing", m_AntiAliasing, 0);
-    parseOrDefault("RenderWindow", m_RenderWindow, 0);
+    parseOrDefault("RenderWindow", m_RenderWindow, false);
+    parseOrDefault("Enable3DBackground", m_3DMenu, false);
     parseXYZOrDefaultZero("ViewmodelPosCustomOffset", m_ViewmodelPosCustomOffset);
     parseXYZOrDefaultZero("ViewmodelAngCustomOffset", m_ViewmodelAngCustomOffset);
 }
 
 void VR::WaitForConfigUpdate()
 {
-    char currentDir[MAX_STR_LEN];
-    GetCurrentDirectory(MAX_STR_LEN, currentDir);
     char configDir[MAX_STR_LEN];
-    sprintf_s(configDir, MAX_STR_LEN, "%s\\VR\\", currentDir);
+    sprintf_s(configDir, MAX_STR_LEN, "%s\\VR\\", m_Game->m_GameDir);
     HANDLE fileChangeHandle = FindFirstChangeNotificationA(configDir, false, FILE_NOTIFY_CHANGE_LAST_WRITE);
 
     std::filesystem::file_time_type configLastModified;
@@ -1460,7 +1563,7 @@ void VR::WaitForConfigUpdate()
                 configLastModified = configModifiedTime;
                 ParseConfigFile();
                 
-                std::cout << "Successfully reloaded 'config.txt'\n";
+                m_Game->logMsg(LOGTYPE_DEBUG, "Successfully reloaded config.txt");
             }
         }
         catch (const std::invalid_argument &e)
@@ -1480,4 +1583,124 @@ void VR::WaitForConfigUpdate()
         WaitForSingleObject(fileChangeHandle, INFINITE);
         Sleep(100); // Sometimes the thread tries to read config.txt before it's finished writing
     }
+}
+
+std::string VR::GetMapFromSave(const char* fileName)
+{
+    std::ifstream file(fileName, std::ios::binary);
+    if (!file.is_open())
+        return "Save Parse Error: can't open file";
+
+    // Jump directly to offset 4230
+    constexpr std::streamoff mapOffset = 4230;
+    file.seekg(mapOffset, std::ios::beg);
+    if (!file)
+        return "Save Parse Error: can't jump to offset";
+
+    // Read printable characters until null, newline, or whitespace
+    std::string mapName;
+    char c;
+    while (file.get(c))
+    {
+        if (c <= 32 || c >= 127)
+            break;
+        mapName += c;
+    }
+    
+    return mapName;
+}
+
+std::string VR::GetNewestPortal2SavePath(const std::string& baseDir)
+{
+    namespace fs = std::filesystem;
+
+    std::error_code ec;
+    fs::path saveRoot = fs::path(baseDir) / "portal2" / "SAVE" / std::to_string(m_SteamID);
+    if (!fs::exists(saveRoot, ec) || !fs::is_directory(saveRoot, ec))
+    {
+        g_Game->logMsg(LOGTYPE_WARNING, "Failed to find save directory: %s", ec.message());
+        return "";
+    }
+
+    fs::path newestFile;
+    fs::file_time_type newestTime;
+    for (const auto& entry : fs::directory_iterator(saveRoot, ec))
+    {
+        if (ec)
+        {
+            g_Game->logMsg(LOGTYPE_WARNING, "Error iterating save folder: %s", ec.message());
+            break;
+        }
+
+        if (!entry.is_regular_file(ec))
+        {
+            if (ec)
+                g_Game->logMsg(LOGTYPE_WARNING, "Error checking if file is regular: %s", ec.message());
+            continue;
+        }
+
+        if (entry.path().extension() != ".sav")
+            continue;
+
+        auto writeTime = fs::last_write_time(entry, ec);
+        if (ec)
+        {
+            g_Game->logMsg(LOGTYPE_WARNING, "Error reading file time: %s", ec.message());
+            continue;
+        }
+
+        if (newestFile.empty() || writeTime > newestTime)
+        {
+            newestTime = writeTime;
+            newestFile = entry.path();
+        }
+    }
+    if (newestFile.empty())
+        g_Game->logMsg(LOGTYPE_WARNING, "No save files found");
+        
+    return newestFile.empty() ? "" : newestFile.string();
+}
+
+//Checks and gets if the 3D menu background is loaded and loads it if needed
+void VR::Load3DMenu() 
+{
+    if (!m_3DMenu || m_StopLoading3DBgr || m_Game->m_EngineClient->IsInGame() || m_Game->m_EngineClient->IsDrawingLoadingImage())
+    {
+        m_StopLoading3DBgr = true;
+        return;
+    }
+
+    std::string SaveFile = GetNewestPortal2SavePath(m_Game->m_GameDir);
+    if (SaveFile.empty())
+    {
+        m_StopLoading3DBgr = true;
+        return;
+    }
+
+    std::string SaveMap = GetMapFromSave(SaveFile.c_str());
+    if (SaveMap.empty())
+    {
+        m_StopLoading3DBgr = true;
+        return;
+    }
+
+    std::string backgroundMap;
+    auto it = m_BackgroundMapping.find(SaveMap);
+    if (it == m_BackgroundMapping.end())
+    {
+        m_Game->logMsg(LOGTYPE_WARNING, "%s is not mapped to any backgrounds.", SaveMap.c_str());
+        m_StopLoading3DBgr = true;
+        return;
+    }
+        
+    backgroundMap = it->second;
+    m_Game->logMsg(LOGTYPE_DEBUG, "Loading background: %s", backgroundMap.c_str());
+    m_Game->m_EngineClient->ClientCmd_Unrestricted(("map_background " + backgroundMap).c_str());
+
+    m_StopLoading3DBgr = true;
+}
+
+bool VR::ShouldCapture()
+{
+    return m_IsLevelBackground || m_IsCredits || m_Game->m_EngineClient->IsPaused();
 }

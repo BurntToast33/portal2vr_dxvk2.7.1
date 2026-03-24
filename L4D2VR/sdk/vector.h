@@ -13,6 +13,10 @@
 #define DEG2RAD( x  )  ( (float)(x) * (float)(M_PI_F / 180.f) )
 #define RAD2DEG( x  )  ( (float)(x) * (float)(180.f / M_PI_F) )
 
+constexpr float PRECALC_DEG_TO_RAD = M_PI_F / 180.0f;
+constexpr float PRECALC_RAD_TO_DEG = 180.0f / M_PI_F;
+
+
 typedef float vec_t;
 
 
@@ -462,7 +466,111 @@ struct matrix3x4_t
 
 };
 
-class Vector4D;
+class Vector4D
+{
+public:
+	// Members
+	vec_t x, y, z, w;
+
+	// Construction/destruction
+#ifdef _DEBUG
+	Vector4D();
+#else
+	Vector4D() = default;
+#endif
+	Vector4D(vec_t X, vec_t Y, vec_t Z, vec_t W);
+	Vector4D(const float* pFloat);
+
+	// Initialization
+	void Init(vec_t ix = 0.0f, vec_t iy = 0.0f, vec_t iz = 0.0f, vec_t iw = 0.0f);
+
+	// Got any nasty NAN's?
+	bool IsValid() const;
+
+	// array access...
+	vec_t operator[](int i) const;
+	vec_t& operator[](int i);
+
+	// Base address...
+	inline vec_t* Base();
+	inline vec_t const* Base() const;
+
+	// Cast to Vector and Vector2D...
+	Vector& AsVector3D();
+	Vector const& AsVector3D() const;
+
+	Vector2D& AsVector2D();
+	Vector2D const& AsVector2D() const;
+
+	// Initialization methods
+	void Random(vec_t minVal, vec_t maxVal);
+
+	// equality
+	bool operator==(const Vector4D& v) const;
+	bool operator!=(const Vector4D& v) const;
+
+	// arithmetic operations
+	Vector4D& operator+=(const Vector4D& v);
+	Vector4D& operator-=(const Vector4D& v);
+	Vector4D& operator*=(const Vector4D& v);
+	Vector4D& operator*=(float s);
+	Vector4D& operator/=(const Vector4D& v);
+	Vector4D& operator/=(float s);
+
+	Vector4D	operator-(void) const;
+	Vector4D	operator*(float fl) const;
+	Vector4D	operator/(float fl) const;
+	Vector4D	operator*(const Vector4D& v) const;
+	Vector4D	operator+(const Vector4D& v) const;
+	Vector4D	operator-(const Vector4D& v) const;
+
+	// negate the Vector4D components
+	void	Negate();
+
+	// Get the Vector4D's magnitude.
+	vec_t	Length() const;
+
+	// Get the Vector4D's magnitude squared.
+	vec_t	LengthSqr(void) const;
+
+	// return true if this vector is (0,0,0,0) within tolerance
+	bool IsZero(float tolerance = 0.01f) const
+	{
+		return (x > -tolerance && x < tolerance &&
+			y > -tolerance && y < tolerance &&
+			z > -tolerance && z < tolerance &&
+			w > -tolerance && w < tolerance);
+	}
+
+	// Get the distance from this Vector4D to the other one.
+	vec_t	DistTo(const Vector4D& vOther) const;
+
+	// Get the distance from this Vector4D to the other one squared.
+	vec_t	DistToSqr(const Vector4D& vOther) const;
+
+	// Copy
+	void	CopyToArray(float* rgfl) const;
+
+	// Multiply, add, and assign to this (ie: *this = a + b * scalar). This
+	// is about 12% faster than the actual Vector4D equation (because it's done per-component
+	// rather than per-Vector4D).
+	void	MulAdd(Vector4D const& a, Vector4D const& b, float scalar);
+
+	// Dot product.
+	vec_t	Dot(Vector4D const& vOther) const;
+
+	// No copy constructors allowed if we're in optimal mode
+#ifdef VECTOR_NO_SLOW_OPERATIONS
+private:
+#else
+public:
+#endif
+	Vector4D(Vector4D const& vOther);
+
+	// No assignment operators either...
+	Vector4D& operator=(Vector4D const& src);
+};
+
 class VPlane;
 class QAngle;
 
@@ -874,7 +982,7 @@ inline Vector CrossProduct(const Vector &a, const Vector &b)
 
 inline vec_t VectorLength(const Vector &v)
 {
-	return (vec_t)sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+	return (vec_t)sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
 inline vec_t VectorNormalize(Vector &v)
@@ -894,23 +1002,25 @@ inline vec_t VectorNormalize(Vector &v)
 inline Vector VectorRotate(const Vector &v, const Vector &k, float degrees)
 {
 	// Rodrigues rotation
-	float radians = degrees * 3.14159265 / 180;
+	degrees *= PRECALC_DEG_TO_RAD; //Degrees to radians
+	float cosTheta = cosf(degrees);
 
 	Vector crossProduct;
 	CrossProduct(k, v, crossProduct);
 
-	return v*cos(radians) + crossProduct * sin(radians) + k * DotProduct(k,v) * (1-cos(radians));
+	return v*cosTheta + crossProduct * sin(degrees) + k * DotProduct(k,v) * (1.0f - cosTheta);
 }
 
 inline void VectorPivotXY(Vector &point, const Vector &pivot, float degrees)
 {
-	float s = sin(degrees * 3.14159265 / 180);
-	float c = cos(degrees * 3.14159265 / 180);
+	degrees *= PRECALC_DEG_TO_RAD; //Degrees to radians
+	float s = sinf(degrees);
+	float c = cosf(degrees);
+
 	point.x -= pivot.x;
 	point.y -= pivot.y;
-	float xnew = point.x * c - point.y * s;
 	float ynew = point.x * s + point.y * c;
-	point.x = xnew + pivot.x;
+	point.x = (point.x * c - point.y * s) + pivot.x;
 	point.y = ynew + pivot.y;
 }
 
@@ -1094,9 +1204,13 @@ inline void QAngle::AngleVectors(const QAngle &angles, Vector *forward, Vector *
 
 	float sr, sp, sy, cr, cp, cy;
 
-	SinCos(DEG2RAD(angles[YAW]), &sy, &cy);
+	/*SinCos(DEG2RAD(angles[YAW]), &sy, &cy);
 	SinCos(DEG2RAD(angles[PITCH]), &sp, &cp);
-	SinCos(DEG2RAD(angles[ROLL]), &sr, &cr);
+	SinCos(DEG2RAD(angles[ROLL]), &sr, &cr);*/
+
+	SinCos(angles[YAW] * PRECALC_DEG_TO_RAD, &sy, &cy);
+	SinCos(angles[PITCH] * PRECALC_DEG_TO_RAD, &sp, &cp);
+	SinCos(angles[ROLL] * PRECALC_DEG_TO_RAD, &sr, &cr);
 
 	if (forward)
 	{
@@ -1167,27 +1281,32 @@ inline void QAngle::VectorAngles(const Vector &forward, const Vector &pseudoup, 
 	if (xyDist > 0.001f)
 	{
 		// (yaw)	y = ATAN( forward.y, forward.x );		-- in our space, forward is the X axis
-		angles[1] = RAD2DEG(atan2f(forward[1], forward[0]));
+		//angles[1] = RAD2DEG(atan2f(forward[1], forward[0]));
+		angles[1] = atan2f(forward[1], forward[0]) * PRECALC_RAD_TO_DEG;
 
 		// The engine does pitch inverted from this, but we always end up negating it in the DLL
 		// UNDONE: Fix the engine to make it consistent
 		// (pitch)	x = ATAN( -forward.z, sqrt(forward.x*forward.x+forward.y*forward.y) );
-		angles[0] = RAD2DEG(atan2f(-forward[2], xyDist));
+		//angles[0] = RAD2DEG(atan2f(-forward[2], xyDist));
+		angles[0] = atan2f(-forward[2], xyDist) * PRECALC_RAD_TO_DEG;
 
 		float up_z = (left[1] * forward[0]) - (left[0] * forward[1]);
 
 		// (roll)	z = ATAN( left.z, up.z );
-		angles[2] = RAD2DEG(atan2f(left[2], up_z));
+		//angles[2] = RAD2DEG(atan2f(left[2], up_z));
+		angles[2] = atan2f(left[2], up_z) * PRECALC_RAD_TO_DEG;
 	}
 	else	// forward is mostly Z, gimbal lock-
 	{
 		// (yaw)	y = ATAN( -left.x, left.y );			-- forward is mostly z, so use right for yaw
-		angles[1] = RAD2DEG(atan2f(-left[0], left[1])); //This was originally copied from the "void MatrixAngles( const matrix3x4_t& matrix, float *angles )" code, and it's 180 degrees off, negated the values and it all works now (Dave Kircher)
+		//angles[1] = RAD2DEG(atan2f(-left[0], left[1])); //This was originally copied from the "void MatrixAngles( const matrix3x4_t& matrix, float *angles )" code, and it's 180 degrees off, negated the values and it all works now (Dave Kircher)
+		angles[1] = atan2f(-left[0], left[1]) * PRECALC_RAD_TO_DEG;
 
 		// The engine does pitch inverted from this, but we always end up negating it in the DLL
 		// UNDONE: Fix the engine to make it consistent
 		// (pitch)	x = ATAN( -forward.z, sqrt(forward.x*forward.x+forward.y*forward.y) );
-		angles[0] = RAD2DEG(atan2f(-forward[2], xyDist));
+		//angles[0] = RAD2DEG(atan2f(-forward[2], xyDist));
+		angles[0] = atan2f(-forward[2], xyDist) * PRECALC_RAD_TO_DEG;
 
 		// Assume no roll in this case as one degree of freedom has been lost (i.e. yaw == roll)
 		angles[2] = 0;

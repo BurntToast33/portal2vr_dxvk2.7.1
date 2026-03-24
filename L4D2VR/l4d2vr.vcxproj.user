@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LocalDebuggerCommand>D:\Steam\steamapps\common\Portal 2\portal2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommandArguments>-vr -insecure -window -novid +mat_motion_blur_percent_of_screen_max 0 +mat_vsync 0 +mat_antialias 0 +mat_grain_scale_override 0 -width 1280 -height 720</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LocalDebuggerCommand>D:\Steam\steamapps\common\Portal 2\portal2.exe</LocalDebuggerCommand>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>-vr -vrdebug -insecure -window -novid -width 1280 -height 720</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+</Project>

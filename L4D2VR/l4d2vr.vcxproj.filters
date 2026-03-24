@@ -16,6 +16,96 @@
     <Filter Include="dxvk">
       <UniqueIdentifier>{70b8cf43-f679-4ee4-97a8-0b6214b91c8f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="dxvk\d3d9">
+      <UniqueIdentifier>{be4fc932-5eac-4fc5-98b8-71cf571397d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\d3d9\shaders">
+      <UniqueIdentifier>{723603d2-8917-4b2e-84e4-0bcae70e57f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\dxso">
+      <UniqueIdentifier>{3a2fb705-1837-4682-a46b-e2d8f0b4584c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\dxvk">
+      <UniqueIdentifier>{e7200d3c-4ea0-497f-977d-37e3c3e132c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\dxvk\shaders">
+      <UniqueIdentifier>{b42e7d23-58ef-446a-97df-2f44ac72be0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\dxvk\hud">
+      <UniqueIdentifier>{8154423d-f99c-4766-a3bb-93fbd3df73e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\dxvk\hud\shaders">
+      <UniqueIdentifier>{799db48c-6b08-4ec6-93c7-02fc132d9218}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\spirv">
+      <UniqueIdentifier>{d984b705-1faf-432b-8ec5-0985269e7283}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\spirv\unified1">
+      <UniqueIdentifier>{be90e773-d2d6-4d5a-8034-be37ead85a79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\util">
+      <UniqueIdentifier>{e7974b31-7c55-49e7-b754-684a95dc4be8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\util\com">
+      <UniqueIdentifier>{af7bc5ce-3a0d-4aec-ba82-a17bfd9cd3f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\util\config">
+      <UniqueIdentifier>{67b959f3-3c02-4394-aeff-82b53e1979ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\util\log">
+      <UniqueIdentifier>{774babb6-f577-4eb5-b8df-6545a23e224a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\util\rc">
+      <UniqueIdentifier>{e25f8d74-bd44-4dbb-98ab-26eddd3f6cd3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\util\sha1">
+      <UniqueIdentifier>{4a506dd5-9785-4cdd-9c35-0122654edf39}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\util\sync">
+      <UniqueIdentifier>{f7426a11-4cb7-4a73-ae3e-e79b19a1c5f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\vulkan">
+      <UniqueIdentifier>{c18ee913-0162-4d44-8eeb-80a8d2aa8b80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\vulkan\vulkan">
+      <UniqueIdentifier>{42fa1f87-5fa8-40b4-ab47-7e528332e9ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\vulkan\vk_video">
+      <UniqueIdentifier>{f847a8d4-6f2b-404d-aeca-f4a29f65b98c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\vulkan\lib32">
+      <UniqueIdentifier>{885eda79-075d-42de-aa24-ce3d87c68a92}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\wsi">
+      <UniqueIdentifier>{ca2aa5ac-94c0-4493-9e4b-23722675d3ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\wsi\glfw">
+      <UniqueIdentifier>{a6b9e71c-e549-48a1-b871-7c6a6e364c83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\wsi\sdl2">
+      <UniqueIdentifier>{62f43c12-da38-4209-b152-01230eb25975}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\wsi\sdl3">
+      <UniqueIdentifier>{b1546cb4-9186-4c9e-adb6-71bce425cc4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\wsi\win32">
+      <UniqueIdentifier>{9d36b7b6-6966-4197-a8da-b1146c2dd103}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\libdisplay-info">
+      <UniqueIdentifier>{3314cb32-31a9-4018-8b1d-0152b8de8c28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\include">
+      <UniqueIdentifier>{55d6bb0f-f3c0-4154-be82-1a8e5ba2ec86}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\include\native">
+      <UniqueIdentifier>{0facc43e-494b-4758-84a9-0479ea39c55c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\include\native\wsi">
+      <UniqueIdentifier>{c2c4cdd7-1840-41c3-9d27-e8b543c322cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dxvk\include\native\windows">
+      <UniqueIdentifier>{406128ce-f962-4f98-9113-0619b17082e8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game.h">
@@ -54,759 +144,6 @@
     <ClInclude Include="sigscanner.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\dxvk\include\openvr\openvr.hpp">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\spirv\GLSL.std.450.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\spirv\GLSL.std.450.hpp">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\spirv\spirv.hpp">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\vulkan\vk_platform.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\vulkan\vulkan.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\vulkan\vulkan_core.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\vulkan\vulkan_win32.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_adapter.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_annotation.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_buffer.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_caps.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_common_buffer.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_common_texture.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_constant_layout.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_constant_set.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_cursor.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_device.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_device_child.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_fixed_function.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_format.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_format_helpers.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_hud.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_include.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_initializer.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_interface.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_monitor.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_multithread.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_names.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_options.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_query.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_resource.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_sampler.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_shader.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_shader_permutations.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_shader_validator.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_spec_constants.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_state.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_stateblock.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_subresource.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_surface.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_swapchain.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_swvp_emu.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_texture.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_util.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_vertex_declaration.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_volume.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\d3d9_vr.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\d3d9\shaders\d3d9_convert_common.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_analysis.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_chunk_isgn.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_chunk_shex.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_common.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_compiler.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_decoder.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_defs.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_enums.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_header.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_include.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_modinfo.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_module.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_names.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_options.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_reader.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_tag.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxbc\dxbc_util.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_analysis.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_code.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_common.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_compiler.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_ctab.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_decoder.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_enums.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_header.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_include.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_isgn.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_modinfo.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_module.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_options.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_reader.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_tables.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxso\dxso_util.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_adapter.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_annotation.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_barrier.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_bind_mask.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_buffer.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_cmdlist.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_compute.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_constant_state.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_context.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_context_state.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_cs.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_data.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_descriptor.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_device.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_device_filter.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_device_info.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_extensions.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_extension_provider.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_format.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_framebuffer.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_gpu_event.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_gpu_query.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_graphics.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_graphics_state.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_hash.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_image.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_include.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_instance.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_lifetime.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_limits.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_memory.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_meta_blit.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_meta_clear.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_meta_copy.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_meta_mipgen.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_meta_pack.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_meta_resolve.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_objects.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_openvr.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_openxr.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_options.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_pipecache.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_pipelayout.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_pipemanager.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_platform_exts.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_queue.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_recycler.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_renderpass.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_resource.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_sampler.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_shader.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_shader_key.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_signal.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_spec_const.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_staging.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_state_cache.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_state_cache_types.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_stats.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_swapchain_blitter.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_unbound.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_util.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\hud\dxvk_hud.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\hud\dxvk_hud_font.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\hud\dxvk_hud_item.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\hud\dxvk_hud_renderer.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\spirv\spirv_code_buffer.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\spirv\spirv_compression.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\spirv\spirv_include.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\spirv\spirv_instruction.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\spirv\spirv_module.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\com\com_guid.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\com\com_include.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\com\com_object.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\com\com_pointer.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\com\com_private_data.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\config\config.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\log\log.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\log\log_debug.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\rc\util_rc.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\rc\util_rc_ptr.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\sha1\sha1.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\sha1\sha1_util.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\sync\sync_list.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\sync\sync_recursive.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\sync\sync_signal.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\sync\sync_spinlock.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\sync\sync_ticketlock.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\thread.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_bit.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_enum.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_env.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_error.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_flags.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_fps_limiter.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_gdi.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_lazy.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_likely.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_luid.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_math.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_matrix.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_misc.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_monitor.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_ratio.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_shared_res.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_small_vector.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_string.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_time.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\util\util_vector.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\vulkan\vulkan_loader.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\vulkan\vulkan_names.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\vulkan\vulkan_presenter.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\vulkan\vulkan_util.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\tests\test_utils.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_a2w10v10u10.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_l6v5u5.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_nv12.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_x8l8v8u8.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_yuy2_uyvy.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_yv12.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_blit_frag_1d.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_blit_frag_2d.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_blit_frag_3d.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_buffer_f.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_buffer_u.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image1d_f.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image1d_u.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image1darr_f.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image1darr_u.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image2d_f.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image2d_u.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image2darr_f.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image2darr_u.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image3d_f.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image3d_u.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_buffer_image.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_color_1d.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_color_2d.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_color_ms.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_depth_1d.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_depth_2d.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_depth_ms.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_depth_stencil_1d.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_depth_stencil_2d.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_depth_stencil_ms.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_fullscreen_geom.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_fullscreen_layer_vert.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_fullscreen_vert.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_pack_d24s8.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_pack_d32s8.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_present_frag.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_present_frag_blit.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_present_frag_ms.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_present_frag_ms_amd.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_present_vert.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_resolve_frag_d.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_resolve_frag_ds.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_resolve_frag_f.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_resolve_frag_f_amd.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_resolve_frag_i.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_resolve_frag_u.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_unpack_d24s8.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_unpack_d24s8_as_d32s8.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\dxvk_unpack_d32s8.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\hud_graph_frag.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\hud_graph_vert.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\hud_text_frag.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\shaders\hud_text_vert.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\include\version.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
-    <ClInclude Include="..\dxvk\src\dxvk\dxvk_pipecompiler.h">
-      <Filter>dxvk</Filter>
-    </ClInclude>
     <ClInclude Include="sdk\sdk_server.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -828,6 +165,918 @@
     <ClInclude Include="sdk\common_defs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_vr.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_adapter.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_annotation.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_bridge.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_buffer.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_caps.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_common_buffer.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_common_texture.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_constant_buffer.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_constant_layout.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_constant_set.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_cursor.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_device.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_device_child.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_fixed_function.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_format.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_format_helpers.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_hud.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_include.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_initializer.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_interface.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_interfaces.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_interop.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_mem.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_monitor.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_multithread.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_names.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_on_12.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_options.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_query.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_resource.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_shader.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_shader_validator.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_spec_constants.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_state.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_stateblock.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_subresource.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_surface.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_swapchain.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_swvp_emu.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_texture.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_util.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_vertex_declaration.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_volume.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\d3d9_window.h">
+      <Filter>dxvk\d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\d3d9\shaders\d3d9_convert_common.h">
+      <Filter>dxvk\d3d9\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_yv12.h">
+      <Filter>dxvk\d3d9\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_a2w10v10u10.h">
+      <Filter>dxvk\d3d9\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_nv12.h">
+      <Filter>dxvk\d3d9\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_w11v11u10.h">
+      <Filter>dxvk\d3d9\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_x8l8v8u8.h">
+      <Filter>dxvk\d3d9\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_l6v5u5.h">
+      <Filter>dxvk\d3d9\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\d3d9_convert_yuy2_uyvy.h">
+      <Filter>dxvk\d3d9\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_analysis.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_code.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_common.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_compiler.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_ctab.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_decoder.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_enums.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_header.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_include.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_isgn.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_modinfo.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_module.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_options.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_reader.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_tables.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxso\dxso_util.h">
+      <Filter>dxvk\dxso</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_access.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_adapter.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_allocator.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_annotation.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_barrier.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_bind_mask.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_buffer.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_cmdlist.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_compute.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_constant_state.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_context.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_context_state.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_cs.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_descriptor.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_descriptor_heap.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_descriptor_info.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_descriptor_pool.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_descriptor_worker.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_device.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_device_filter.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_device_info.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_extension_provider.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_fence.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_format.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_framebuffer.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_gpu_event.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_gpu_query.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_graphics.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_graphics_state.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_hash.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_image.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_implicit_resolve.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_include.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_instance.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_latency.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_latency_builtin.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_latency_reflex.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_limits.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_memory.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_meta_blit.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_meta_clear.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_meta_copy.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_meta_mipgen.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_meta_resolve.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_objects.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_openvr.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_openxr.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_options.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_pipelayout.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_pipemanager.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_platform_exts.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_presenter.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_queue.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_recycler.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_renderpass.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_sampler.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_shader.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_shader_key.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_signal.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_sparse.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_staging.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_stats.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_swapchain_blitter.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_unbound.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\dxvk_util.h">
+      <Filter>dxvk\dxvk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\hud\dxvk_hud.h">
+      <Filter>dxvk\dxvk\hud</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\hud\dxvk_hud_font.h">
+      <Filter>dxvk\dxvk\hud</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\hud\dxvk_hud_item.h">
+      <Filter>dxvk\dxvk\hud</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\dxvk\hud\dxvk_hud_renderer.h">
+      <Filter>dxvk\dxvk\hud</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\hud_text_frag.h">
+      <Filter>dxvk\dxvk\hud\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\hud_text_vert.h">
+      <Filter>dxvk\dxvk\hud\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\hud_chunk_vert_visualize.h">
+      <Filter>dxvk\dxvk\hud\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\hud_frame_time_eval.h">
+      <Filter>dxvk\dxvk\hud\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\hud_graph_frag.h">
+      <Filter>dxvk\dxvk\hud\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\hud_graph_vert.h">
+      <Filter>dxvk\dxvk\hud\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\hud_chunk_frag_background.h">
+      <Filter>dxvk\dxvk\hud\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\hud_chunk_frag_visualize.h">
+      <Filter>dxvk\dxvk\hud\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\hud_chunk_vert_background.h">
+      <Filter>dxvk\dxvk\hud\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_resolve_frag_f.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_resolve_frag_i.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_resolve_frag_u.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_present_frag_ms_blit.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_present_vert.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_resolve_frag_d.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_resolve_frag_ds.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_present_frag.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_present_frag_blit.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_present_frag_ms.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_fullscreen_layer_vert.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_fullscreen_vert.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_image_to_buffer_ds.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_image_to_buffer_f.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_cursor_frag.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_dummy_frag.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_fullscreen_geom.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_depth_stencil_2d.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_depth_stencil_ms.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_cursor_vert.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_color_1d.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_color_2d.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_color_ms.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_depth_stencil_1d.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image3d_f.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image3d_u.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_copy_buffer_image.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image2d_f.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image2d_u.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image2darr_f.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image2darr_u.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image1d_f.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image1darr_f.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image1darr_u.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_buffer_to_image_s_discard.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_buffer_f.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_buffer_u.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_clear_image1d_u.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_blit_frag_2d_ms.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_buffer_to_image_d.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_buffer_to_image_ds_export.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_blit_frag_1d.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_blit_frag_2d.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\shaders\dxvk_blit_frag_3d.h">
+      <Filter>dxvk\dxvk\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\spirv\unified1\GLSL.std.450.h">
+      <Filter>dxvk\spirv\unified1</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\spirv\unified1\spirv.hpp">
+      <Filter>dxvk\spirv\unified1</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\spirv\spirv_code_buffer.h">
+      <Filter>dxvk\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\spirv\spirv_compression.h">
+      <Filter>dxvk\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\spirv\spirv_include.h">
+      <Filter>dxvk\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\spirv\spirv_instruction.h">
+      <Filter>dxvk\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\spirv\spirv_module.h">
+      <Filter>dxvk\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\thread.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_bit.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_enum.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_env.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_error.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_flags.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_flush.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_fps_limiter.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_gdi.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_lazy.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_likely.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_lru.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_luid.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_math.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_matrix.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_misc.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_ratio.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_shared_res.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_singleton.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_sleep.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_small_vector.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_string.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_time.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_vector.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_version.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\util_win32_compat.h">
+      <Filter>dxvk\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\com\com_destruction_notifier.h">
+      <Filter>dxvk\util\com</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\com\com_guid.h">
+      <Filter>dxvk\util\com</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\com\com_include.h">
+      <Filter>dxvk\util\com</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\com\com_object.h">
+      <Filter>dxvk\util\com</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\com\com_pointer.h">
+      <Filter>dxvk\util\com</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\com\com_private_data.h">
+      <Filter>dxvk\util\com</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\config\config.h">
+      <Filter>dxvk\util\config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\log\log.h">
+      <Filter>dxvk\util\log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\log\log_debug.h">
+      <Filter>dxvk\util\log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\rc\util_rc.h">
+      <Filter>dxvk\util\rc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\rc\util_rc_ptr.h">
+      <Filter>dxvk\util\rc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\sha1\sha1.h">
+      <Filter>dxvk\util\sha1</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\sha1\sha1_util.h">
+      <Filter>dxvk\util\sha1</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\sync\sync_list.h">
+      <Filter>dxvk\util\sync</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\sync\sync_recursive.h">
+      <Filter>dxvk\util\sync</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\sync\sync_signal.h">
+      <Filter>dxvk\util\sync</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\sync\sync_spinlock.h">
+      <Filter>dxvk\util\sync</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\util\sync\sync_ticketlock.h">
+      <Filter>dxvk\util\sync</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\vulkan\vulkan_loader.h">
+      <Filter>dxvk\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\vulkan\vulkan_names.h">
+      <Filter>dxvk\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\vulkan\vulkan_util.h">
+      <Filter>dxvk\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vulkan\vk_platform.h">
+      <Filter>dxvk\vulkan\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vulkan\vulkan.h">
+      <Filter>dxvk\vulkan\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vulkan\vulkan_core.h">
+      <Filter>dxvk\vulkan\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vulkan\vulkan_win32.h">
+      <Filter>dxvk\vulkan\vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vk_video\vulkan_video_codec_av1std.h">
+      <Filter>dxvk\vulkan\vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vk_video\vulkan_video_codec_av1std_decode.h">
+      <Filter>dxvk\vulkan\vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vk_video\vulkan_video_codec_av1std_encode.h">
+      <Filter>dxvk\vulkan\vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vk_video\vulkan_video_codec_h264std.h">
+      <Filter>dxvk\vulkan\vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vk_video\vulkan_video_codec_h264std_decode.h">
+      <Filter>dxvk\vulkan\vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vk_video\vulkan_video_codec_h264std_encode.h">
+      <Filter>dxvk\vulkan\vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vk_video\vulkan_video_codec_h265std.h">
+      <Filter>dxvk\vulkan\vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vk_video\vulkan_video_codec_h265std_decode.h">
+      <Filter>dxvk\vulkan\vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vk_video\vulkan_video_codec_h265std_encode.h">
+      <Filter>dxvk\vulkan\vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\vk_video\vulkan_video_codecs_common.h">
+      <Filter>dxvk\vulkan\vk_video</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\wsi\wsi_edid.h">
+      <Filter>dxvk\wsi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\wsi\wsi_platform.h">
+      <Filter>dxvk\wsi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\wsi\glfw\wsi_platform_glfw.h">
+      <Filter>dxvk\wsi\glfw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\wsi\glfw\wsi_platform_glfw_funcs.h">
+      <Filter>dxvk\wsi\glfw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\wsi\sdl2\wsi_platform_sdl2.h">
+      <Filter>dxvk\wsi\sdl2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\wsi\sdl2\wsi_platform_sdl2_funcs.h">
+      <Filter>dxvk\wsi\sdl2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\wsi\sdl3\wsi_platform_sdl3.h">
+      <Filter>dxvk\wsi\sdl3</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\wsi\sdl3\wsi_platform_sdl3_funcs.h">
+      <Filter>dxvk\wsi\sdl3</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\wsi\win32\wsi_platform_win32.h">
+      <Filter>dxvk\wsi\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\displayid.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\liblog.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\edid.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\dmt.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\info.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\cta.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\bits.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\cta_internal.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\di-edid-decode.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\displayid_internal.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\dmt_internal.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\edid_internal.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\gtf_internal.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\info_internal.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\libdisplay-info\memory-stream.h">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\buildenv.h">
+      <Filter>dxvk\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\openvr\openvr.hpp">
+      <Filter>dxvk\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\version.h">
+      <Filter>dxvk\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\wsi\native_glfw.h">
+      <Filter>dxvk\include\native\wsi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\wsi\native_sdl2.h">
+      <Filter>dxvk\include\native\wsi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\wsi\native_sdl3.h">
+      <Filter>dxvk\include\native\wsi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\wsi\native_wsi.h">
+      <Filter>dxvk\include\native\wsi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\windows\oaidl.h">
+      <Filter>dxvk\include\native\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\windows\objbase.h">
+      <Filter>dxvk\include\native\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\windows\ocidl.h">
+      <Filter>dxvk\include\native\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\windows\ole2.h">
+      <Filter>dxvk\include\native\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\windows\poppack.h">
+      <Filter>dxvk\include\native\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\windows\pshpack4.h">
+      <Filter>dxvk\include\native\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\windows\rpc.h">
+      <Filter>dxvk\include\native\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\windows\rpcndr.h">
+      <Filter>dxvk\include\native\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\windows\unknwn.h">
+      <Filter>dxvk\include\native\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\windows\windows.h">
+      <Filter>dxvk\include\native\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\include\native\windows\windows_base.h">
+      <Filter>dxvk\include\native\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\wsi\wsi_monitor.h">
+      <Filter>dxvk\wsi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dxvk\src\wsi\wsi_window.h">
+      <Filter>dxvk\wsi</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -845,431 +1094,492 @@
     <ClCompile Include="sdk\checksum_crc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_adapter.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_annotation.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_buffer.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_common_buffer.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_common_texture.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_cursor.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_device.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_fixed_function.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_format.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_format_helpers.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_hud.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_initializer.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_interface.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_main.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_monitor.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_multithread.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_names.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_options.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_query.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_sampler.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_shader.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_state.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_stateblock.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_surface.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_swapchain.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_swvp_emu.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_texture.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_util.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_vertex_declaration.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_volume.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\d3d9\d3d9_vr.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_analysis.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_chunk_isgn.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_chunk_shex.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_common.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_compiler.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_decoder.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_defs.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_header.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_module.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_names.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_options.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_reader.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxbc\dxbc_util.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_analysis.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_code.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_common.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_compiler.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_ctab.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_decoder.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_enums.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_header.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_module.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_options.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_reader.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_tables.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxso\dxso_util.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_adapter.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_barrier.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_buffer.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_cmdlist.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_compute.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_context.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_cs.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_data.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_descriptor.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_device.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_device_filter.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_extensions.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_format.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_framebuffer.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_gpu_event.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_gpu_query.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_graphics.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_image.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_instance.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_lifetime.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_memory.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_meta_blit.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_meta_clear.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_meta_copy.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_meta_mipgen.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_meta_pack.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_meta_resolve.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_openvr.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_openxr.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_options.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_pipecache.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_pipelayout.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_pipemanager.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_queue.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_renderpass.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_resource.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_sampler.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_shader.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_shader_key.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_signal.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_spec_const.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_staging.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_state_cache.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_stats.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_swapchain_blitter.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_unbound.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_util.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\hud\dxvk_hud.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\hud\dxvk_hud_font.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\hud\dxvk_hud_item.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\hud\dxvk_hud_renderer.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\platform\dxvk_win32_exts.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\spirv\spirv_code_buffer.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\spirv\spirv_compression.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\spirv\spirv_module.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\com\com_guid.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\com\com_private_data.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\config\config.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\log\log.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\log\log_debug.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\sha1\sha1.c">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\sha1\sha1_util.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\sync\sync_recursive.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\thread.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\util_env.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\util_fps_limiter.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\util_gdi.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\util_luid.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\util_matrix.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\util_monitor.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\util_shared_res.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\util\util_string.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\vulkan\vulkan_loader.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\vulkan\vulkan_names.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\vulkan\vulkan_presenter.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
-    <ClCompile Include="..\dxvk\src\dxvk\dxvk_pipecompiler.cpp">
-      <Filter>dxvk</Filter>
-    </ClCompile>
     <ClCompile Include="sdk\bitbuf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sdk\newbitbuf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\dxvk\lib\libd3dcompiler_43.def">
-      <Filter>dxvk</Filter>
-    </None>
-    <None Include="..\dxvk\lib32\libd3dcompiler_43.def">
-      <Filter>dxvk</Filter>
-    </None>
-    <None Include="..\dxvk\src\d3d9\d3d9.def">
-      <Filter>dxvk</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="..\dxvk\src\d3d9\version.rc">
-      <Filter>dxvk</Filter>
-    </ResourceCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_vr.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_device.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_interface.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_adapter.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_annotation.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_bridge.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_buffer.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_common_buffer.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_common_texture.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_constant_buffer.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_cursor.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_fixed_function.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_format.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_format_helpers.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_hud.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_initializer.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_interop.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_main.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_mem.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_monitor.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_multithread.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_names.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_on_12.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_options.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_query.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_shader.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_shader_validator.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_state.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_stateblock.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_surface.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_swapchain.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_swvp_emu.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_texture.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_util.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_vertex_declaration.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_volume.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\d3d9\d3d9_window.cpp">
+      <Filter>dxvk\d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_analysis.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_code.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_common.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_compiler.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_ctab.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_decoder.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_enums.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_header.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_module.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_options.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_reader.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_tables.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxso\dxso_util.cpp">
+      <Filter>dxvk\dxso</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_access.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_adapter.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_allocator.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_barrier.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_buffer.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_cmdlist.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_compute.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_constant_state.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_context.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_cs.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_descriptor_heap.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_descriptor_info.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_descriptor_pool.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_descriptor_worker.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_device.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_device_filter.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_device_info.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_fence.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_format.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_framebuffer.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_gpu_event.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_gpu_query.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_graphics.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_image.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_implicit_resolve.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_instance.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_latency_builtin.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_latency_reflex.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_memory.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_meta_blit.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_meta_clear.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_meta_copy.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_meta_mipgen.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_meta_resolve.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_openvr.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_openxr.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_options.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_pipelayout.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_pipemanager.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_platform_exts.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_presenter.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_queue.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_sampler.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_shader.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_shader_key.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_signal.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_sparse.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_staging.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_stats.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_swapchain_blitter.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_unbound.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\dxvk_util.cpp">
+      <Filter>dxvk\dxvk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\hud\dxvk_hud.cpp">
+      <Filter>dxvk\dxvk\hud</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\hud\dxvk_hud_font.cpp">
+      <Filter>dxvk\dxvk\hud</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\hud\dxvk_hud_item.cpp">
+      <Filter>dxvk\dxvk\hud</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\dxvk\hud\dxvk_hud_renderer.cpp">
+      <Filter>dxvk\dxvk\hud</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\spirv\spirv_code_buffer.cpp">
+      <Filter>dxvk\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\spirv\spirv_compression.cpp">
+      <Filter>dxvk\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\spirv\spirv_module.cpp">
+      <Filter>dxvk\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\thread.cpp">
+      <Filter>dxvk\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\util_env.cpp">
+      <Filter>dxvk\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\util_flush.cpp">
+      <Filter>dxvk\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\util_fps_limiter.cpp">
+      <Filter>dxvk\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\util_gdi.cpp">
+      <Filter>dxvk\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\util_luid.cpp">
+      <Filter>dxvk\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\util_matrix.cpp">
+      <Filter>dxvk\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\util_shared_res.cpp">
+      <Filter>dxvk\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\util_sleep.cpp">
+      <Filter>dxvk\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\util_string.cpp">
+      <Filter>dxvk\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\com\com_destruction_notifier.cpp">
+      <Filter>dxvk\util\com</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\com\com_guid.cpp">
+      <Filter>dxvk\util\com</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\com\com_private_data.cpp">
+      <Filter>dxvk\util\com</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\config\config.cpp">
+      <Filter>dxvk\util\config</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\log\log.cpp">
+      <Filter>dxvk\util\log</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\log\log_debug.cpp">
+      <Filter>dxvk\util\log</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\sha1\sha1.c">
+      <Filter>dxvk\util\sha1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\sha1\sha1_util.cpp">
+      <Filter>dxvk\util\sha1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\util\sync\sync_recursive.cpp">
+      <Filter>dxvk\util\sync</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\vulkan\vulkan_loader.cpp">
+      <Filter>dxvk\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\vulkan\vulkan_names.cpp">
+      <Filter>dxvk\vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\wsi_edid.cpp">
+      <Filter>dxvk\wsi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\wsi_platform.cpp">
+      <Filter>dxvk\wsi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\glfw\wsi_monitor_glfw.cpp">
+      <Filter>dxvk\wsi\glfw</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\glfw\wsi_platform_glfw.cpp">
+      <Filter>dxvk\wsi\glfw</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\glfw\wsi_window_glfw.cpp">
+      <Filter>dxvk\wsi\glfw</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\sdl2\wsi_monitor_sdl2.cpp">
+      <Filter>dxvk\wsi\sdl2</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\sdl2\wsi_platform_sdl2.cpp">
+      <Filter>dxvk\wsi\sdl2</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\sdl2\wsi_window_sdl2.cpp">
+      <Filter>dxvk\wsi\sdl2</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\sdl3\wsi_monitor_sdl3.cpp">
+      <Filter>dxvk\wsi\sdl3</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\sdl3\wsi_platform_sdl3.cpp">
+      <Filter>dxvk\wsi\sdl3</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\sdl3\wsi_window_sdl3.cpp">
+      <Filter>dxvk\wsi\sdl3</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\win32\wsi_monitor_win32.cpp">
+      <Filter>dxvk\wsi\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\win32\wsi_platform_win32.cpp">
+      <Filter>dxvk\wsi\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\src\wsi\win32\wsi_window_win32.cpp">
+      <Filter>dxvk\wsi\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\include\libdisplay-info\info.c">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\include\libdisplay-info\liblog.c">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\include\libdisplay-info\edid.c">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\include\libdisplay-info\cta.c">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\include\libdisplay-info\displayid.c">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\include\libdisplay-info\gtf.c">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\include\libdisplay-info\pnp-id-table.c">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\include\libdisplay-info\dmt-table.c">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dxvk\include\libdisplay-info\memory-stream.c">
+      <Filter>dxvk\libdisplay-info</Filter>
+    </ClCompile>
+    <ClCompile Include="util.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="config.txt">
       <Filter>Source Files</Filter>
     </Text>
+    <Text Include="ToDo.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\dxvk\src\d3d9\d3d9.def">
+      <Filter>dxvk\d3d9</Filter>
+    </None>
+    <None Include="..\dxvk\src\d3d9\d3d9.sym">
+      <Filter>dxvk\d3d9</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\dxvk\lib32\vulkan-1.lib">
+      <Filter>dxvk\vulkan\lib32</Filter>
+    </Library>
   </ItemGroup>
 </Project>
