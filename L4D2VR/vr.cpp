@@ -112,21 +112,47 @@ VR::~VR()
 {
     m_IsInitialized = false;
     m_IsVREnabled = false;
+
+    for (size_t I = 1; I < Texture_Count; I++) 
+    {
+        auto it = m_TextureMap.find((TextureID)I);
+        if (it == m_TextureMap.end())
+        {
+            g_Game->logMsg(LOGTYPE_WARNING, "VR Cleanup: SharedTextureHolder %d doesn't exist", I);
+            continue;
+        }
+            
+        if (it->second->m_MSAASurface) { it->second->m_MSAASurface->Release(); }
+    }
 }
 
 //Creates the hash maps used to later
 void VR::CreateHashMaps()
 {
     //Texture mappings
+    m_LeftEye.m_UseMSAA = m_AntiAliasing;
+    m_RightEye.m_UseMSAA = m_AntiAliasing;
+    m_MenuTexture.m_CustomSetup = [this](UINT Width, UINT Height, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool)
+    {
+        IDirect3DTexture9* temp = nullptr;
+
+        this->m_CreatingTextureID = VR::Texture_None;
+        this->m_Game->m_DxDevice->CreateTexture(
+            this->m_Game->m_WindowWidth, this->m_Game->m_WindowHeight, Levels, Usage, Format, Pool, &temp, nullptr);
+
+        temp->GetSurfaceLevel(0, &this->m_MenuTexture.m_MSAASurface);
+        temp->Release();
+    }; //Using msaa surface as the lower resolution target
+
     m_TextureMap = {
         { VR::Texture_LeftEye, &m_LeftEye},
         { VR::Texture_RightEye, &m_RightEye},
         { VR::Texture_Blank, &m_BlankTexture },
         { VR::Texture_Menu, &m_MenuTexture },
-        { VR::Texture_MenuCapture, &m_MenuCaptureTexture }
     };
 
     m_Game->logMsg(LOGTYPE_DEBUG, "Loaded texture mappings.");
+
 
     //Background mappings
     char path[MAX_STR_LEN]{};
@@ -176,8 +202,9 @@ void VR::CreateHashMaps()
     file.close();
 
     if (m_BackgroundMapping.size())
+    {
         m_Game->logMsg(LOGTYPE_DEBUG, "Loaded %zu background mappings.", m_BackgroundMapping.size());
-
+    }
     else
     {
         m_Game->logMsg(LOGTYPE_WARNING, "Failed to parse backgrounds.txt or there are no entries.%s", "\nDisabling 3D backgrounds");
@@ -273,7 +300,7 @@ void VR::PreUpdate()
     if (ShouldCapture()) 
     {
         m_Game->m_DxDevice->StretchRect(
-            m_MenuCaptureTexture.m_Surface, nullptr,
+            m_MenuTexture.m_MSAASurface, nullptr,
             m_MenuTexture.m_Surface, nullptr,
             D3DTEXF_LINEAR
         );
@@ -312,7 +339,7 @@ void VR::PostUpdate()
     //Clearing menu ui for next frame
     if (m_Game->m_EngineClient->IsInGame())
     {
-        m_Game->m_DxDevice->SetRenderTarget(0, m_MenuCaptureTexture.m_Surface);
+        m_Game->m_DxDevice->SetRenderTarget(0, m_MenuTexture.m_MSAASurface);
         m_Game->m_DxDevice->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
     }
     else
@@ -366,11 +393,6 @@ void VR::CreateVRTextures()
 
     m_CreatingTextureID = Texture_Menu;
     m_MenuTexture.m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("menuTex", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SHARED, TEXTUREFLAGS_NOMIP);
-
-    if (m_MenuCaptureTexture.m_ITex) m_MenuCaptureTexture.m_ITex->Release();
-
-    m_CreatingTextureID = Texture_MenuCapture;
-    m_MenuCaptureTexture.m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("menuCapTex", m_Game->m_WindowWidth, m_Game->m_WindowHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SHARED, TEXTUREFLAGS_NOMIP);
 
     m_CreatingTextureID = Texture_None;
     m_Game->m_MaterialSystem->EndRenderTargetAllocation();
@@ -488,8 +510,8 @@ void VR::RepositionOverlays()
         Vector worldCenter = { 0.0f, 0.0f, 0.0f };
 
         Vector vrForward = { 0.0f, 0.0f, -1.0f };
-        Vector overlayPos = worldCenter + vrForward * 3.0f; // Foward Distance
-        overlayPos.y = 1.0f; // Height
+        Vector overlayPos = worldCenter + vrForward * 3.0f; // Forward Distance
+        overlayPos.y = 2.0f; // Height
 
         Vector forward = worldCenter - overlayPos;
         forward.y = 0.0f;
@@ -1539,6 +1561,7 @@ void VR::ParseConfigFile()
     parseOrDefault("HudSize", m_HudSize, 4.0f);
     parseOrDefault("HudAlwaysVisible", m_HudAlwaysVisible, false);*/
     parseOrDefault("AimMode", m_AimMode, 2);
+    parseOrDefault("AntiAliasing", m_AntiAliasing, 0);
     parseOrDefault("RenderWindow", m_RenderWindow, false);
     parseOrDefault("Enable3DBackground", m_3DMenu, false);
     parseXYZOrDefaultZero("ViewmodelPosCustomOffset", m_ViewmodelPosCustomOffset);
@@ -1703,4 +1726,16 @@ void VR::Load3DMenu()
 bool VR::ShouldCapture()
 {
     return m_IsLevelBackground || m_IsCredits || m_Game->m_EngineClient->IsPaused();
+}
+
+void VR::BuildCaptureMap()
+{
+    m_PanelCaptureMap = {
+        {
+            m_Game->m_EnginePanel->GetPanel(PANEL_GAMEUIDLL),
+            PanelCaptureInfo{ m_MenuTexture.m_MSAASurface, [this]() { return this->ShouldCapture(); } }
+        }
+    };
+
+    m_BuiltCaptureMap = true;
 }

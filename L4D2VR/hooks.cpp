@@ -47,7 +47,7 @@ Hooks::Hooks(Game *game)
 	//BuildHook(&hkVgui_Paint, &m_Game->m_Offsets->VGui_Paint, &dVGui_Paint, false);
 	//BuildHook(&hkPushRenderTargetAndViewport, &m_Game->m_Offsets->PushRenderTargetAndViewport, &dPushRenderTargetAndViewport, false);
 	//BuildHook(&hkPopRenderTargetAndViewport, &m_Game->m_Offsets->PopRenderTargetAndViewport, &dPopRenderTargetAndViewport, false);
-	BuildHook(&hkPrePushRenderTarget, &m_Game->m_Offsets->PrePushRenderTarget, &dPrePushRenderTarget, false);
+	//BuildHook(&hkPrePushRenderTarget, &m_Game->m_Offsets->PrePushRenderTarget, &dPrePushRenderTarget, false);
 
 
 	// Portalling
@@ -744,20 +744,19 @@ double __fastcall Hooks::dGetViewModelFOV(void* ecx, void* edx) {
 	return m_VR->m_Fov;
 }
 
-//Screen capture
+//Panel capture
 void __fastcall Hooks::dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bool forceRepaint, bool allowForce)
 {
-	//Setting Targets
-	static VPANEL menuRoot = NULL;
-	if (!menuRoot) menuRoot = m_Game->m_EnginePanel->GetPanel(PANEL_GAMEUIDLL);
+	if (!m_VR->m_BuiltCaptureMap)
+		m_VR->BuildCaptureMap();
 
 
-	//Captureing
-	if (m_Game->m_VguiIPanel->GetParent(vguiPanel) == menuRoot && m_VR->ShouldCapture())
+	auto it = m_VR->m_PanelCaptureMap.find(m_Game->m_VguiIPanel->GetParent(vguiPanel));
+	if (it != m_VR->m_PanelCaptureMap.end() && it->second.m_ShouldCapture())
 	{
-		m_Game->m_DxDevice->SetRenderTarget(0, m_VR->m_MenuCaptureTexture.m_Surface);
+		m_Game->m_DxDevice->SetRenderTarget(0, it->second.m_Surface);
 		m_Game->m_DxDevice->SetRenderState(
-			D3DRS_COLORWRITEENABLE, 
+			D3DRS_COLORWRITEENABLE,
 			D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_GREEN |
 			D3DCOLORWRITEENABLE_BLUE | D3DCOLORWRITEENABLE_ALPHA
 		);

@@ -2,12 +2,10 @@
 #include <Windows.h>
 #include <iostream>
 #include <filesystem>
-#include "sdk.h"
 #include "vr.h"
 #include "hooks.h"
 #include "offsets.h"
 #include "sigscanner.h"
-#include "util.h"
 
 
 static std::mutex logMutex;
@@ -106,7 +104,6 @@ void Game::Initialize()
     m_VguiInput = static_cast<IInput*>(GetInterfaceSafe("vgui2.dll", "VGUI_InputInternal001"));
     m_VguiSurface = static_cast<ISurface*>(GetInterfaceSafe("vguimatsurface.dll", "VGUI_Surface031"));
     m_VguiIPanel = static_cast<IPanel*>(GetInterfaceSafe("vgui2.dll", "VGUI_Panel009"));
-
 
     m_Offsets = new Offsets();
     LoadCommands();
@@ -284,7 +281,7 @@ void Game::SetVRDlcDisabled()
 {
     std::filesystem::path path = std::string(m_GameDir) + "/portal2_dlc3/dlc_disabled.txt";
 
-#ifdef OVERRIDEVRMODE
+#ifdef OVERRIDEVRMODE_ASSETS
     std::error_code ec;
     if (std::filesystem::exists(path))
     {
@@ -298,7 +295,7 @@ void Game::SetVRDlcDisabled()
         logMsg(LOGTYPE_DEBUG, "dlc_disabled.txt doesn't exist skipping");
 #endif
 
-#ifndef OVERRIDEVRMODE
+#ifndef OVERRIDEVRMODE_ASSETS
     if (m_VrEnabled)
     {
         std::error_code ec;

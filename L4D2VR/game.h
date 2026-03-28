@@ -4,11 +4,11 @@
 #include "vector.h"
 #include <mutex>
 #include <condition_variable>
-#include <d3d9.h>
 #include "d3d9_device.h"
 
 #define MAX_STR_LEN 256
 //#define OVERRIDEVRMODE //For testing hooks
+//#define OVERRIDEVRMODE_ASSETS //For testing assets
 
 class IClientEntityList;
 class IEngineVGui;

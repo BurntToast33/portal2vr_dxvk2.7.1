@@ -4,13 +4,12 @@
 #include <chrono>
 #include <thread>
 #include <unordered_map>
-#include "dxvk/src/dxvk/dxvk_image.h"
+#include <functional>
+#include <d3d9.h>
+#include "sdk.h"
 
-#define MAX_STR_LEN 256
 
 class Game;
-class IDirect3DTexture9;
-class IDirect3DSurface9;
 class ITexture;
 
 
@@ -25,13 +24,23 @@ struct TrackedDevicePoseData
 
 struct SharedTextureHolder 
 {
-	vr::VRVulkanTextureData_t m_VulkanData;
-	vr::Texture_t m_VRTexture;
+	vr::VRVulkanTextureData_t m_VulkanData{};
+	vr::Texture_t m_VRTexture{};
 
 	ITexture* m_ITex = nullptr;
 
 	IDirect3DSurface9* m_Surface = nullptr;
 	IDirect3DSurface9* m_MSAASurface = nullptr;
+	bool m_UseMSAA = false;
+
+	//Optional functionality
+	std::function<void(UINT Width, UINT Height, UINT LEVELS, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool)> m_CustomSetup = nullptr;
+};
+
+struct PanelCaptureInfo
+{
+	IDirect3DSurface9* m_Surface = nullptr;
+	std::function<bool()> m_ShouldCapture = nullptr;
 };
 
 class VR
@@ -115,11 +124,13 @@ public:
 	enum TextureID
 	{
 		Texture_None = 0,
+
 		Texture_LeftEye,
 		Texture_RightEye,
 		Texture_Blank,
 		Texture_Menu,
-		Texture_MenuCapture
+		
+		Texture_Count //Num of textures
 	};
 
 	SharedTextureHolder m_LeftEye;
@@ -127,9 +138,6 @@ public:
 	SharedTextureHolder m_BackBuffer;
 	SharedTextureHolder m_BlankTexture;
 	SharedTextureHolder m_MenuTexture;
-	SharedTextureHolder m_MenuCaptureTexture;
-
-	bool m_ResolveTex = false;
 
 	bool m_IsVREnabled = false;
 	bool m_IsInitialized = false;
@@ -143,11 +151,15 @@ public:
 
 	float m_WScaleDownRatio, m_HScaleDownRatio, m_WScaleUpRatio, m_HScaleUpRatio;
 
-	std::unordered_map<std::string, std::string> m_BackgroundMapping;
-	std::unordered_map<VR::TextureID, SharedTextureHolder*> m_TextureMap;
+	std::unordered_map<std::string, std::string> m_BackgroundMapping{};
+	std::unordered_map<VR::TextureID, SharedTextureHolder*> m_TextureMap{};
+	std::unordered_map<VPANEL, PanelCaptureInfo> m_PanelCaptureMap{};
+	bool m_BuiltCaptureMap = false;
 	bool m_IsLevelBackground = false;
 	bool m_StopLoading3DBgr = false;
 	bool m_IsCredits = false;
+
+	bool m_DrawingViewModel = false;
 
 	// action set
 	vr::VRActionSetHandle_t m_ActionSet = {};
@@ -253,4 +265,5 @@ public:
 	std::string GetMapFromSave(const char* fileName);
 	std::string GetNewestPortal2SavePath(const std::string& baseDir);
 	bool ShouldCapture();
+	void BuildCaptureMap();
 };
