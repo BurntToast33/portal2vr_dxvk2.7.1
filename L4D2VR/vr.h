@@ -22,25 +22,54 @@ struct TrackedDevicePoseData
 	QAngle TrackedDeviceAngVel;
 };
 
+struct TextureSetup
+{
+	TextureSetup(int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth = MATERIAL_RT_DEPTH_SEPARATE, UINT textureFlags = TEXTUREFLAGS_NOMIP)
+	{
+		this->w = w;
+		this->h = h;
+		this->sizeMode = sizeMode;
+		this->format = format;
+		this->depth = depth;
+		this->textureFlags = textureFlags;
+	}
+
+	int w;
+	int h;
+	RenderTargetSizeMode_t sizeMode;
+	ImageFormat format;
+	MaterialRenderTargetDepth_t depth;
+	UINT textureFlags;
+};
+
 struct SharedTextureHolder 
 {
 	vr::VRVulkanTextureData_t m_VulkanData{};
 	vr::Texture_t m_VRTexture{};
 
+	//Engine handles
 	ITexture* m_ITex = nullptr;
+	ITexture* m_MSAAITex = nullptr;
 
+	//Dxvk images needed for resolving MSAA
+	dxvk::Rc<dxvk::DxvkImage> m_SurfaceImage = nullptr;
+	dxvk::Rc<dxvk::DxvkImage> m_MSAASurfaceImage = nullptr;
+
+	//Dx9 handles
 	IDirect3DSurface9* m_Surface = nullptr;
 	IDirect3DSurface9* m_MSAASurface = nullptr;
-	bool m_UseMSAA = false;
 
-	//Optional functionality
-	std::function<void(UINT Width, UINT Height, UINT LEVELS, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool)> m_CustomSetup = nullptr;
+	bool m_UseMSAA = false;
+	TextureSetup* m_OverrideMSAASurface = nullptr; //Creates MSAA texture without sampling as a extra surface to use
 };
 
 struct PanelCaptureInfo
 {
-	IDirect3DSurface9* m_Surface = nullptr;
-	std::function<bool()> m_ShouldCapture = nullptr;
+	ITexture* m_ITex = nullptr;
+
+	//The ITexture* is optional redirection of where the panel is rendered
+	std::vector<std::pair<const char*, ITexture*>>* m_ExcludePanel = nullptr;
+	std::function<bool()> m_ShouldCapture = nullptr; //Condition to capture on
 };
 
 class VR
@@ -121,39 +150,29 @@ public:
 
 	Vector m_IntendedPositionOffset = { 0,0,0 };
 
-	enum TextureID
-	{
-		Texture_None = 0,
-
-		Texture_LeftEye,
-		Texture_RightEye,
-		Texture_Blank,
-		Texture_Menu,
-		
-		Texture_Count //Num of textures
-	};
-
 	SharedTextureHolder m_LeftEye;
 	SharedTextureHolder m_RightEye;
 	SharedTextureHolder m_BackBuffer;
 	SharedTextureHolder m_BlankTexture;
 	SharedTextureHolder m_MenuTexture;
+	SharedTextureHolder m_HudTexture;
 
 	bool m_IsVREnabled = false;
 	bool m_IsInitialized = false;
 	bool m_RenderedHud = false;
 	bool m_CreatedVRTextures = false;
 	bool m_DrawCrosshair = false;
-	TextureID m_CreatingTextureID = Texture_None;
-
 	bool m_PressedTurn = false;
 	bool m_LastOverlayRepos = false; //False = world space, True = headset space
+
+	std::queue<std::pair<bool, SharedTextureHolder*>> m_TextureQueue;
+	std::mutex m_QueueMutex;
 
 	float m_WScaleDownRatio, m_HScaleDownRatio, m_WScaleUpRatio, m_HScaleUpRatio;
 
 	std::unordered_map<std::string, std::string> m_BackgroundMapping{};
-	std::unordered_map<VR::TextureID, SharedTextureHolder*> m_TextureMap{};
 	std::unordered_map<VPANEL, PanelCaptureInfo> m_PanelCaptureMap{};
+
 	bool m_BuiltCaptureMap = false;
 	bool m_IsLevelBackground = false;
 	bool m_StopLoading3DBgr = false;
@@ -220,6 +239,25 @@ public:
 	uint64_t m_SteamID = 0; //Used to know the exact directory to find the save files
 
 
+	//Helpers
+	void PushTexture(SharedTextureHolder* holder, bool isMSAA) {
+		std::lock_guard<std::mutex> lock(m_QueueMutex);
+		m_TextureQueue.push({ isMSAA, holder });
+	}
+
+	std::pair<bool, SharedTextureHolder*> PopNextTexture() {
+		std::lock_guard<std::mutex> lock(m_QueueMutex);
+
+		if (m_TextureQueue.empty())
+			return { false, nullptr };
+
+
+		auto entry = m_TextureQueue.front();
+		m_TextureQueue.pop();
+		return entry;
+	}
+
+
 	VR() {};
 	VR(Game *game);
 	~VR();
@@ -266,4 +304,19 @@ public:
 	std::string GetNewestPortal2SavePath(const std::string& baseDir);
 	bool ShouldCapture();
 	void BuildCaptureMap();
+	int CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth = MATERIAL_RT_DEPTH_SEPARATE, UINT textureFlags = TEXTUREFLAGS_NOMIP);
+};
+
+class VRTextureResolveQueue
+{
+public:
+	std::vector<SharedTextureHolder*> m_textures;
+
+	void RegisterTexture(SharedTextureHolder* tex) {
+		if (!tex) return;
+
+		auto it = std::find(m_textures.begin(), m_textures.end(), tex);
+		if (it == m_textures.end())
+			m_textures.push_back(tex);
+	}
 };

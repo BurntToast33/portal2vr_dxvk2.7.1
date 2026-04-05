@@ -8,6 +8,9 @@
 #include <iostream>
 
 
+//#define PrintTraverseNames
+
+
 Hooks::Hooks(Game *game)
 {
 	if (MH_Initialize() != MH_OK)
@@ -162,6 +165,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 	setup.angles = hmdAngle;
 
 	C_BasePlayer* localPlayer = (C_BasePlayer*)m_Game->GetClientEntity(m_Game->m_EngineClient->GetLocalPlayer());
+	IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
 
 	//Rendering Eyes
 	for (size_t I = 0; I < 2; I++) 
@@ -171,16 +175,17 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 		CViewSetup EyeView = setup;
 		Vector EyePos = (!I) ? m_VR->GetViewOriginLeft(m_VR->m_SetupOrigin) : m_VR->GetViewOriginRight(m_VR->m_SetupOrigin);
 		SharedTextureHolder* TargetTex = (!I) ? &m_VR->m_LeftEye : &m_VR->m_RightEye;
-		IDirect3DSurface9* TargetSur = (m_VR->m_AntiAliasing) ? TargetTex->m_MSAASurface : TargetTex->m_Surface;
+		ITexture* TargetSur = (m_VR->m_AntiAliasing) ? TargetTex->m_MSAAITex : TargetTex->m_ITex;
 
 		EyeView.origin = m_VR->TraceEye((uint32_t*)localPlayer, position, EyePos, tempAngle);
 		EyeView.angles.y = tempAngle.y;
 
-		m_Game->m_DxDevice->SetRenderTarget(0, TargetSur);
+		rndrContext->SetRenderTarget(TargetSur);
 		hkRenderView.fOriginal(ecx, EyeView, hudViewSetup, nClearFlags, drawFlags);
 	}
 
-	m_Game->m_DxDevice->SetRenderTarget(0, m_VR->m_BackBuffer.m_Surface);
+	rndrContext->SetRenderTarget(NULL);
+	rndrContext->Release();
 
 	m_PushedHud = false;
 }
@@ -747,6 +752,12 @@ double __fastcall Hooks::dGetViewModelFOV(void* ecx, void* edx) {
 //Panel capture
 void __fastcall Hooks::dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bool forceRepaint, bool allowForce)
 {
+#ifdef PrintTraverseNames
+	const char* Name = m_Game->m_VguiIPanel->GetName(vguiPanel);
+	if (Name) std::cout << Name << std::endl;
+#endif
+
+	static bool ResetSurface = false;
 	if (!m_VR->m_BuiltCaptureMap)
 		m_VR->BuildCaptureMap();
 
@@ -754,17 +765,29 @@ void __fastcall Hooks::dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bo
 	auto it = m_VR->m_PanelCaptureMap.find(m_Game->m_VguiIPanel->GetParent(vguiPanel));
 	if (it != m_VR->m_PanelCaptureMap.end() && it->second.m_ShouldCapture())
 	{
-		m_Game->m_DxDevice->SetRenderTarget(0, it->second.m_Surface);
-		m_Game->m_DxDevice->SetRenderState(
-			D3DRS_COLORWRITEENABLE,
-			D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_GREEN |
-			D3DCOLORWRITEENABLE_BLUE | D3DCOLORWRITEENABLE_ALPHA
-		);
+		ITexture* OverrideTexture = it->second.m_ITex;
+		bool excluded = IsPanelExcluded(vguiPanel, it->second.m_ExcludePanel, OverrideTexture);
 
-		hkPaintTraverse.fOriginal(ecx, vguiPanel, forceRepaint, allowForce);
+		if (!excluded) 
+		{
+			IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
+			rndrContext->SetRenderTarget(OverrideTexture);
+			rndrContext->OverrideColorWriteEnable(true, true);
 
-		m_Game->m_DxDevice->SetRenderTarget(0, m_VR->m_BackBuffer.m_Surface);
-		return;
+			hkPaintTraverse.fOriginal(ecx, vguiPanel, forceRepaint, allowForce);
+
+			rndrContext->OverrideColorWriteEnable(false, true);
+			rndrContext->Release();
+			ResetSurface = true;
+			return;
+		}
+	}
+	else if (ResetSurface)
+	{
+		IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
+		rndrContext->SetRenderTarget(NULL);
+		ResetSurface = false;
+		rndrContext->Release();
 	}
 
 	hkPaintTraverse.fOriginal(ecx, vguiPanel, forceRepaint, allowForce);

@@ -228,12 +228,39 @@ public:
 
 	~Hooks();
 
+
+	//Helpers
 	template <typename T>
 	void BuildHook(Hook<T>* hook, Offset* offset, LPVOID detourFunc, bool enabled = true) {
 		int res = hook->createHook(&offset->hookName, reinterpret_cast<LPVOID>(offset->address), detourFunc);
 
 		if (res) m_Game->logMsg(LOGTYPE_WARNING, "Failed to create hook: %s", hook->hookName);
 		if (enabled && !res) hook->enableHook();
+	}
+
+	static inline bool IsPanelExcluded(VPANEL panel, const std::vector<std::pair<const char*, ITexture*>>* excludeList, ITexture*& Override)
+	{
+		if (!excludeList) return false;
+
+		const char* name = m_Game->m_VguiIPanel->GetName(panel);
+		if (!name) return false;
+
+		char firstChar = name[0];
+		for (const auto& [excludedName, tex] : *excludeList)
+		{
+			if (!excludedName) continue;
+			if (excludedName[0] != firstChar) continue;
+			if (std::strcmp(name, excludedName) == 0)
+			{
+				if (!tex)
+					return true;
+
+				Override = tex;
+				return false;
+			}
+		}
+
+		return false;
 	}
 
 

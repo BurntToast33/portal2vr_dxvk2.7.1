@@ -16,25 +16,27 @@
 
 
 //Toggles
-#define GetControllerTipMatrix_HeapBuffer //Moves some memory allocation of function to heap because it was larger then 32kb
-
+//#define GetControllerTipMatrix_HeapBuffer //Enable this for cpu's with 32kb or less of L1 cache
 
 VR::VR(Game *game) 
 {
     m_Game = game;
     char errorString[MAX_STR_LEN];
 
-    vr::HmdError error = vr::VRInitError_None;
-    m_System = vr::VR_Init(&error, vr::VRApplication_Scene);
-
-    if (error != vr::VRInitError_None) 
+    if (!vr::VRSystem())
     {
-        snprintf(errorString, MAX_STR_LEN, "VR_Init failed: %s", vr::VR_GetVRInitErrorAsEnglishDescription(error));
-        Game::errorMsg(errorString);
-        return;
-    }
+        vr::HmdError error = vr::VRInitError_None;
+        m_System = vr::VR_Init(&error, vr::VRApplication_Scene);
 
-    vr::EVRInitError peError = vr::VRInitError_None;
+        if (error != vr::VRInitError_None)
+        {
+            snprintf(errorString, MAX_STR_LEN, "VR_Init failed: %s", vr::VR_GetVRInitErrorAsEnglishDescription(error));
+            Game::errorMsg(errorString);
+            return;
+        }
+    }
+    else
+        m_System = vr::VRSystem();
 
     if (!vr::VRCompositor())
     {
@@ -87,19 +89,18 @@ VR::VR(Game *game)
 
     g_D3DVR9->GetBackBufferData(&m_BackBuffer);
     m_Overlay = vr::VROverlay();
-    m_Overlay->CreateOverlay("MenuOverlayKey", "MenuOverlay", &m_MainMenuHandle);
-    //m_Overlay->CreateOverlay("HUDOverlayKey", "HUDOverlay", &m_HUDHandle);
-    m_Overlay->SetOverlayInputMethod(m_MainMenuHandle, vr::VROverlayInputMethod_Mouse);
-   // m_Overlay->SetOverlayInputMethod(m_HUDHandle, vr::VROverlayInputMethod_Mouse);
-    m_Overlay->SetOverlayFlag(m_MainMenuHandle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
-    //m_Overlay->SetOverlayFlag(m_HUDHandle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
 
-    //const vr::HmdVector2_t mouseScaleHUD = {windowWidth, windowHeight};
-    //m_Overlay->SetOverlayMouseScale(m_HUDHandle, &mouseScaleHUD);
+    m_Overlay->CreateOverlay("MenuOverlayKey", "MenuOverlay", &m_MainMenuHandle);
+    m_Overlay->SetOverlayInputMethod(m_MainMenuHandle, vr::VROverlayInputMethod_Mouse);
+    m_Overlay->SetOverlayFlag(m_MainMenuHandle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
 
     const vr::HmdVector2_t mouseScaleMenu = {m_RenderWidth, m_RenderHeight};
     m_Overlay->SetOverlayCurvature(m_MainMenuHandle, 0.15f);
     m_Overlay->SetOverlayMouseScale(m_MainMenuHandle, &mouseScaleMenu);
+
+    vr::VRTextureBounds_t bounds{ 0, 0, 1, 1 };
+    m_Overlay->SetOverlayTextureBounds(m_MainMenuHandle, &bounds);
+    m_Overlay->SetOverlayTexelAspect(m_MainMenuHandle, 1.0f);
 
     UpdatePosesAndActions();
 
@@ -112,46 +113,17 @@ VR::~VR()
 {
     m_IsInitialized = false;
     m_IsVREnabled = false;
-
-    for (size_t I = 1; I < Texture_Count; I++) 
-    {
-        auto it = m_TextureMap.find((TextureID)I);
-        if (it == m_TextureMap.end())
-        {
-            g_Game->logMsg(LOGTYPE_WARNING, "VR Cleanup: SharedTextureHolder %d doesn't exist", I);
-            continue;
-        }
-            
-        if (it->second->m_MSAASurface) { it->second->m_MSAASurface->Release(); }
-    }
 }
 
 //Creates the hash maps used to later
 void VR::CreateHashMaps()
 {
-    //Texture mappings
+    //Texture Setup
     m_LeftEye.m_UseMSAA = m_AntiAliasing;
     m_RightEye.m_UseMSAA = m_AntiAliasing;
-    m_MenuTexture.m_CustomSetup = [this](UINT Width, UINT Height, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool)
-    {
-        IDirect3DTexture9* temp = nullptr;
 
-        this->m_CreatingTextureID = VR::Texture_None;
-        this->m_Game->m_DxDevice->CreateTexture(
-            this->m_Game->m_WindowWidth, this->m_Game->m_WindowHeight, Levels, Usage, Format, Pool, &temp, nullptr);
-
-        temp->GetSurfaceLevel(0, &this->m_MenuTexture.m_MSAASurface);
-        temp->Release();
-    }; //Using msaa surface as the lower resolution target
-
-    m_TextureMap = {
-        { VR::Texture_LeftEye, &m_LeftEye},
-        { VR::Texture_RightEye, &m_RightEye},
-        { VR::Texture_Blank, &m_BlankTexture },
-        { VR::Texture_Menu, &m_MenuTexture },
-    };
-
-    m_Game->logMsg(LOGTYPE_DEBUG, "Loaded texture mappings.");
+    TextureSetup menuSetup(m_Game->m_WindowWidth, m_Game->m_WindowHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
+    m_MenuTexture.m_OverrideMSAASurface = &menuSetup;
 
 
     //Background mappings
@@ -202,9 +174,8 @@ void VR::CreateHashMaps()
     file.close();
 
     if (m_BackgroundMapping.size())
-    {
         m_Game->logMsg(LOGTYPE_DEBUG, "Loaded %zu background mappings.", m_BackgroundMapping.size());
-    }
+
     else
     {
         m_Game->logMsg(LOGTYPE_WARNING, "Failed to parse backgrounds.txt or there are no entries.%s", "\nDisabling 3D backgrounds");
@@ -219,9 +190,7 @@ int VR::SetActionManifest(const char *fileName)
     sprintf_s(path, MAX_STR_LEN, "%s\\VR\\SteamVRActionManifest\\%s", m_Game->m_GameDir, fileName);
 
     if (m_Input->SetActionManifestPath(path) != vr::VRInputError_None) 
-    {
         Game::errorMsg("SetActionManifestPath failed");
-    }
 
     m_Input->GetActionHandle("/actions/main/in/ActivateVR", &m_ActionActivateVR);
     m_Input->GetActionHandle("/actions/main/in/Jump", &m_ActionJump);
@@ -286,6 +255,16 @@ void VR::SetScreenSizeOverride(bool bState) {
 
 void VR::PreUpdate()
 {
+    //Scaling Menu textures
+    if (ShouldCapture())
+    {
+        m_Game->m_DxDevice->StretchRect(
+            m_MenuTexture.m_MSAASurface, nullptr,
+            m_MenuTexture.m_Surface, nullptr,
+            D3DTEXF_LINEAR
+        );
+    }
+
     //Compositing the rendered frame to the back buffer
     if (m_RenderWindow && m_Game->m_EngineClient->IsInGame())
     {
@@ -295,16 +274,6 @@ void VR::PreUpdate()
             D3DTEXF_NONE
         );
     }
-
-    //Scaling Menu textures
-    if (ShouldCapture()) 
-    {
-        m_Game->m_DxDevice->StretchRect(
-            m_MenuTexture.m_MSAASurface, nullptr,
-            m_MenuTexture.m_Surface, nullptr,
-            D3DTEXF_LINEAR
-        );
-    } 
 }
 
 
@@ -337,13 +306,15 @@ void VR::PostUpdate()
     }
 
     //Clearing menu ui for next frame
+    IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
     if (m_Game->m_EngineClient->IsInGame())
     {
-        m_Game->m_DxDevice->SetRenderTarget(0, m_MenuTexture.m_MSAASurface);
-        m_Game->m_DxDevice->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
+        rndrContext->SetRenderTarget(m_MenuTexture.m_MSAAITex);
+        rndrContext->ClearBuffers(true, false, false);
     }
     else
-        m_Game->m_DxDevice->SetRenderTarget(0, m_BackBuffer.m_Surface);
+        rndrContext->SetRenderTarget(NULL);
+    rndrContext->Release();
 }
 
 void VR::FirstFrameUpdate()
@@ -365,11 +336,9 @@ void VR::CreateVRTextures()
 
     //Blank texture gets created when the game is loading
     if (!m_BlankTexture.m_ITex)
-    {
-        m_CreatingTextureID = Texture_Blank;
-        m_BlankTexture.m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("blankTexture", 512, 512, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SHARED, TEXTUREFLAGS_NOMIP);
-        m_CreatingTextureID = Texture_None;
-    }
+        CreateRT(&m_BlankTexture, "blankTexture", 512, 512, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
+
+
     if (!m_Game->m_EngineClient->IsInGame())
     {
         m_Game->m_MaterialSystem->EndRenderTargetAllocation();
@@ -379,24 +348,13 @@ void VR::CreateVRTextures()
 
     //Textures will be recreated every map load
     m_Game->logMsg(LOGTYPE_DEBUG, "RenderTexture - Width: %d, Height: %d", m_RenderWidth, m_RenderHeight);
-    if (m_LeftEye.m_ITex) m_LeftEye.m_ITex->Release();
 
-    m_CreatingTextureID = Texture_LeftEye;
-    m_LeftEye.m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("leftEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
+    CreateRT(&m_LeftEye, "leftEye", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
+    CreateRT(&m_RightEye, "rightEye", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
+    CreateRT(&m_RightEye, "menuTex", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
+    CreateRT(&m_HudTexture, "hudTex", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
 
-    if (m_RightEye.m_ITex) m_RightEye.m_ITex->Release();
-
-    m_CreatingTextureID = Texture_RightEye;
-    m_RightEye.m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("rightEye0", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SEPARATE, TEXTUREFLAGS_NOMIP);
-    
-    if (m_MenuTexture.m_ITex) m_MenuTexture.m_ITex->Release();
-
-    m_CreatingTextureID = Texture_Menu;
-    m_MenuTexture.m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx("menuTex", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat(), MATERIAL_RT_DEPTH_SHARED, TEXTUREFLAGS_NOMIP);
-
-    m_CreatingTextureID = Texture_None;
     m_Game->m_MaterialSystem->EndRenderTargetAllocation();
-
     m_CreatedVRTextures = true;
 }
 
@@ -412,9 +370,6 @@ void VR::SubmitVRTextures()
         if (!m_Overlay->IsOverlayVisible(m_MainMenuHandle) || m_LastOverlayRepos)
         {
             RepositionOverlays();
-            vr::VRTextureBounds_t bounds{ 0, 0, 1, 1 };
-            m_Overlay->SetOverlayTextureBounds(m_MainMenuHandle, &bounds);
-            vr::VROverlay()->SetOverlayTexelAspect(m_MainMenuHandle, 1.0f);
             m_LastOverlayRepos = false;
         }
             
@@ -489,11 +444,11 @@ void VR::RepositionOverlays()
     if (m_Game->m_EngineClient->IsInGame())
     {
         //Headspace overlay
-        Vector menuDistance = hmdForward * 3.0f;
+        Vector menuDistance = hmdForward * 3.0f; //Forward
         Vector menuNewPos = hmdPosition + menuDistance;
 
         menuTransform.m[0][3] = menuNewPos.x;
-        menuTransform.m[1][3] = menuNewPos.y - 0.25f;
+        menuTransform.m[1][3] = menuNewPos.y - 0.25f; //Height
         menuTransform.m[2][3] = menuNewPos.z;
 
         float xScale = menuTransform.m[0][0];
@@ -510,8 +465,8 @@ void VR::RepositionOverlays()
         Vector worldCenter = { 0.0f, 0.0f, 0.0f };
 
         Vector vrForward = { 0.0f, 0.0f, -1.0f };
-        Vector overlayPos = worldCenter + vrForward * 3.0f; // Forward Distance
-        overlayPos.y = 2.0f; // Height
+        Vector overlayPos = worldCenter + vrForward * 3.0f; //Forward
+        overlayPos.y = 1.25f; //Height
 
         Vector forward = worldCenter - overlayPos;
         forward.y = 0.0f;
@@ -1733,9 +1688,33 @@ void VR::BuildCaptureMap()
     m_PanelCaptureMap = {
         {
             m_Game->m_EnginePanel->GetPanel(PANEL_GAMEUIDLL),
-            PanelCaptureInfo{ m_MenuTexture.m_MSAASurface, [this]() { return this->ShouldCapture(); } }
-        }
+            PanelCaptureInfo{ m_MenuTexture.m_MSAAITex, nullptr, [this]() { return this->ShouldCapture(); } }
+        },
+        /*{
+            m_Game->m_EnginePanel->GetPanel(PANEL_GAMEDLL),
+            PanelCaptureInfo{ m_HudTexture.m_ITex, [this]() { return !this->ShouldCapture(); } }
+        }*/
     };
 
     m_BuiltCaptureMap = true;
+}
+
+int VR::CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth, UINT textureFlags)
+{
+    if (!target) return -1;
+
+    if (target->m_ITex) target->m_ITex->Release();
+    if (target->m_MSAAITex) target->m_MSAAITex->Release();
+
+    PushTexture(target, false);
+    target->m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(name, w, h, sizeMode, format, depth, textureFlags);
+
+    if (target->m_UseMSAA || target->m_OverrideMSAASurface)
+    {
+        TextureSetup Setup = (target->m_OverrideMSAASurface) ? *target->m_OverrideMSAASurface : TextureSetup(w, h, sizeMode, format, depth, textureFlags);
+        PushTexture(target, true);
+        target->m_MSAAITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(std::string(name).append("_MSAA").c_str(), Setup.w, Setup.h, Setup.sizeMode, Setup.format, Setup.depth, Setup.textureFlags);
+    }
+
+    return 0;
 }
