@@ -8,6 +8,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LocalDebuggerCommand>D:\Steam\steamapps\common\Portal 2\portal2.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>-vr -vrdebug -insecure -window -novid -width 1280 -height 720</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-vrdebug -insecure -window -novid -width 1280 -height 720</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

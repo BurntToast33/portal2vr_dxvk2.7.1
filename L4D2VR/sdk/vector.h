@@ -16,6 +16,8 @@
 constexpr float PRECALC_DEG_TO_RAD = M_PI_F / 180.0f;
 constexpr float PRECALC_RAD_TO_DEG = 180.0f / M_PI_F;
 
+#define CHECK_VALID( _v)
+
 
 typedef float vec_t;
 
@@ -1311,4 +1313,15 @@ inline void QAngle::VectorAngles(const Vector &forward, const Vector &pseudoup, 
 		// Assume no roll in this case as one degree of freedom has been lost (i.e. yaw == roll)
 		angles[2] = 0;
 	}
+}
+
+//-----------------------------------------------------------------------------
+// cross product
+//-----------------------------------------------------------------------------
+
+inline Vector Vector::Cross(const Vector& vOther) const
+{
+	Vector res;
+	CrossProduct(*this, vOther, res);
+	return res;
 }

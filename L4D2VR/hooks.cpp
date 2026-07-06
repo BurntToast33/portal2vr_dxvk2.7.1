@@ -8,8 +8,11 @@
 #include <iostream>
 
 
-//#define PrintTraverseNames
-
+//#define PrintTraverseNames //Print panel names
+//#define PrintCompositerTraverseal //Print VGUI parent traversal during compositor capture lookup.
+//#define ResFiles //Print resource file names
+//#define PanelCommands //Print panels commands
+//#define PrintPanelSettings //Print panel settings if it calls Apply settings
 
 Hooks::Hooks(Game *game)
 {
@@ -21,85 +24,69 @@ Hooks::Hooks(Game *game)
 	m_Game = game;
 	m_VR = m_Game->m_VR;
 
-	m_PushHUDStep = -999;
-	m_PushedHud = true;
+	Offsets* O = m_Game->m_Offsets;
 
 #ifdef OVERRIDEVRMODE
 	return;
 #endif
 
+	BuildHook(hkPlayerPortalled, O->PlayerPortalled, dPlayerPortalled);
+	
+	//Movement
+	BuildHook(hkProcessUsercmds, O->ProcessUsercmds, dProcessUsercmds);
+	BuildHook(hkReadUsercmd, O->ReadUserCmd, dReadUsercmd);
+	BuildHook(hkWriteUsercmd, O->WriteUsercmd, dWriteUsercmd);
+	BuildHook(hkCreateMove, O->CreateMove, dCreateMove);
 
-	BuildHook(&hkPrepareCredits, &m_Game->m_Offsets->PrepareCredits, &dPrepareCredits);
+	//Weapon
+	BuildHook(hkWeapon_ShootPosition, O->Weapon_ShootPosition, dWeapon_ShootPosition);
+	BuildHook(hkTraceFirePortal, O->TraceFirePortalServer, dTraceFirePortal);
+	BuildHook(hkCWeaponPortalgun_FirePortal, O->CWeaponPortalgun_FirePortal, dCWeaponPortalgun_FirePortal);
 
-	// Movement
-	BuildHook(&hkProcessUsercmds, &m_Game->m_Offsets->ProcessUsercmds, &dProcessUsercmds);
-	BuildHook(&hkReadUsercmd, &m_Game->m_Offsets->ReadUserCmd, &dReadUsercmd);
-	BuildHook(&hkWriteUsercmd, &m_Game->m_Offsets->WriteUsercmd, &dWriteUsercmd);
+	//Rendering
+	BuildHook(hkRenderView, O->RenderView, dRenderView);
+	BuildHook(hkCalcViewModelView, O->CalcViewModelView, dCalcViewModelView);
+	BuildHook(hkSetDrawOnlyForSplitScreenUser, O->SetDrawOnlyForSplitScreenUser, dSetDrawOnlyForSplitScreenUser);
+	BuildHook(hkComputeShadowDepthTextures, O->ComputeShadowDepthTextures, dComputeShadowDepthTextures);
+	BuildHook(hkUnlockAllShadowDepthTextures, O->UnlockAllShadowDepthTextures, dUnlockAllShadowDepthTextures);
+	BuildHook(hkFormatViewModelAttachment, O->FormatViewModelAttachment, dFormatViewModelAttachment);
+	
+	//In game UI
+	BuildHook(hkPrepareCredits, O->PrepareCredits, dPrepareCredits);
+	BuildHook(hkPaintTraverse, O->VGui_IPanel_PaintTraverse, dPaintTraverse);
+	BuildHook(hkPostActionSignal, O->PostActionSignal, dPostActionSignal);
+	BuildHook(hkLoadControlSettings, O->LoadControlSettings, dLoadControlSettings);
+	BuildHook(hkApplySettings, O->ApplySettings, dApplySettings);
+	BuildHook(hkUpdateProgressBar, O->UpdateProgressBar, dUpdateProgressBar);
 
-	// Weapon
-	BuildHook(&hkWeapon_ShootPosition, &m_Game->m_Offsets->Weapon_ShootPosition, &dWeapon_ShootPosition);
-	BuildHook(&hkTraceFirePortal, &m_Game->m_Offsets->TraceFirePortalServer, &dTraceFirePortal);
-	BuildHook(&hkCWeaponPortalgun_FirePortal, &m_Game->m_Offsets->CWeaponPortalgun_FirePortal, &dCWeaponPortalgun_FirePortal);
+	// Grabbles
+	BuildHook(hkComputeError, O->ComputeError, dComputeError, false);
+	BuildHook(hkUpdateObject, O->UpdateObject, dUpdateObject);
+	BuildHook(hkRotateObject, O->RotateObject, dRotateObject, false);
+	BuildHook(hkEyeAngles, O->EyeAngles, dEyeAngles);
 
-	// Rendering
-	BuildHook(&hkRenderView, &m_Game->m_Offsets->RenderView, &dRenderView);
-	BuildHook(&hkPaintTraverse, &m_Game->m_Offsets->VGui_IPanel_PaintTraverse, &dPaintTraverse);
-	BuildHook(&hkCalcViewModelView, &m_Game->m_Offsets->CalcViewModelView, &dCalcViewModelView);
-	BuildHook(&hkDrawSelf, &m_Game->m_Offsets->DrawSelf, &dDrawSelf);
-	BuildHook(&hkClipTransform, &m_Game->m_Offsets->ClipTransform, &dClipTransform, false);
-	//BuildHook(&hkVgui_Paint, &m_Game->m_Offsets->VGui_Paint, &dVGui_Paint, false);
-	//BuildHook(&hkPushRenderTargetAndViewport, &m_Game->m_Offsets->PushRenderTargetAndViewport, &dPushRenderTargetAndViewport, false);
-	//BuildHook(&hkPopRenderTargetAndViewport, &m_Game->m_Offsets->PopRenderTargetAndViewport, &dPopRenderTargetAndViewport, false);
-	//BuildHook(&hkPrePushRenderTarget, &m_Game->m_Offsets->PrePushRenderTarget, &dPrePushRenderTarget, false);
+	//Portal Gun VFX
+	BuildHook(hkGetDefaultFOV, O->GetDefaultFOV, dGetDefaultFOV);
+	BuildHook(hkGetFOV, O->GetFOV, dGetFOV);
+	BuildHook(hkGetViewModelFOV, O->GetViewModelFOV, dGetViewModelFOV);
 
+	//Map related
+	BuildHook(hkLevelInit, O->LevelInit, dLevelInit);
 
-	// Portalling
-	BuildHook(&hkPlayerPortalled, &m_Game->m_Offsets->PlayerPortalled, &dPlayerPortalled);
-	BuildHook(&hkCreateMove, &m_Game->m_Offsets->CreateMove, &dCreateMove);
-	UTIL_Portal_FirstAlongRay = (tUTIL_Portal_FirstAlongRay)m_Game->m_Offsets->UTIL_Portal_FirstAlongRay.address;
-	UTIL_IntersectRayWithPortal = (tUTIL_IntersectRayWithPortal)m_Game->m_Offsets->UTIL_IntersectRayWithPortal.address;
-	UTIL_Portal_AngleTransform = (tUTIL_Portal_AngleTransform)m_Game->m_Offsets->UTIL_Portal_AngleTransform.address;
-
-	// Grababbles
-	BuildHook(&hkComputeError, &m_Game->m_Offsets->ComputeError, &dComputeError, false);
-	BuildHook(&hkUpdateObject, &m_Game->m_Offsets->UpdateObject, &dUpdateObject);
-	BuildHook(&hkUpdateObjectVM, &m_Game->m_Offsets->UpdateObjectVM, &dUpdateObjectVM);
-	BuildHook(&hkRotateObject, &m_Game->m_Offsets->RotateObject, &dRotateObject, false);
-	BuildHook(&hkEyeAngles, &m_Game->m_Offsets->EyeAngles, &dEyeAngles);
-
-	// Portal Gun VFX
-	BuildHook(&hkGetDefaultFOV, &m_Game->m_Offsets->GetDefaultFOV, &dGetDefaultFOV);
-	BuildHook(&hkGetFOV, &m_Game->m_Offsets->GetFOV, &dGetFOV);
-	BuildHook(&hkGetViewModelFOV, &m_Game->m_Offsets->GetViewModelFOV, &dGetViewModelFOV);
-
-	// Laser Pointer
-	BuildHook(&hkSetDrawOnlyForSplitScreenUser, &m_Game->m_Offsets->SetDrawOnlyForSplitScreenUser, &dSetDrawOnlyForSplitScreenUser);
-	BuildHook(&hkCHudCrosshair_ShouldDraw, &m_Game->m_Offsets->CHudCrosshair_ShouldDraw, &dCHudCrosshair_ShouldDraw);
-	GetPortalPlayer = (tGetPortalPlayer)m_Game->m_Offsets->GetPortalPlayer.address;
-	CreatePingPointer = (tCreatePingPointer)m_Game->m_Offsets->CreatePingPointer.address;
-	PrecacheParticleSystem = (tPrecacheParticleSystem)m_Game->m_Offsets->PrecacheParticleSystem.address;
-
-	//
-	EntityIndex = (tEntindex)m_Game->m_Offsets->CBaseEntity_entindex.address;
-	GetOwner = (tGetOwner)m_Game->m_Offsets->GetOwner.address;
-	GetFullScreenTexture = (tGetFullScreenTexture)m_Game->m_Offsets->GetFullScreenTexture.address;
-
-	//Map realted
-	BuildHook(&hkLevelInit, &m_Game->m_Offsets->LevelInit, &dLevelInit);
+	//Direct Calls
+	BuildDirectCall(UTIL_Portal_FirstAlongRay, O->UTIL_Portal_FirstAlongRay);
+	BuildDirectCall(UTIL_IntersectRayWithPortal, O->UTIL_IntersectRayWithPortal);
+	BuildDirectCall(UTIL_Portal_AngleTransform, O->UTIL_Portal_AngleTransform);
+	BuildDirectCall(CreatePingPointer, O->CreatePingPointer);
+	BuildDirectCall(PrecacheParticleSystem, O->PrecacheParticleSystem);
+	BuildDirectCall(EntityIndex, O->CBaseEntity_entindex);
+	BuildDirectCall(GetOwner, O->GetOwner);
 }
 
 Hooks::~Hooks()
 {
 	if (MH_Uninitialize() != MH_OK)
 		Game::errorMsg("Failed to uninitialize MinHook");
-}
-
-bool __fastcall Hooks::dCHudCrosshair_ShouldDraw(void* ecx, void* edx) {
-	bool shouldDraw = hkCHudCrosshair_ShouldDraw.fOriginal(ecx);
-
-	m_VR->m_DrawCrosshair = shouldDraw;
-
-	return ((m_VR->m_AimMode == 1) ? shouldDraw : false);
 }
 
 void __fastcall Hooks::dSetDrawOnlyForSplitScreenUser(void* ecx, void* edx, int nSlot) {
@@ -115,7 +102,6 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 	//First frame commands
 	if (m_FirstFrame)
 	{
-		PrecacheParticleSystem("robot_point_beam");
 		m_VR->FirstFrameUpdate();
 		m_FirstFrame = false;
 	}
@@ -125,13 +111,14 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 	hudViewSetup.m_nUnscaledWidth = m_VR->m_RenderWidth;
 	hudViewSetup.m_nUnscaledHeight = m_VR->m_RenderHeight;
 	hudViewSetup.fov = m_VR->m_Fov;
-	hudViewSetup.fovViewmodel = m_VR->m_Fov;
+	//hudViewSetup.fovViewmodel = m_VR->m_Fov;
 	hudViewSetup.m_flAspectRatio = m_VR->m_Aspect;
 
 	Vector position = setup.origin;
 
 	if (m_VR->m_ApplyPortalRotationOffset) {
-		float distance = (setup.origin - m_VR->m_SetupOrigin).LengthSqr();
+		Vector vec = position - m_VR->m_SetupOrigin;
+		float distance = sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 
 		// Rudimentary portalling detection
 		if (distance > 35) {
@@ -170,7 +157,8 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 	//Rendering Eyes
 	for (size_t I = 0; I < 2; I++) 
 	{
-		int drawFlags = (!I) ? (whatToDraw & ~RENDERVIEW_DRAWHUD) : whatToDraw;
+		m_VR->m_IsRightEye = I;
+		int drawFlags = (!I) ? ((whatToDraw & ~RENDERVIEW_DRAWHUD) | RENDERVIEW_SUPPRESSMONITORRENDERING) : whatToDraw;
 		QAngle tempAngle(setup.angles.x, setup.angles.y, setup.angles.z);
 		CViewSetup EyeView = setup;
 		Vector EyePos = (!I) ? m_VR->GetViewOriginLeft(m_VR->m_SetupOrigin) : m_VR->GetViewOriginRight(m_VR->m_SetupOrigin);
@@ -184,10 +172,9 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 		hkRenderView.fOriginal(ecx, EyeView, hudViewSetup, nClearFlags, drawFlags);
 	}
 
+	m_VR->m_IsRightEye = false;
 	rndrContext->SetRenderTarget(NULL);
 	rndrContext->Release();
-
-	m_PushedHud = false;
 }
 
 //Movement controls
@@ -266,8 +253,6 @@ void __fastcall Hooks::dCalcViewModelView(void *ecx, void *edx, const Vector &ey
 {
 	Vector vecNewOrigin = eyePosition;
 	QAngle vecNewAngles = eyeAngles;
-
-	//std::cout << "dCalcViewModelView: (" << m_VR->m_IsVREnabled << ")\n";
 
 	if (m_VR->m_IsVREnabled)
 	{
@@ -348,11 +333,6 @@ void Hooks::dGetViewport(void *ecx, void *edx, int &x, int &y, int &width, int &
 	height = m_VR->m_RenderHeight;
 }
 
-int Hooks::dGetPrimaryAttackActivity(void *ecx, void *edx, void *meleeInfo)
-{
-	return hkGetPrimaryAttackActivity.fOriginal(ecx, meleeInfo);
-}
-
 // We'll keep this for... future reference!
 void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRenderInfo_t &info, void *pCustomBoneToWorld)
 {
@@ -377,90 +357,6 @@ void Hooks::dDrawModelExecute(void *ecx, void *edx, void *state, const ModelRend
 	}
 
 	hkDrawModelExecute.fOriginal(ecx, state, info, pCustomBoneToWorld);
-}
-
-void Hooks::dPushRenderTargetAndViewport(void *ecx, void *edx, ITexture *pTexture, ITexture *pDepthTexture, int nViewX, int nViewY, int nViewW, int nViewH)
-{
-	if (m_VR->m_CreatedVRTextures && !m_PushedHud)
-	{
-		//pTexture = m_VR->m_HUD.m_ITex;
-
-		////pTexture = m_VR->m_RightEyeTexture;
-
-		//IMatRenderContext *renderContext = m_Game->m_MaterialSystem->GetRenderContext();
-		//renderContext->ClearBuffers(false, true, true);
-		////renderContext->Release();
-
-		//hkPushRenderTargetAndViewport.fOriginal(ecx, pTexture, pDepthTexture, nViewX, nViewY, nViewW, nViewH);
-
-		////renderContext = m_Game->m_MaterialSystem->GetRenderContext();
-		//renderContext->OverrideAlphaWriteEnable(true, true);
-		//renderContext->ClearColor4ub(0, 0, 0, 0);
-		//renderContext->ClearBuffers(true, false);
-		//renderContext->Release();
-
-		//m_VR->m_RenderedHud = true;
-		//m_PushedHud = true;
-	}
-	else
-	{
-		hkPushRenderTargetAndViewport.fOriginal(ecx, pTexture, pDepthTexture, nViewX, nViewY, nViewW, nViewH);
-	}
-}
-
-void Hooks::dPopRenderTargetAndViewport(void *ecx, void *edx)
-{
-	if (!m_VR->m_CreatedVRTextures)
-		return hkPopRenderTargetAndViewport.fOriginal(ecx);
-
-	//std::cout << "dPopRenderTargetAndViewport: " << m_PushHUDStep << "\n";
-
-	m_PushHUDStep = 0;
-
-	if (m_PushedHud)
-	{
-		IMatRenderContext* renderContext = m_Game->m_MaterialSystem->GetRenderContext();
-		renderContext->OverrideAlphaWriteEnable(false, true);
-		renderContext->ClearColor4ub(0, 0, 0, 255);
-		renderContext->Release();
-	}
-
-	hkPopRenderTargetAndViewport.fOriginal(ecx);
-}
-
-void Hooks::dVGui_Paint(void *ecx, void *edx, int mode)
-{
-	if (!m_VR->m_CreatedVRTextures || m_VR->m_Game->m_VguiSurface->IsCursorVisible())
-		return hkVgui_Paint.fOriginal(ecx, mode);
-
-	if (m_PushedHud)
-		mode = PAINT_UIPANELS | PAINT_INGAMEPANELS;
-
-	hkVgui_Paint.fOriginal(ecx, mode);
-}
-
-int Hooks::dIsSplitScreen()
-{
-	//std::cout << "dIsSplitScreen: " << m_PushHUDStep << "\n";
-
-	if (m_PushHUDStep == 0)
-		++m_PushHUDStep;
-	else
-		m_PushHUDStep = -999;
-
-	return hkIsSplitScreen.fOriginal();
-}
-
-DWORD *Hooks::dPrePushRenderTarget(void *ecx, void *edx, int a2)
-{
-	//std::cout << "dPrePushRenderTarget: " << m_PushHUDStep << "\n";
-
-	if (m_PushHUDStep == 1)
-		++m_PushHUDStep;
-	else
-		m_PushHUDStep = -999;
-
-	return hkPrePushRenderTarget.fOriginal(ecx, a2);
 }
 
 Vector* Hooks::dWeapon_ShootPosition(void* ecx, void* edx, Vector* eyePos)
@@ -548,123 +444,6 @@ void __fastcall Hooks::dPlayerPortalled(void* ecx, void* edx, void* a2, __int64 
 	return;
 }
 
-//Dummy function
-bool Hooks::dClipTransform(const Vector& point, Vector* pScreen)
-{
-	return hkClipTransform.fOriginal(point, pScreen);
-}
-
-bool Hooks::ScreenTransform(const Vector& point, Vector* pScreen, int width, int height)
-{
-	bool retval = hkClipTransform.fOriginal(point, pScreen);
-
-	pScreen->x = 0.5f * (pScreen->x + 1.0f) * width;
-	pScreen->y = 0.5f * (-pScreen->y + 1.0f) * height;
-
-	return retval;
-}
-
-int __fastcall Hooks::dDrawSelf(void* ecx, void* edx, int x, int y, int w, int h, const void* clr, float flApparentZ) {
-	//std::cout << "dDrawSelf - X: " << x << ", Y: " << y << ", W: " << w << ", H: " << h << ", Z: " << flApparentZ << "\n";
-
-	//int playerIndex = m_Game->m_EngineClient->GetLocalPlayer();
-
-	//auto viewport = m_Game->m_ClientMode->GetViewport();
-
-	int newX = x;
-	int	newY = y;
-
-	if (m_VR->m_IsVREnabled)
-	{
-		Vector screen = { 0, 0, 0 };
-
-		//Vector vec = m_VR->m_AimPos - m_VR->GetRightControllerAbsPos();
-
-		//newZ = 1.0 / sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
-
-		ScreenTransform(m_VR->m_AimPos, &screen, m_VR->m_RenderWidth, m_VR->m_RenderHeight);
-
-		int offsetX = x - (m_Game->m_WindowWidth * 0.5f);
-		int offsetY = y - (m_Game->m_WindowHeight * 0.5f);
-
-		newX = screen.x + offsetX;
-		newY = screen.y + offsetY;
-	}
-
-	return hkDrawSelf.fOriginal(ecx, newX, newY, w, h, clr, flApparentZ);
-}
-
-void __cdecl Hooks::dVGui_GetHudBounds(int slot, int& x, int& y, int& w, int& h) {
-	if (m_VR->m_IsVREnabled && !m_Game->m_VguiSurface->IsCursorVisible())
-	{
-		x = y = 0;
-		w = m_VR->m_RenderWidth;
-		h = m_VR->m_RenderHeight;
-	} else {
-		hkVGui_GetHudBounds.fOriginal(slot, x, y, w, h);
-	}
-
-	//std::cout << "dVGui_GetHudBounds - X: " << x << ", Y: " << y << ", W: " << w << ", H: " << h << "\n";
-}
-
-void __cdecl Hooks::dVGui_GetPanelBounds(int slot, int& x, int& y, int& w, int& h) {
-	if (m_VR->m_IsVREnabled && !m_Game->m_VguiSurface->IsCursorVisible())
-	{
-		x = y = 0;
-		w = m_VR->m_RenderWidth;
-		h = m_VR->m_RenderHeight;
-	}
-	else {
-		hkVGui_GetPanelBounds.fOriginal(slot, x, y, w, h);
-	}
-
-	//std::cout << "dVGui_GetPanelBounds - X: " << x << ", Y: " << y << ", W: " << w << ", H: " << h << "\n";
-}
-
-void __cdecl Hooks::dVGUI_UpdateScreenSpaceBounds(int nNumSplits, int sx, int sy, int sw, int sh) {
-	hkVGUI_UpdateScreenSpaceBounds.fOriginal(nNumSplits, sx, sy, m_VR->m_RenderWidth, m_VR->m_RenderHeight);
-}
-
-void __cdecl Hooks::dVGui_GetTrueScreenSize(int &w, int &h) {
-	w = m_VR->m_RenderWidth;
-	h = m_VR->m_RenderHeight;
-}
-
-void __fastcall Hooks::dGetScreenSize(void* ecx, void* edx, int& wide, int& tall) {
-	//hkGetScreenSize.fOriginal(ecx, wide, tall);
-	wide = m_VR->m_RenderWidth;
-	tall = m_VR->m_RenderHeight;
-}
-
-void __cdecl Hooks::dGetHudSize(int& w, int& h) {
-	w = m_VR->m_RenderWidth;
-	h = m_VR->m_RenderHeight;
-}
-
-void __fastcall Hooks::dPush2DView(void* ecx, void* edx, IMatRenderContext* pRenderContext, const CViewSetup& view, int nFlags, ITexture* pRenderTarget, void* frustumPlanes) {
-	m_PushedHud = false;
-
-	return hkPush2DView.fOriginal(ecx, pRenderContext, view, nFlags, pRenderTarget, frustumPlanes);
-}
-
-void __fastcall Hooks::dRender(void* ecx, void* edx, vrect_t* rect) {
-	//std::cout << "dRender - X: " << rect->x << ", Y: " << rect->y << ", W: " << rect->width << ", H: " << rect->height  << "\n";
-
-	return hkRender.fOriginal(ecx, rect);
-}
-
-void __fastcall Hooks::dSetBounds(void* ecx, void* edx, int x, int y, int w, int h) {
-	std::cout << "dSetBounds - X: " << x << ", Y: " << y << ", W: " << w << ", H: " << h << "\n";
-
-	hkSetBounds.fOriginal(ecx, x, y, m_VR->m_RenderWidth, m_VR->m_RenderHeight);
-}
-
-void __fastcall Hooks::dGetClipRect(void* ecx, void* edx, int& x0, int& y0, int& x1, int& y1) {
-	hkGetClipRect.fOriginal(ecx, x0, y0, x1, y1);
-
-	//std::cout << "dGetClipRect - X: " << x0 << ", Y: " << y0 << ", W: " << x1 << ", H: " << y1  << "\n";
-}
-
 double __fastcall Hooks::dComputeError(void* ecx, void* edx) {
 	bool wasTrue = m_VR->m_OverrideEyeAngles;
 
@@ -684,19 +463,6 @@ bool __fastcall Hooks::dUpdateObject(void* ecx, void* edx, void* pPlayer, float 
 	m_VR->m_OverrideEyeAngles = true;
 
 	bool value = hkUpdateObject.fOriginal(ecx, pPlayer, flError, bIsTeleport);
-
-	if (!wasTrue)
-		m_VR->m_OverrideEyeAngles = false;
-
-	return value;
-}
-
-bool __fastcall Hooks::dUpdateObjectVM(void* ecx, void* edx, void* pPlayer, float flError) {
-	bool wasTrue = m_VR->m_OverrideEyeAngles;
-
-	m_VR->m_OverrideEyeAngles = true;
-
-	bool value = hkUpdateObjectVM.fOriginal(ecx, pPlayer, flError);
 
 	if (!wasTrue)
 		m_VR->m_OverrideEyeAngles = false;
@@ -753,30 +519,43 @@ double __fastcall Hooks::dGetViewModelFOV(void* ecx, void* edx) {
 void __fastcall Hooks::dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bool forceRepaint, bool allowForce)
 {
 #ifdef PrintTraverseNames
-	const char* Name = m_Game->m_VguiIPanel->GetName(vguiPanel);
-	if (Name) std::cout << Name << std::endl;
+	printf("%s\n", m_Game->m_VguiIPanel->GetName(vguiPanel));
 #endif
 
-	static bool ResetSurface = false;
+	static bool ResetSurface;
 	if (!m_VR->m_BuiltCaptureMap)
 		m_VR->BuildCaptureMap();
 
+	VPANEL p = vguiPanel;
+	auto it = m_VR->m_PanelCaptureMap.end();
+	while (p)
+	{
+#ifdef PrintCompositerTraverseal
+		printf("%s, ID: %d -> %s, ID: %d\n", m_Game->m_VguiIPanel->GetName(vguiPanel), vguiPanel, m_Game->m_VguiIPanel->GetName(p), p);
+		printf("%d\n", m_VR->FindParentOf(m_Game->m_EnginePanel->GetPanel(PANEL_CLIENTDLL), "HudWeapon"));
+#endif
 
-	auto it = m_VR->m_PanelCaptureMap.find(m_Game->m_VguiIPanel->GetParent(vguiPanel));
+		it = m_VR->m_PanelCaptureMap.find(p);
+		if (it != m_VR->m_PanelCaptureMap.end())
+			break;
+
+		p = m_Game->m_VguiIPanel->GetParent(p);
+	}
+
 	if (it != m_VR->m_PanelCaptureMap.end() && it->second.m_ShouldCapture())
 	{
 		ITexture* OverrideTexture = it->second.m_ITex;
-		bool excluded = IsPanelExcluded(vguiPanel, it->second.m_ExcludePanel, OverrideTexture);
+		bool excluded = IsPanelExcluded(vguiPanel, &it->second.m_ExcludePanel, OverrideTexture);
 
 		if (!excluded) 
 		{
 			IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
 			rndrContext->SetRenderTarget(OverrideTexture);
-			rndrContext->OverrideColorWriteEnable(true, true);
+			rndrContext->OverrideAlphaWriteEnable(true, true);
 
 			hkPaintTraverse.fOriginal(ecx, vguiPanel, forceRepaint, allowForce);
 
-			rndrContext->OverrideColorWriteEnable(false, true);
+			rndrContext->OverrideAlphaWriteEnable(false);
 			rndrContext->Release();
 			ResetSurface = true;
 			return;
@@ -796,12 +575,11 @@ void __fastcall Hooks::dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bo
 bool __fastcall Hooks::dLevelInit(void* ecx, void* edx, const char* pMapName, char const* pMapEntities, char const* pOldLevel, char const* pLandmarkName, bool loadGame, bool background)
 {
 	if (m_VR->m_3DMenu)
-	{
-		m_VR->m_StopLoading3DBgr = false;
 		m_VR->m_IsLevelBackground = background;
-	}
-		
+	
+	m_VR->m_CreatedVRTextures = false; //Apparently need to recreate textures or workshop maps don't render properly
 	m_FirstFrame = true;
+	m_VR->m_ParticleCreated = false; //Need to recache particle
 	return hkLevelInit.fOriginal(ecx, pMapName, pMapEntities, pOldLevel, pLandmarkName, loadGame, background);
 }
 
@@ -809,4 +587,104 @@ void __fastcall Hooks::dPrepareCredits(void* ecx, void* edx, const char* pKeyNam
 {
 	m_VR->m_IsCredits = true;
 	hkPrepareCredits.fOriginal(ecx, pKeyName);
+}
+
+void __fastcall Hooks::dComputeShadowDepthTextures(void* ecx, void* edx, const CViewSetup& pView)
+{
+	if (m_VR->m_IsRightEye && m_VR->m_ExperimentalOptimizations)
+		return;
+		
+	hkComputeShadowDepthTextures.fOriginal(ecx, pView);
+}
+
+void __fastcall Hooks::dUnlockAllShadowDepthTextures(void* ecx, void* edx)
+{
+	if (!m_VR->m_IsRightEye && m_VR->m_ExperimentalOptimizations)
+		return;
+
+	hkUnlockAllShadowDepthTextures.fOriginal(ecx);
+}
+
+void __fastcall Hooks::dPostActionSignal(void* ecx, void* edx, KeyValues* message)
+{
+#ifdef PanelCommands
+	printf("%s, %s\n", message->GetName(), message->GetString(message->GetName(), ""));
+#endif
+
+	if (!strcmp(message->GetName(), "Command")) 
+	{
+		const char* cmd = message->GetString("command", "");
+		auto it = m_VR->m_PanelCommands.find(cmd);
+		if (it != m_VR->m_PanelCommands.end())
+		{
+			if (it->second(cmd, reinterpret_cast<Panel*>(ecx), message))
+				return;
+		}
+	}
+
+	hkPostActionSignal.fOriginal(ecx, message);
+}
+
+void __fastcall Hooks::dLoadControlSettings(void* ecx, void* edx, const char* dialogResourceName, const char* pathID, KeyValues* pPreloadedKeyValues, KeyValues* pConditions)
+{
+	std::string input = m_VR->ToLower(dialogResourceName);
+	size_t pos = input.find_last_of("/\\");
+	std::string filePath = (pos == std::string::npos) ? input : input.substr(pos + 1);
+
+	auto it = m_VR->m_PanelLayoutOverride.find(filePath);
+	if (it != m_VR->m_PanelLayoutOverride.end())
+	{
+		OverrideLayout& layout = it->second;
+		if (layout.m_Func(layout.NewLayoutPath)) 
+		{
+			pPreloadedKeyValues = NULL;
+			dialogResourceName = layout.NewLayoutPath.c_str();
+		}
+	}
+
+#ifdef ResFiles
+	const char* Key = "";
+	if (pPreloadedKeyValues)
+		Key = pPreloadedKeyValues->GetName();
+
+	printf("%s, %s\n", dialogResourceName, Key);
+#endif
+
+	hkLoadControlSettings.fOriginal(ecx, dialogResourceName, pathID, pPreloadedKeyValues, pConditions);
+}
+
+void __fastcall Hooks::dApplySettings(void* ecx, void* edx, KeyValues* inResourceData)
+{
+	Panel* pan = reinterpret_cast<Panel*>(ecx);
+#ifdef PrintPanelSettings
+	printf("%s\n", pan->m_PanelName);
+#endif
+
+	auto it = m_VR->m_PanelSettings.find(pan->m_PanelName);
+	if (it != m_VR->m_PanelSettings.end())
+	{
+		PanelSettings& data = it->second;
+		if (data.m_Func(pan, inResourceData, data.m_Data))
+			return;
+	}
+
+	hkApplySettings.fOriginal(ecx, inResourceData);
+}
+
+float __fastcall Hooks::dUpdateProgressBar(void* ecx, void* edx)
+{
+	float Percentage = hkUpdateProgressBar.fOriginal(ecx);
+
+	Panel* pan = reinterpret_cast<Panel*>(ecx);
+	auto it = m_VR->m_SlideRead.find(pan->m_PanelName);
+	if (it != m_VR->m_SlideRead.end())
+		it->second(pan, Percentage);
+
+	return Percentage;
+}
+
+//This fixes viewmodel attachment drift
+void Hooks::dFormatViewModelAttachment(void* param_1, Vector& vOrigin, bool bInverse)
+{
+	//hkFormatViewModelAttachment.fOriginal(param_1, vOrigin, bInverse);
 }

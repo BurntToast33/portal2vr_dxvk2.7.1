@@ -1568,6 +1568,9 @@
       <Filter>Source Files</Filter>
     </Text>
     <Text Include="Todo.txt" />
+    <Text Include="backgrounds.txt">
+      <Filter>Source Files</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\dxvk\src\d3d9\d3d9.def">

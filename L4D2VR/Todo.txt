@@ -1,35 +1,52 @@
 V0.2.2
 Todo:
-- Finish Hud capture
-- Add proper controller remapping mapping
-- Figure out how to resolve MSAA image in dxvk 2.7
+- Finish Overlay based aiming
+- Fix MSAA (I don't know how, everything is transparent so run without msaa for now)
+- Add cube map transisions between levels to stay in the aptiure envrionment while loading
+- Possibly add a system to generate a cube map of a save point (512x512)
+- ask about adding Spencer0187's roomscale code
+
 
 
 V0.2.1
-Todo:
-- Fix particle atachment points
-
-
-
 Done:
 - Updated to DXVK 2.7.1 +fps
 
-- Fixed function hook offsets for current portal 2 build ID: 17256505 (2026 build)
+- Fixed function hook offsets for current portal 2 build
 - Fixed crash in sp_a2_bts4.
 - Fixed ending: credits now render to overlay in level.
-- Fixed laser pointer particle crashing on creation.
+- Fixed laser pointer particles crashing on creation.
+- Fixed possible softlock when exiting level
 - Possibly fixed memory leak due to never releasing old render targets.
+- Fixed an issue introduced by the current build of the game where viewmodel particle attachment points were transformed incorrectly.
 
 - Added 3D backgrounds. (If you want to add custom backgrounds check VR/backgrounds.txt for how it's mapped)
-- Added 3D in level menu.
+- Added 3D in the level menu.
 - Added a toggle to enable and disable vr mode and assets in launch option. ( -vr )
 - Added a toggle to enable debug console. ( -vrdebug )
 - Added automatic recentering when loading into map.
 - Added error logging from l4d2 branch, sessions will generate vrmod_log.txt.
+- Added setting to enable sharing of visibility between eyes (ExperimentalOptimizations)
+- Added hud compositing for spectators and vr player
+- Added hud for vr player
+- Added vr settings in game options menu
+- Added button to open controller remapping ui in game. (In vr settings menu)
 
-- Changed: Overlay now spawns based on your vr envrionment's foward when in the main menu.
+- Changed Overlay now spawns based on your vr environment's forward when in the main menu.
 - Changed m_RenderWindow setting to copy left eye to backbuffer instead of rendering a third time. +fps
 - Force disabled motion blur in vr mode. +fps
 - Moved mat_ commands from launch args to VR_autoexec.cfg. (located in portal2_dlc3/cfg/VR_autoexec.cfg)
+- Updated console color for warnings and errors.
 
 - Replaced Portal Gun: model by SpiritedSpy
+
+
+Code Changes: 
+- Overhauled overly repositioning system.
+- Removed the old hud system to make way for a new capture method.
+- Redone texture capture.
+- Overhauled vgui capture system to support hud as well.
+- Added automatic system to find differences in defined offset to what's in the binary.
+- Added utils for finding functions in the binarys
+- Cleaned up hooks files and reorganized everything in the hooks files
+- Added systems to override layouts, override panel settings, and listen to panel command stream

@@ -10,6 +10,13 @@
 //#define OVERRIDEVRMODE //For testing hooks
 //#define OVERRIDEVRMODE_ASSETS //For testing assets
 
+
+#define ANSI_RESET  "\x1b[0m"
+#define ANSI_RED    "\x1b[31m"
+#define ANSI_GREEN  "\x1b[32m"
+#define ANSI_YELLOW "\x1b[33m"
+#define ANSI_GRAY  "\x1b[90m"
+
 class IClientEntityList;
 class IEngineVGui;
 class IEngineTrace;
@@ -42,6 +49,10 @@ inline Game *g_Game;
 // === Vr toggle sync variables ===
 inline std::mutex g_GameMutex;
 inline std::condition_variable g_GameCondVar;
+
+
+// === Console handle ===
+static HANDLE g_hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
 
 // === Per-Player VR State ===
@@ -118,6 +129,7 @@ public:
     char m_GameDir[MAX_STR_LEN];
     int m_WindowWidth = 0, m_WindowHeight = 0;
 
+
     // === Constructor ===
     Game();
 
@@ -139,6 +151,7 @@ public:
     void clearLog();
     static void logMsg(LOGTYPE logType, const char* fmt, ...);
     static void errorMsg(const char* msg);
+    static void SetColorANSI(const char* color);
 
 
     // === Command Execution ===

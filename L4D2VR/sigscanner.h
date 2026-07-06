@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 
+
 class SigScanner
 {
 public:
@@ -64,25 +65,62 @@ public:
 		}
 
 		uint8_t* testAddr = bytes + (currentOffset - sigOffset);
-		DumpBytes(hookName, testAddr, patternLen);
+		DumpBytes(hookName, testAddr, patternLen, signature);
 		return -1;
 	}
 
-	static void DumpBytes(std::string hookName, uint8_t* addr, int length)
+	static void DumpBytes(std::string hookName, uint8_t* addr, int length, const std::string& signature)
 	{
+		std::vector<int> sig;
+		std::istringstream ss(signature);
+		std::string token;
+
+		while (ss >> token)
+		{
+			if (token == "?" || token == "??")
+				sig.push_back(-1);
+			else
+				sig.push_back(std::stoi(token, nullptr, 16));
+		}
+
+		int maxLen = std::min(length, (int)sig.size());
+
 		std::ostringstream msg;
 
-		msg << hookName << "'s raw bytes: ";
-		for (int i = 0; i < length; i++)
+		msg << hookName << ": Signature mismatch\n";
+		msg << "expected: ";
+
+		for (int i = 0; i < maxLen; i++)
 		{
-			msg << std::hex
-				<< std::setw(2)
-				<< std::setfill('0')
-				<< (int)addr[i] << " ";
+			if (sig[i] == -1)
+				msg << "?? ";
+			else
+				msg << std::hex << std::setw(2) << std::setfill('0')
+				<< sig[i] << " ";
+		}
+
+		msg << "\nactual:   ";
+		msg << std::dec;
+
+		for (int i = 0; i < maxLen; i++)
+		{
+			uint8_t actual = addr[i];
+			int expected = sig[i];
+
+			bool match = (expected == -1) || (actual == (uint8_t)expected);
+
+			if (!match)
+				msg << "[";
+
+			msg << std::hex << std::setw(2) << std::setfill('0') << (int)actual;
+
+			if (!match)
+				msg << "]";
+
+			msg << " ";
 		}
 
 		msg << std::dec;
-
-		g_Game->logMsg(LOGTYPE_DEBUG, msg.str().c_str());
+		g_Game->errorMsg(msg.str().c_str());
 	}
 };

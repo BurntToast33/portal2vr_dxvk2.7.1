@@ -2,15 +2,15 @@
 #include <iostream>
 #include <unordered_map>
 #include <windows.h>
-
+#include "sdk.h"
 
 enum DLL {
-	DLL_CLIENT = 0,
-	DLL_SERVER, 
-	DLL_ENGINE,
-	DLL_MATERIALSYSTEM,
-	DLL_VGUI2,
-    DLL_VGUIMATSURFACE
+	CLIENT = 0,
+	SERVER, 
+	ENGINE,
+	MATERIALSYSTEM,
+	VGUI2,
+    VGUIMATSURFACE
 };
 
 inline std::unordered_map<DLL, uintptr_t*> DLLMap;
@@ -21,6 +21,9 @@ uintptr_t ResolveThunk(uintptr_t addr);
 bool IsExecutableAddress(uintptr_t addr);
 void FunctionAddress(DLL dllFile, void* fnPtr);
 void ScanVTable(DLL dllFile, void** vtable, size_t length);
+void PrintMemRegion(void* obj, int startIndex, int endIndex, const char* name);
+void PrintVGUITree(VPANEL Parent); //Prints everything under the parent
+void TraceCaller(const char* name, uintptr_t caller, DLL dllFile);
 
 //maxLength is the the max distance it should scan before hard stopping, if it runs out of exec address it breaks early
 template<typename T>
@@ -60,4 +63,27 @@ void ScanClassVTable(DLL dllFile, T* instance, size_t maxLength)
     std::cout << "Util: Detected " << count << " entries" << std::endl;
     if (count == maxLength) std::cout << "Util: Warning, detected entries = maxLength" << std::endl;
     ScanVTable(dllFile, vtable, count);
+}
+
+//Uses the hex offset to calculate vtable index
+template<typename T>
+void ScanClassFunction(DLL dllFile, T* instance, size_t offset)
+{
+    if (!instance)
+    {
+        std::cout << "Util: Invalid class instance" << std::endl;;
+        return;
+    }
+
+    void** vtable = *reinterpret_cast<void***>(instance);
+
+    if (!vtable)
+    {
+        std::cout << "Util: Invalid vtable pointer" << std::endl;
+        return;
+    }
+
+    size_t index = offset / sizeof(void*);
+    std::cout << "Util: VTable[" << index << "]";
+    FunctionAddress(dllFile, vtable[index]);
 }

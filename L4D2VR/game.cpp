@@ -6,6 +6,7 @@
 #include "hooks.h"
 #include "offsets.h"
 #include "sigscanner.h"
+#include "util.h"
 
 
 static std::mutex logMutex;
@@ -13,19 +14,26 @@ using tCreateInterface = void* (__cdecl*)(const char* name, int* returnCode);
 
 
 // === Utility: Retry module load with logging ===
-static HMODULE GetModuleWithRetry(const char* dllname, int maxTries = 500, int delayMs = 50)
+static HMODULE GetModuleWithTimeout(const char* dllname, int timeoutMs = 20000, int pollMs = 50)
 {
-    for (int i = 0; i < maxTries; ++i)
+    using namespace std::chrono;
+    auto start = steady_clock::now();
+
+    while (true)
     {
         HMODULE handle = GetModuleHandleA(dllname);
         if (handle)
             return handle;
 
-        Game::logMsg(LOGTYPE_DEBUG, "Waiting for module to load: %s (attempt %d)", dllname, i + 1);
-        Sleep(delayMs);
+        auto elapsed = duration_cast<milliseconds>(steady_clock::now() - start).count();
+        if (elapsed >= timeoutMs)
+            break;
+
+        Game::logMsg(LOGTYPE_DEBUG, "Waiting for module to load: %s (elapsed %lld ms)", dllname, (long long)elapsed);
+        Sleep(pollMs);
     }
 
-    Game::errorMsg(("Failed to load module after retrying: " + std::string(dllname)).c_str());
+    Game::errorMsg(("Failed to load module after timeout: " + std::string(dllname)).c_str());
     return nullptr;
 }
 
@@ -40,7 +48,7 @@ static void* GetInterfaceSafe(const char* dllname, const char* interfacename)
     if (it != cache.end())
         return it->second;
 
-    HMODULE mod = GetModuleWithRetry(dllname);
+    HMODULE mod = GetModuleWithTimeout(dllname);
     if (!mod)
         return nullptr;
 
@@ -86,12 +94,12 @@ void Game::Initialize()
 #endif
 
     //Waiting for dll's to be loaded
-    m_BaseClient = reinterpret_cast<uintptr_t>(GetModuleWithRetry("client.dll"));
-    m_BaseEngine = reinterpret_cast<uintptr_t>(GetModuleWithRetry("engine.dll"));
-    m_BaseMaterialSystem = reinterpret_cast<uintptr_t>(GetModuleWithRetry("MaterialSystem.dll"));
-    m_BaseServer = reinterpret_cast<uintptr_t>(GetModuleWithRetry("server.dll"));
-    m_BaseVgui2 = reinterpret_cast<uintptr_t>(GetModuleWithRetry("vgui2.dll"));
-    m_BaseVguiMatSurface = reinterpret_cast<uintptr_t>(GetModuleWithRetry("vguimatsurface.dll"));
+    m_BaseClient = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("client.dll"));
+    m_BaseEngine = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("engine.dll"));
+    m_BaseMaterialSystem = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("MaterialSystem.dll"));
+    m_BaseServer = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("server.dll"));
+    m_BaseVgui2 = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("vgui2.dll"));
+    m_BaseVguiMatSurface = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("vguimatsurface.dll"));
 
     //Getting interfaces
     m_ClientEntityList = static_cast<IClientEntityList*>(GetInterfaceSafe("client.dll", "VClientEntityList003"));
@@ -104,6 +112,7 @@ void Game::Initialize()
     m_VguiInput = static_cast<IInput*>(GetInterfaceSafe("vgui2.dll", "VGUI_InputInternal001"));
     m_VguiSurface = static_cast<ISurface*>(GetInterfaceSafe("vguimatsurface.dll", "VGUI_Surface031"));
     m_VguiIPanel = static_cast<IPanel*>(GetInterfaceSafe("vgui2.dll", "VGUI_Panel009"));
+
 
     m_Offsets = new Offsets();
     LoadCommands();
@@ -135,36 +144,53 @@ void Game::logMsg(LOGTYPE logtype, const char* fmt, ...)
 
     auto now = std::chrono::system_clock::now();
     std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-    char timebuf[20] = {};
-    std::strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", std::localtime(&now_c));
 
-    const char* typeStr;
-    switch (logtype) {
-        case LOGTYPE_DEBUG: typeStr = "DEBUG"; break;
+    char timebuf[20]{};
+    std::strftime(timebuf, sizeof(timebuf),
+        "%Y-%m-%d %H:%M:%S",
+        std::localtime(&now_c));
+
+    const char* typeStr = "UNKNOWN";
+    switch (logtype)
+    {
+        case LOGTYPE_DEBUG:   typeStr = "DEBUG";   break;
         case LOGTYPE_WARNING: typeStr = "WARNING"; break;
-        case LOGTYPE_ERROR: typeStr = "ERROR"; break;
+        case LOGTYPE_ERROR:   typeStr = "ERROR";   break;
     }
 
-    printf("[%s][%s] ", timebuf, typeStr);
+    char buffer[1024];
 
     va_list args;
     va_start(args, fmt);
-    vprintf(fmt, args);
+    vsnprintf(buffer, sizeof(buffer), fmt, args);
     va_end(args);
-
-    printf("\n");
 
     FILE* file = fopen("vrmod_log.txt", "a");
     if (file)
     {
-        fprintf(file, "[%s][%s] ", timebuf, typeStr);
-        va_list args2;
-        va_start(args2, fmt);
-        vfprintf(file, fmt, args2);
-        va_end(args2);
-        fprintf(file, "\n");
+        fprintf(file, "[%s][%s] %s\n", timebuf, typeStr, buffer);
         fclose(file);
     }
+
+    const char* color = ANSI_RESET;
+    switch (logtype)
+    {
+        case LOGTYPE_DEBUG:   color = ANSI_RESET;  break;
+        case LOGTYPE_WARNING: color = ANSI_YELLOW; break;
+        case LOGTYPE_ERROR:   color = ANSI_RED;    break;
+    }
+
+    printf("%s[%s][%s] %s%s\n",
+        color,
+        timebuf,
+        typeStr,
+        buffer,
+        ANSI_RESET);
+}
+
+void Game::SetColorANSI(const char* color)
+{
+    printf("%s", color);
 }
 
 void Game::clearLog()
@@ -180,7 +206,7 @@ void Game::clearLog()
 // === Error Message ===
 void Game::errorMsg(const char *msg)
 {
-    logMsg(LOGTYPE_ERROR, msg);
+    logMsg(LOGTYPE_ERROR, "%s", msg);
     MessageBoxA(nullptr, msg, "Portal 2 Error", MB_ICONERROR | MB_OK);
 }
 

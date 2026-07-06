@@ -44,12 +44,11 @@
 
 static inline uint64_t GetSteamID64()
 {
-	typedef void*(__cdecl* tSteamUser)();
-	typedef uint64_t(__cdecl* tGetSteamID)(void* steamUser);
-
+	using tSteamUser = void* (__cdecl*)();
+	using tGetSteamID = uint64_t(__cdecl*)(void* steamUser);
 	static tSteamUser oSteamUser = (tSteamUser)(g_Game->m_Offsets->SteamUser.address);
 	static tGetSteamID oGetSteamID = (tGetSteamID)(g_Game->m_Offsets->GetSteamID.address);
-
+		
 	void* steamUser = oSteamUser();
 	if (!steamUser)
 		return 0;
@@ -358,7 +357,7 @@ public:
 	virtual void *sub_1005CBB0() = 0;
 	virtual void *sub_1005CBB0_1() = 0;
 	virtual void *sub_1005CBB0_2() = 0;
-	virtual void *ClientCmd_Unrestricted(const char *szCmdString) = 0;
+	virtual void *ClientCmd_Unrestricted(const char *szCmdString) = 0; //108
 };
 
 class IModelInfo
@@ -373,7 +372,7 @@ public:
 	virtual int	GetModelIndex(const char *name) const = 0;
 
 	// Returns name of model
-	virtual char *GetModelName(void *model) const = 0;
+	virtual char *GetModelName(const model_t* model) const = 0;
 };
 
 struct model_t;
@@ -934,7 +933,41 @@ class MorphFormat_t;
 
 class MaterialPropertyTypes_t;
 
-class KeyValues;
+class KeyValues
+{
+public:
+	inline const char* GetName()
+	{
+		using tGetName = const char* (__thiscall*)(void* thisptr);
+		static tGetName oGetName = (tGetName)(g_Game->m_Offsets->GetName.address);
+
+		return oGetName(this);
+	}
+
+	inline const char* GetString(const char* keyName, const char* defaultValue)
+	{
+		using tGetString = const char* (__thiscall*)(void* thisptr, const char* keyName, const char* defaultValue);
+		static tGetString oGetString = (tGetString)(g_Game->m_Offsets->GetString.address);
+
+		return oGetString(this, keyName, defaultValue);
+	}
+
+	inline void SetString(const char* keyName, const char* value)
+	{
+		using tSetString = const char* (__thiscall*)(void* thisptr, const char* keyName, const char* value);
+		static tSetString oSetString = (tSetString)(g_Game->m_Offsets->SetString.address);
+
+		oSetString(this, keyName, value);
+	}
+
+	inline float GetFloat(const char* keyName, float defaultValue)
+	{
+		using tGetFloat = float(__thiscall*)(void* thisptr, const char* keyName, float defaultValue);
+		static tGetFloat oGetFloat = (tGetFloat)(g_Game->m_Offsets->GetFloat.address);
+
+		return oGetFloat(this, keyName, defaultValue);
+	}
+};
 
 class IMaterial
 {
@@ -1255,8 +1288,8 @@ public:
 	virtual void sub_10016FE0();
 	//virtual void sub_10017000();
 	virtual void ClearColor4ub(unsigned char r, unsigned char g, unsigned char b, unsigned char a); //Vtable[74]
-	virtual void sub_100170E0();
-	virtual void sub_100172C0();
+	virtual void OverrideDepthEnable(bool bEnable, bool bDepthEnable = false);
+	virtual void DrawScreenSpaceQuad(IMaterial* pMaterial);
 	virtual void sub_10028DF0();
 	virtual void sub_100143C0();
 	virtual void sub_10027C20();
@@ -1375,7 +1408,8 @@ public:
 	virtual void sub_10028B00_2() = 0;
 	virtual void sub_10028B00_3() = 0;
 	virtual void sub_10028B00_4() = 0;
-	virtual void OverrideAlphaWriteEnable(bool bEnable, bool bAlphaWriteEnable) = 0;
+	virtual void OverrideAlphaWriteEnable(bool bEnable, bool bAlphaWriteEnable = false) = 0;
+	virtual void OverrideColorWriteEnable(bool bOverrideEnable, bool bColorWriteEnable = false) = 0;
 };
 
 class CMatRenderContextPtr : public CRefPtr<IMatRenderContext>
@@ -1427,20 +1461,150 @@ public:
 	virtual void *GetBaseEntity() = 0;
 };
 
+class IClientRenderable; //Forwarded
+
 class IClientUnknown : public IHandleEntity
 {
 public:
 	virtual void *GetCollideable() = 0;
 	virtual void *GetClientNetworkable() = 0;
-	virtual void *GetClientRenderable() = 0;
+	virtual IClientRenderable* GetClientRenderable() = 0;
 	virtual void *GetIClientEntity() = 0;
-	virtual void *GetBaseEntity() = 0;
+	virtual C_BaseEntity* GetBaseEntity() = 0;
 	virtual void *GetClientThinkable() = 0;
 	virtual void *GetClientModelRenderable() = 0;
 	virtual void *GetClientAlphaProperty() = 0;
 };
 
-class IClientEntity : public IClientUnknown
+typedef unsigned short ClientRenderHandle_t;
+typedef unsigned short ModelInstanceHandle_t;
+typedef unsigned short ClientShadowHandle_t;
+
+class IPVSNotify
+{
+public:
+	virtual void OnPVSStatusChanged(bool bInPVS) = 0;
+};
+
+enum ShadowType_t
+{
+	SHADOWS_NONE = 0,
+	SHADOWS_SIMPLE,
+	SHADOWS_RENDER_TO_TEXTURE,
+	SHADOWS_RENDER_TO_TEXTURE_DYNAMIC,	// the shadow is always changing state
+	SHADOWS_RENDER_TO_DEPTH_TEXTURE,
+};
+
+class IClientRenderable
+{
+public:
+	// Gets at the containing class...
+	virtual IClientUnknown* GetIClientUnknown() = 0;
+
+	// Data accessors
+	virtual Vector const& GetRenderOrigin(void) = 0;
+	virtual QAngle const& GetRenderAngles(void) = 0;
+	virtual bool					ShouldDraw(void) = 0;
+	virtual bool					IsTransparent(void) = 0;
+	virtual bool					UsesPowerOfTwoFrameBufferTexture() = 0;
+	virtual bool					UsesFullFrameBufferTexture() = 0;
+
+	virtual ClientShadowHandle_t	GetShadowHandle() const = 0;
+
+	// Used by the leaf system to store its render handle.
+	virtual ClientRenderHandle_t& RenderHandle() = 0;
+
+	// Render baby!
+	virtual const model_t* GetModel() const = 0;
+	virtual int						DrawModel(int flags) = 0;
+
+	// Get the body parameter
+	virtual int		GetBody() = 0;
+
+	// Determine alpha and blend amount for transparent objects based on render state info
+	virtual void	ComputeFxBlend() = 0;
+	virtual int		GetFxBlend(void) = 0;
+
+	// Determine the color modulation amount
+	virtual void	GetColorModulation(float* color) = 0;
+
+	// Returns false if the entity shouldn't be drawn due to LOD. 
+	// (NOTE: This is no longer used/supported, but kept in the vtable for backwards compat)
+	virtual bool	LODTest() = 0;
+
+	// Call this to get the current bone transforms for the model.
+	// currentTime parameter will affect interpolation
+	// nMaxBones specifies how many matrices pBoneToWorldOut can hold. (Should be greater than or
+	// equal to studiohdr_t::numbones. Use MAXSTUDIOBONES to be safe.)
+	virtual bool	SetupBones(matrix3x4_t* pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime) = 0;
+
+	virtual void	SetupWeights(const matrix3x4_t* pBoneToWorld, int nFlexWeightCount, float* pFlexWeights, float* pFlexDelayedWeights) = 0;
+	virtual void	DoAnimationEvents(void) = 0;
+
+	// Return this if you want PVS notifications. See IPVSNotify for more info.	
+	// Note: you must always return the same value from this function. If you don't,
+	// undefined things will occur, and they won't be good.
+	virtual IPVSNotify* GetPVSNotifyInterface() = 0;
+
+	// Returns the bounds relative to the origin (render bounds)
+	virtual void	GetRenderBounds(Vector& mins, Vector& maxs) = 0;
+
+	// returns the bounds as an AABB in worldspace
+	virtual void	GetRenderBoundsWorldspace(Vector& mins, Vector& maxs) = 0;
+
+	// These normally call through to GetRenderAngles/GetRenderBounds, but some entities custom implement them.
+	virtual void	GetShadowRenderBounds(Vector& mins, Vector& maxs, ShadowType_t shadowType) = 0;
+
+	// Should this object be able to have shadows cast onto it?
+	virtual bool	ShouldReceiveProjectedTextures(int flags) = 0;
+
+	// These methods return true if we want a per-renderable shadow cast direction + distance
+	virtual bool	GetShadowCastDistance(float* pDist, ShadowType_t shadowType) const = 0;
+	virtual bool	GetShadowCastDirection(Vector* pDirection, ShadowType_t shadowType) const = 0;
+
+	// Other methods related to shadow rendering
+	virtual bool	IsShadowDirty() = 0;
+	virtual void	MarkShadowDirty(bool bDirty) = 0;
+
+	// Iteration over shadow hierarchy
+	virtual IClientRenderable* GetShadowParent() = 0;
+	virtual IClientRenderable* FirstShadowChild() = 0;
+	virtual IClientRenderable* NextShadowPeer() = 0;
+
+	// Returns the shadow cast type
+	virtual ShadowType_t ShadowCastType() = 0;
+
+	// Create/get/destroy model instance
+	virtual void CreateModelInstance() = 0;
+	virtual ModelInstanceHandle_t GetModelInstance() = 0;
+
+	// Returns the transform from RenderOrigin/RenderAngles to world
+	virtual const matrix3x4_t& RenderableToWorldTransform() = 0;
+
+	// Attachments
+	virtual int LookupAttachment(const char* pAttachmentName) = 0;
+	virtual	bool GetAttachment(int number, Vector& origin, QAngle& angles) = 0;
+	virtual bool GetAttachment(int number, matrix3x4_t& matrix) = 0;
+
+	// Rendering clip plane, should be 4 floats, return value of NULL indicates a disabled render clip plane
+	virtual float* GetRenderClipPlane(void) = 0;
+
+	// Get the skin parameter
+	virtual int		GetSkin() = 0;
+
+	// Is this a two-pass renderable?
+	virtual bool	IsTwoPass(void) = 0;
+
+	virtual void	OnThreadedDrawSetup() = 0;
+
+	virtual bool	UsesFlexDelayedWeights() = 0;
+
+	virtual void	RecordToolMessage() = 0;
+
+	virtual bool	IgnoresZBuffer(void) const = 0;
+};
+
+class IClientEntity : public IClientUnknown, IClientRenderable
 {
 	virtual Vector &GetAbsOrigin() = 0;
 	virtual QAngle &GetAbsAngles() = 0;
@@ -1459,7 +1623,7 @@ public:
 	virtual void *FireBullets() = 0;
 	virtual void *sub_1001A1E0() = 0;
 	virtual void *sub_100194A0() = 0;
-	virtual void *sub_1001B830() = 0;
+	virtual void* sub_1001B830() = 0;
 	virtual void *sub_1001A1F0() = 0;
 	virtual void *sub_1001A200() = 0;
 	virtual void *TraceAttack() = 0;
@@ -1801,7 +1965,7 @@ public:
 	virtual void *sub_10015860() = 0;
 	virtual void *sub_10019B70() = 0;
 	virtual void *sub_10019B80() = 0;
-	virtual void *sub_10019B90() = 0;
+	virtual const char* GetViewModel(int viewmodelindex = 0) = 0;
 	virtual void *sub_100151C0() = 0;
 	virtual void *sub_100151E0() = 0;
 	virtual void *sub_10015200() = 0;
@@ -1972,6 +2136,15 @@ public:
 	int m_MapBasedMeleeID;
 };
 
+class C_BaseViewModel
+{
+public:
+	inline Vector* GetLocalOrigin()
+	{
+		return (Vector*)((uintptr_t)this + 0xA8); //Reference SetLocalOrigin function in Ghidra for address
+	}
+};
+
 class C_BasePlayer : public C_BaseCombatCharacter
 {
 public:
@@ -2069,22 +2242,7 @@ public:
 	virtual void *sub_10069A10() = 0;
 	virtual void *sub_10069A20() = 0;
 	virtual void *sub_10069A30() = 0;
-
-	bool IsMeleeWeaponActive()
-	{
-		/*C_WeaponCSBase *weapon = (C_WeaponCSBase *)GetActiveWeapon();
-		if (weapon)
-			return weapon->GetWeaponID() == 19;*/
-
-		return false;
-	}
-
-	char pad_0004[260]; //0x0004
-	Vector m_vecVelocity; //0x0108
-	char pad_010C[48]; //0x0114
-	int m_hGroundEntity; //0x0144
-}; //Size: 0x0148
-static_assert(sizeof(C_BasePlayer) == 0x0148);
+};
 
 class CBaseEdict
 {
@@ -2461,11 +2619,7 @@ public:
 	virtual void ResetFontCaches() = 0;
 	virtual bool IsScreenSizeOverrideActive() = 0;
 };
-/*
-		typedef Server_WeaponCSBase *(__thiscall *tGetActiveWep)(void *thisptr);
-		static tGetActiveWep oGetActiveWep = (tGetActiveWep)(m_Game->m_Offsets->GetActiveWeapon.address);
-		Server_WeaponCSBase *curWep = oGetActiveWep(pPlayer);
-*/
+
 class CWeaponPortalBase
 {
 public:
@@ -2480,9 +2634,9 @@ class CBaseCombatWeapon
 {
 public:
 	inline int LookupAttachment(const char* szName) {
-		typedef int(__fastcall* tLookupAttachment)(CBaseCombatWeapon* thisptr, void* edx, const char* szName);
+		using tLookupAttachment = int(__fastcall*)(CBaseCombatWeapon* thisptr, void* edx, const char* szName);
 		uintptr_t table = *(uintptr_t*)((uintptr_t)this + 4);
-		tLookupAttachment oLookupAttachment = (tLookupAttachment)(table + 0x84);
+		auto oLookupAttachment = (tLookupAttachment)(table + 0x84);
 
 		return oLookupAttachment(this, nullptr, szName);
 	}
@@ -2581,6 +2735,8 @@ public:
 	virtual void GetInternalAbsPos(int& x, int& y);
 };
 
+class IScheme;
+
 typedef uint32 VPANEL;
 
 class IBaseInterface
@@ -2589,32 +2745,96 @@ public:
 	virtual	~IBaseInterface() {}
 };
 
+class IClientPanel
+{
+public:
+	virtual VPANEL GetVPanel() = 0;
+};
+
 class SurfacePlat;
+
 class Panel
 {
 public:
-	inline void InvalidateLayout(bool layoutNow = false, bool reloadScheme = false) {
-		uintptr_t* vtable = *(uintptr_t**)this;
-		auto oInvalidateLayout = (void(__thiscall*)(void*, bool, bool))vtable[67]; // index 67 / this + 268 bytes
+	inline void PostActionSignal(KeyValues* message)
+	{
+		using tPostActionSignal = void(__thiscall*)(void* thisptr, KeyValues* message);
+		static tPostActionSignal oPostActionSignal = (tPostActionSignal)g_Game->m_Offsets->PostActionSignal.address;
 
-		oInvalidateLayout(this, layoutNow, reloadScheme);
+		oPostActionSignal(this, message);
 	};
 
-	inline void SetSize(int wide, int tall) {
-		typedef void(__thiscall* tSetSize)(void* thisptr, int wide, int tall);
-		static tSetSize oSetSize = (tSetSize)(g_Game->m_Offsets->SetPanelSize.address);
+	inline void LoadControlSettings(const char* dialogResourceName, const char* pathID, KeyValues* pPreloadedKeyValues, KeyValues* pConditions)
+	{
+		using tLoadControlSettings = void(__thiscall*)(void* thisptr, const char* dialogResourceName, const char* pathID, KeyValues* pPreloadedKeyValues, KeyValues* pConditions);
+		static tLoadControlSettings oLoadControlSettings = (tLoadControlSettings)g_Game->m_Offsets->LoadControlSettings.address;
 
-		oSetSize(this, wide, tall);
-	}
+		oLoadControlSettings(this, dialogResourceName, pathID, pPreloadedKeyValues, pConditions);
+	};
 
-	inline int GetWide() {
-		typedef int(__thiscall* tGetWide)(void* thisptr);
-		static tGetWide oGetWide = (tGetWide)(g_Game->m_Offsets->GetPanelWide.address);
+	inline void ApplySettings(KeyValues* inResourceData)
+	{
+		using tApplySettings = void(__thiscall*)(void* thisptr, KeyValues* inResourceData);
+		static tApplySettings oApplySettings = (tApplySettings)g_Game->m_Offsets->ApplySettings.address;
 
-		return oGetWide(this);
-	}
+		oApplySettings(this, inResourceData);
+	};
+
+	inline void SetVisible(bool state)
+	{
+		uintptr_t* vtable = *(uintptr_t**)this;
+		auto oSetVisible = (void(__thiscall*)(void*, bool))vtable[5]; // index 108 / this + 20 bytes
+
+		oSetVisible(this, state);
+	};
+
+	inline void SetKeyBoardInputEnabled(bool state) {
+		uintptr_t* vtable = *(uintptr_t**)this;
+		auto oSetKeyBoardInputEnabled = (void(__thiscall*)(void*, bool))vtable[108]; // index 108 / this + 432 bytes
+
+		oSetKeyBoardInputEnabled(this, state);
+	};
+
+	inline void SetMouseInputEnabled(bool state) {
+		uintptr_t* vtable = *(uintptr_t**)this;
+		auto oSetMouseInputEnabled = (void(__thiscall*)(void*, bool))vtable[107]; // index 107 / this + 428 bytes
+
+		oSetMouseInputEnabled(this, state);
+	};
+
+	inline Color GetSchemeColor(const char* keyName, Color defaultColor, IScheme* pScheme)
+	{
+		uintptr_t* vtable = *(uintptr_t**)this;
+		auto oGetSchemeColor = (Color(__thiscall*)(void*, const char*, Color, IScheme*))vtable[58]; // index 58 / this + 232 bytes
+
+		return oGetSchemeColor(this, keyName, defaultColor, pScheme);
+	};
+
+	inline void SetBgColor(Color color)
+	{
+		uintptr_t* vtable = *(uintptr_t**)this;
+		auto oSetBgColor = (void(__thiscall*)(void*, Color))vtable[31]; // index 31 / this + 124 bytes
+
+		oSetBgColor(this, color);
+	};
+
+	char pad[0x53];
+	const char* m_PanelName;
 };
 
+class HybridButton
+{
+public:
+	char pad[0x24F];
+	int m_SetListIndex; //Sets the currently selected item
+};
+
+class SliderControl
+{
+public:
+	char pad[0x1BF];
+	float m_curValue;
+};
 
 class IPanel : public IBaseInterface
 {
@@ -2791,7 +3011,7 @@ struct ViewCustomVisibility_t
 
 enum VGuiPanel_t
 {
-	PANEL_ROOT = 0, //"SDK Root Panel"
+	PANEL_ROOT = 0, //"staticPanel"
 	PANEL_GAMEUIDLL, //"GameUI Panel", "engine.dll"
 	PANEL_CLIENTDLL, //"staticClientDLLPanel", "client.dll"
 	PANEL_TOOLS, //"Engine Tools", "engine.dll"
@@ -2823,3 +3043,4 @@ public:
 	virtual bool			GetWorkshopMap(uint32 uIndex, WorkshopMapDesc_t* pDesc) = 0;
 };
 
+class CStudioHdr;

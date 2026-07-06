@@ -1,6 +1,7 @@
 #include "game.h"
 #include "util.h"
 
+
 int InitDLLMap()
 {
 	if (!g_Game) {
@@ -9,12 +10,12 @@ int InitDLLMap()
 	}
     
 	DLLMap = {
-		{ DLL::DLL_CLIENT, &g_Game->m_BaseClient },
-		{ DLL::DLL_SERVER, &g_Game->m_BaseServer },
-		{ DLL::DLL_ENGINE, &g_Game->m_BaseEngine },
-		{ DLL::DLL_MATERIALSYSTEM, &g_Game->m_BaseMaterialSystem },
-		{ DLL::DLL_VGUI2, &g_Game->m_BaseVgui2 },
-		{ DLL::DLL_VGUIMATSURFACE, &g_Game->m_BaseVguiMatSurface }
+		{ DLL::CLIENT, &g_Game->m_BaseClient },
+		{ DLL::SERVER, &g_Game->m_BaseServer },
+		{ DLL::ENGINE, &g_Game->m_BaseEngine },
+		{ DLL::MATERIALSYSTEM, &g_Game->m_BaseMaterialSystem },
+		{ DLL::VGUI2, &g_Game->m_BaseVgui2 },
+		{ DLL::VGUIMATSURFACE, &g_Game->m_BaseVguiMatSurface }
 	};
 
 	return 0;
@@ -114,4 +115,58 @@ void ScanVTable(DLL dllFile, void** vtable, size_t length)
         std::cout << "Util: VTable[" << I << "]";
         FunctionAddress(dllFile, vtable[I]);
     }
+}
+
+void PrintMemRegion(void* obj, int startIndex, int endIndex, const char* name)
+{
+    int* fields = static_cast<int*>(obj);
+
+    printf("Util: ==== %s @ %p ====\n", name, obj);
+
+    for (int i = startIndex; i <= endIndex; i++)
+    {
+        int value = fields[i];
+
+        printf(
+            "Util: [0x%02X | +0x%03X] = 0x%08X (%d)\n",
+            i,
+            i * 4,
+            value,
+            value
+        );
+    }
+
+    printf("\n");
+}
+
+void PrintVGUITree(VPANEL Panel)
+{
+    if (!Panel)
+        return;
+
+    const char* name = g_Game->m_VguiIPanel->GetName(Panel);
+    const char* parent = g_Game->m_VguiIPanel->GetName(g_Game->m_VguiIPanel->GetParent(Panel));
+    printf("Parent: %s, ID: %d -> Panel: %s, ID: %d\n", parent, g_Game->m_VguiIPanel->GetParent(Panel), name, Panel);
+
+    for (int I = 0; I < g_Game->m_VguiIPanel->GetChildCount(Panel); I++)
+    {
+        PrintVGUITree(g_Game->m_VguiIPanel->GetChild(Panel, I));
+    }
+}
+
+void TraceCaller(const char* name, uintptr_t caller, DLL dllFile)
+{
+    if (DLLMap.empty() && InitDLLMap())
+        return;
+
+    uintptr_t base = *DLLMap[dllFile];
+
+    std::cout
+        << "\n" << name << " called from:\n"
+        << "  Address: 0x"
+        << std::hex << caller
+        << "\n  Offset: 0x"
+        << (caller - base)
+        << std::dec
+        << std::endl;
 }

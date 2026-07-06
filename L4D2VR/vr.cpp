@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <d3d9_vr.h>
 
-
 //Toggles
 //#define GetControllerTipMatrix_HeapBuffer //Enable this for cpu's with 32kb or less of L1 cache
 
@@ -90,17 +89,18 @@ VR::VR(Game *game)
     g_D3DVR9->GetBackBufferData(&m_BackBuffer);
     m_Overlay = vr::VROverlay();
 
-    m_Overlay->CreateOverlay("MenuOverlayKey", "MenuOverlay", &m_MainMenuHandle);
-    m_Overlay->SetOverlayInputMethod(m_MainMenuHandle, vr::VROverlayInputMethod_Mouse);
-    m_Overlay->SetOverlayFlag(m_MainMenuHandle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
+    m_Overlay->CreateOverlay("MenuOverlayKey", "MenuOverlay", &m_MainOverlay.m_Handle);
+    m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
+    m_Overlay->SetOverlayFlag(m_MainOverlay.m_Handle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
 
     const vr::HmdVector2_t mouseScaleMenu = {m_RenderWidth, m_RenderHeight};
-    m_Overlay->SetOverlayCurvature(m_MainMenuHandle, 0.15f);
-    m_Overlay->SetOverlayMouseScale(m_MainMenuHandle, &mouseScaleMenu);
+    m_Overlay->SetOverlayCurvature(m_MainOverlay.m_Handle, 0.15f);
+    m_Overlay->SetOverlayMouseScale(m_MainOverlay.m_Handle, &mouseScaleMenu);
 
     vr::VRTextureBounds_t bounds{ 0, 0, 1, 1 };
-    m_Overlay->SetOverlayTextureBounds(m_MainMenuHandle, &bounds);
-    m_Overlay->SetOverlayTexelAspect(m_MainMenuHandle, 1.0f);
+    m_Overlay->SetOverlayTextureBounds(m_MainOverlay.m_Handle, &bounds);
+    m_Overlay->SetOverlayTexelAspect(m_MainOverlay.m_Handle, 1.0f);
+    m_Overlay->SetOverlayWidthInMeters(m_MainOverlay.m_Handle, 1.5f * (1.0f / m_HScaleDownRatio));
 
     UpdatePosesAndActions();
 
@@ -115,15 +115,68 @@ VR::~VR()
     m_IsVREnabled = false;
 }
 
+//Need to write setting changes back to file
+template<typename T>
+void WriteConfigEntry(const std::string& key, const T& value)
+{
+    std::ifstream inFile("VR\\config.txt");
+
+    if (!inFile.is_open())
+        return;
+
+    std::vector<std::string> lines;
+    std::string line;
+    std::string valueStr;
+
+    if constexpr (std::is_same_v<T, bool>)
+        valueStr = value ? "true" : "false";
+    else
+        valueStr = std::to_string(value);
+
+    while (std::getline(inFile, line))
+    {
+        // Find key=value
+        const size_t equalsPos = line.find('=');
+
+        if (equalsPos != std::string::npos)
+        {
+            std::string currentKey = line.substr(0, equalsPos);
+
+            if (currentKey == key)
+            {
+                // Preserve comments
+                const size_t commentPos = line.find('#');
+
+                std::string newLine = key + "=" + valueStr;
+
+                if (commentPos != std::string::npos)
+                {
+                    newLine += " ";
+                    newLine += line.substr(commentPos);
+                }
+
+                line = newLine;
+            }
+        }
+
+        lines.push_back(line);
+    }
+
+    inFile.close();
+
+    std::ofstream outFile("VR\\config.txt", std::ios::trunc);
+
+    for (const auto& l : lines)
+        outFile << l << "\n";
+
+    outFile.close();
+}
+
 //Creates the hash maps used to later
 void VR::CreateHashMaps()
 {
-    //Texture Setup
-    m_LeftEye.m_UseMSAA = m_AntiAliasing;
-    m_RightEye.m_UseMSAA = m_AntiAliasing;
-
-    TextureSetup menuSetup(m_Game->m_WindowWidth, m_Game->m_WindowHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
-    m_MenuTexture.m_OverrideMSAASurface = &menuSetup;
+    //Using msaa surface as a lower res render target instead of a msaa surface
+    m_MenuTexture.m_OverrideMSAASurface.emplace(m_RenderWidth, m_RenderHeight);
 
 
     //Background mappings
@@ -181,6 +234,259 @@ void VR::CreateHashMaps()
         m_Game->logMsg(LOGTYPE_WARNING, "Failed to parse backgrounds.txt or there are no entries.%s", "\nDisabling 3D backgrounds");
         m_3DMenu = false;
     }
+
+
+    //UI stuff from here
+    OverridePanelLayout("options.res", { "resource/ui/vr_options.res" });
+    OverridePanelLayout("KeyboardMouse.res", { "resource/ui/vr_settings.res" });
+    OverridePanelLayout("ControllerOptions.res", { "resource/ui/vr_controllersettings.res", [this](std::string& LayoutPath)
+    {
+        if (m_OverrideControllerUI)
+        {
+            m_OverrideControllerUI = false;
+            return true;
+        }
+
+        return false;
+    }});
+
+    RegisterPanelCommandListener({ "VRController" }, [this](const char* cmd, Panel* panel, KeyValues* message)
+    {
+        message->SetString("command", "Controller");
+        m_OverrideControllerUI = true;
+        
+        return false;
+    });
+    RegisterPanelCommandListener({ "ExitToMainMenu" }, [this](const char* cmd, Panel* panel, KeyValues* message)
+    {
+        m_LevelExitFix = true;
+
+        return false;
+    });
+    RegisterPanelCommandListener({ "Btn0" }, [this](const char* cmd, Panel* panel, KeyValues* message)
+    {
+        if (m_LevelExitFix)
+        {
+            m_Game->m_EngineClient->ClientCmd_Unrestricted("disconnect");
+            m_LevelExitFix = false;
+        }
+
+        return false;
+    });
+    
+    //VR Settings layout
+    ModifyPanelSettings("SldVRScale", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
+    {
+        settingData["ready"] = 2;
+        settingData["min"] = inResourceData->GetFloat("minValue", 0);
+        settingData["max"] = inResourceData->GetFloat("maxValue", 0);
+
+        return false;
+    });
+    m_SlideRead["SldVRScale"] = [this](Panel* panel, float Percentage)
+    {
+        auto it = m_PanelSettings.find("SldVRScale");
+        if (it == m_PanelSettings.end())
+            return;
+
+        float min = it->second.GetData<float>("min");
+        float max = it->second.GetData<float>("max");
+        int ready = it->second.GetData<int>("ready");
+
+        if (ready)
+        {
+            reinterpret_cast<SliderControl*>(panel)->m_curValue = MinMaxInverse(m_VRScale, min, max);
+            it->second.m_Data["ready"] = --ready;
+            return;
+        }
+
+        WriteConfigEntry("VRScale", min + (max - min) * Percentage);
+    };
+
+    ModifyPanelSettings("SldIPDScale", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
+    {
+        settingData["ready"] = 2;
+        settingData["min"] = inResourceData->GetFloat("minValue", 0);
+        settingData["max"] = inResourceData->GetFloat("maxValue", 0);
+
+        return false;
+    });
+    m_SlideRead["SldIPDScale"] = [this](Panel* panel, float Percentage)
+    {
+        auto it = m_PanelSettings.find("SldIPDScale");
+        if (it == m_PanelSettings.end())
+            return;
+
+        float min = it->second.GetData<float>("min");
+        float max = it->second.GetData<float>("max");
+        int ready = it->second.GetData<int>("ready");
+
+        if (ready)
+        {
+            reinterpret_cast<SliderControl*>(panel)->m_curValue = MinMaxInverse(m_IpdScale, min, max);
+            it->second.m_Data["ready"] = --ready;
+            return;
+        }
+
+        WriteConfigEntry("IPDScale", min + (max - min) * Percentage);
+    };
+
+    ModifyPanelSettings("DrpRenderWindow", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
+    {
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_RenderWindow;
+
+        return false;
+    });
+    RegisterPanelCommandListener({ "VRRenderWindow0", "VRRenderWindow1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
+    {
+        bool con = !strcmp(cmd, "VRRenderWindow1");
+        m_Game->logMsg(LOGTYPE_DEBUG, "Render window set to ",
+            con ? "'true'" : "'false'", " via in game menu.");
+
+        WriteConfigEntry("RenderWindow", con);
+        return false;
+    });
+
+    ModifyPanelSettings("Drp3DBackground", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
+    {
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_3DMenu;
+
+        return false;
+    });
+    RegisterPanelCommandListener({ "VR3DBackground0", "VR3DBackground1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
+    {
+        bool con = !strcmp(cmd, "VR3DBackground1");
+        m_Game->logMsg(LOGTYPE_DEBUG, "3D menu set to ",
+            con ? "'true'" : "'false'", " via in game menu.");
+
+        WriteConfigEntry("Enable3DBackground", con);
+        return false;
+    });
+
+    ModifyPanelSettings("DrpExperimentalOptimizations", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
+    {
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_ExperimentalOptimizations;
+
+        return false;
+    });
+    RegisterPanelCommandListener({ "VRExperimentalOptimizations0", "VRExperimentalOptimizations1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
+    {
+        bool con = !strcmp(cmd, "VR3DBackground1");
+        m_Game->logMsg(LOGTYPE_DEBUG, "Experimental optimizations set to ",
+            con ? "'true'" : "'false'", " via in game menu.");
+
+        WriteConfigEntry("ExperimentalOptimizations", con);
+        return false;
+    });
+
+    //VR Controller Settings layout
+    RegisterPanelCommandListener({ "VRBindings" }, [this](const char* cmd, Panel* panel, KeyValues* message)
+    {
+        vr::EVRInputError err = m_Input->OpenBindingUI(
+            "steam.app.620",
+            vr::k_ulInvalidInputValueHandle,
+            vr::k_ulInvalidInputValueHandle,
+            false
+        );
+
+        if (err != vr::VRInputError_None)
+            m_Game->logMsg(LOGTYPE_WARNING, "Error opening binding ui: %s", EVRInputErrorToString(err));
+        else
+            m_Game->logMsg(LOGTYPE_DEBUG, "Opened binding ui");
+
+        return false;
+    });
+
+    ModifyPanelSettings("SldTurnSpeed", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
+    {
+        settingData["ready"] = 2;
+        settingData["min"] = inResourceData->GetFloat("minValue", 0);
+        settingData["max"] = inResourceData->GetFloat("maxValue", 0);
+
+        return false;
+    });
+    m_SlideRead["SldTurnSpeed"] = [this](Panel* panel, float Percentage)
+    {
+        auto it = m_PanelSettings.find("SldTurnSpeed");
+        if (it == m_PanelSettings.end())
+            return;
+
+        float min = it->second.GetData<float>("min");
+        float max = it->second.GetData<float>("max");
+        int ready = it->second.GetData<int>("ready");
+
+        if (ready)
+        {
+            reinterpret_cast<SliderControl*>(panel)->m_curValue = MinMaxInverse(m_TurnSpeed, min, max);
+            it->second.m_Data["ready"] = --ready;
+            return;
+        }
+
+        WriteConfigEntry("TurnSpeed", min + (max - min) * Percentage);
+    };
+
+    ModifyPanelSettings("DrpSnapTurning", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
+    {
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_SnapTurning;
+
+        return false;
+    });
+    RegisterPanelCommandListener({ "VRSnapTurning0", "VRSnapTurning1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
+    {
+        bool con = !strcmp(cmd, "VRSnapTurning1");
+        m_Game->logMsg(LOGTYPE_DEBUG, "Snap turning set to ",
+            con ? "'true'" : "'false'", " via in game menu.");
+
+        WriteConfigEntry("SnapTurning", con);
+        return false;
+    });
+
+    ModifyPanelSettings("DrpLeftHanded", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
+    {
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_LeftHanded;
+
+        return false;
+    });
+    RegisterPanelCommandListener({ "VRLeftHanded0", "VRLeftHanded1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
+    {
+        bool con = !strcmp(cmd, "VRLeftHanded1");
+        m_Game->logMsg(LOGTYPE_DEBUG, "Left handed set to ",
+            con ? "'true'" : "'false'", " via in game menu.");
+
+        WriteConfigEntry("LeftHanded", con);
+        return false;
+    });
+
+    ModifyPanelSettings("Drp6DOF", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
+    {
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_6DOF;
+
+        return false;
+    });
+    RegisterPanelCommandListener({ "VR6DOF0", "VR6DOF1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
+    {
+        bool con = !strcmp(cmd, "VR6DOF1");
+        m_Game->logMsg(LOGTYPE_DEBUG, "6DOF set to ",
+            con ? "'true'" : "'false'", " via in game menu.");
+
+        WriteConfigEntry("6DOF", con);
+        return false;
+    });
+
+    ModifyPanelSettings("DrpAimMode", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
+    {
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_AimMode;
+
+        return false;
+    });
+    RegisterPanelCommandListener({ "VRAimMode0", "VRAimMode1", "VRAimMode2" }, [this](const char* cmd, Panel* panel, KeyValues* message)
+    {
+        int con = !strcmp(cmd, "VRAimMode0") ? 0 : !strcmp(cmd, "VRAimMode1") ? 1 : 2;
+        m_Game->logMsg(LOGTYPE_DEBUG, "Aim mode set to '%d' via in game menu.", con);
+
+        WriteConfigEntry("AimMode", con);
+        return false;
+    });
 }
 
 //Binds actions to variables
@@ -231,35 +537,14 @@ void VR::InstallApplicationManifest(const char *fileName)
     vr::VRApplications()->AddApplicationManifest(path);
 }
 
-void VR::SetScreenSizeOverride(bool bState) {
-    bool isOverriding = m_Game->m_VguiSurface->IsScreenSizeOverrideActive();
-
-    if (bState && !isOverriding || !bState && isOverriding) {
-        int iOldWidth, iOldHeight;
-        m_Game->m_VguiSurface->GetScreenSize(iOldWidth, iOldHeight);
-        m_Game->m_VguiSurface->ForceScreenSizeOverride(bState, m_RenderWidth, m_RenderHeight);
-       /*int x = 0, y = 0, w = m_RenderWidth, h = m_RenderHeight;
-
-        if (m_Game->m_ClientMode->GetViewport())
-            m_Game->m_ClientMode->AdjustEngineViewport(x, y, w, h);*/
-
-        if (bState) {
-            /*IMatRenderContext* renderContext = m_Game->m_MaterialSystem->GetRenderContext();
-            renderContext->Viewport(0, 0, m_RenderWidth, m_RenderHeight);
-            renderContext->Release();*/
-        }
-
-        m_Game->m_VguiSurface->OnScreenSizeChanged(iOldWidth, iOldHeight);
-    }
-}
-
 void VR::PreUpdate()
 {
     //Scaling Menu textures
-    if (ShouldCapture())
+    if (ShouldCapture(Capture_MenuUI) || ShouldCapture(Capture_HudUI))
     {
+        static RECT Rect = { 0, 0, m_Game->m_WindowWidth, m_Game->m_WindowHeight };
         m_Game->m_DxDevice->StretchRect(
-            m_MenuTexture.m_MSAASurface, nullptr,
+            m_MenuTexture.m_MSAASurface, &Rect,
             m_MenuTexture.m_Surface, nullptr,
             D3DTEXF_LINEAR
         );
@@ -268,14 +553,19 @@ void VR::PreUpdate()
     //Compositing the rendered frame to the back buffer
     if (m_RenderWindow && m_Game->m_EngineClient->IsInGame())
     {
+        IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
+        rndrContext->SetRenderTarget(NULL);
+        rndrContext->Release();
+
         m_Game->m_DxDevice->StretchRect(
-            m_RightEye.m_Surface, nullptr,
+            m_LeftEye.m_Surface, nullptr,
             m_BackBuffer.m_Surface, nullptr,
             D3DTEXF_NONE
         );
+
+        g_D3DVR9->RenderTextureToRenderTargetWithAlpha(m_MenuTexture.m_Texture, m_RenderWidth, m_RenderHeight); 
     }
 }
-
 
 void VR::PostUpdate()
 {
@@ -290,9 +580,18 @@ void VR::PostUpdate()
     {
         m_IsCredits = false; //Reset once out of level
         m_Game->m_CachedArmsModel = false;
-        //m_CreatedVRTextures = false; // Have to recreate textures otherwise some workshop maps won't render
 
-        Load3DMenu();
+        if (m_3DMenu && !m_3DMenuLoading && !m_IsLevelBackground && 
+            !m_Game->m_EngineClient->IsDrawingLoadingImage() && !m_Game->m_EngineClient->IsInGame())
+        {
+            std::thread([this]()
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                Load3DMenu();
+            }).detach();
+
+            m_3DMenuLoading = true;
+        }
     }
       
     SubmitVRTextures();
@@ -306,56 +605,68 @@ void VR::PostUpdate()
     }
 
     //Clearing menu ui for next frame
-    IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
-    if (m_Game->m_EngineClient->IsInGame())
+    if (ShouldCapture(Capture_MenuUI) || ShouldCapture(Capture_HudUI)) 
     {
+        IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
         rndrContext->SetRenderTarget(m_MenuTexture.m_MSAAITex);
-        rndrContext->ClearBuffers(true, false, false);
-    }
-    else
+        m_Game->m_DxDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
         rndrContext->SetRenderTarget(NULL);
-    rndrContext->Release();
+        rndrContext->Release();
+    }
+
+    //Pulling ui state
+    vr::VREvent_t event;
+    while (m_System->PollNextEvent(&event, sizeof(event)))
+    {
+        switch (event.eventType) 
+        {
+            case vr::VREvent_DashboardActivated:
+            {
+                m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_None, true);
+                break;
+            }
+            case vr::VREvent_DashboardDeactivated:
+            {
+                m_MainOverlay.SetOverlayInputMethod(m_MainOverlay.m_SaveStateMethod);
+                break;
+            }
+        }
+    }
 }
 
 void VR::FirstFrameUpdate()
 {
     m_Game->ClientCmd_Unrestricted("mat_motion_blur_enabled 0");
-
+     
     if (m_Game->m_EngineClient->IsPaused())
         m_Game->ClientCmd_Unrestricted("pause");
 
     ResetPosition();
+    m_3DMenuLoading = false;
 }
 
 //Creates the target textures on the engine side to get picked up on dxvk side
 void VR::CreateVRTextures()
 {
+    m_Game->logMsg(LOGTYPE_DEBUG, "RenderTexture - Width: %d, Height: %d", m_RenderWidth, m_RenderHeight);
+
     m_Game->m_MaterialSystem->isGameRunning = false;
     m_Game->m_MaterialSystem->BeginRenderTargetAllocation();
     m_Game->m_MaterialSystem->isGameRunning = true;
 
-    //Blank texture gets created when the game is loading
-    if (!m_BlankTexture.m_ITex)
-        CreateRT(&m_BlankTexture, "blankTexture", 512, 512, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
+    m_LeftEye.m_UseMSAA = m_AntiAliasing;
+    m_RightEye.m_UseMSAA = m_AntiAliasing;
 
-
-    if (!m_Game->m_EngineClient->IsInGame())
-    {
-        m_Game->m_MaterialSystem->EndRenderTargetAllocation();
-        return;
-    }
-
-
-    //Textures will be recreated every map load
-    m_Game->logMsg(LOGTYPE_DEBUG, "RenderTexture - Width: %d, Height: %d", m_RenderWidth, m_RenderHeight);
-
-    CreateRT(&m_LeftEye, "leftEye", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
-    CreateRT(&m_RightEye, "rightEye", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
-    CreateRT(&m_RightEye, "menuTex", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
-    CreateRT(&m_HudTexture, "hudTex", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
+    ImageFormat format = m_Game->m_MaterialSystem->GetBackBufferFormat();
+    CreateRT(&m_BlankTexture, "blankTexture", 512, 512, RT_SIZE_NO_CHANGE, format);
+    CreateRT(&m_LeftEye, "leftEye", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, format);
+    CreateRT(&m_RightEye, "rightEye", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, format);
+    CreateRT(&m_MenuTexture, "menuTex", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, format);
+    CreateRT(&m_HudTexture, "hudTex", m_Game->m_WindowWidth, m_Game->m_WindowHeight, RT_SIZE_NO_CHANGE, format);
 
     m_Game->m_MaterialSystem->EndRenderTargetAllocation();
     m_CreatedVRTextures = true;
+    m_BuiltCaptureMap = false;
 }
 
 //Submits vr textures and handles menus
@@ -365,16 +676,17 @@ void VR::SubmitVRTextures()
         CreateVRTextures();
 
     //2D mode
-    if (!g_Game->m_EngineClient->IsInGame())
+    if (ShouldCapture(Capture_2D))
     {
-        if (!m_Overlay->IsOverlayVisible(m_MainMenuHandle) || m_LastOverlayRepos)
+        if (!m_MainOverlay.m_Visible || m_MainOverlay.m_StateFlag != 1)
         {
-            RepositionOverlays();
-            m_LastOverlayRepos = false;
+            RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
+            m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
+            m_MainOverlay.m_StateFlag = 1;
         }
-            
-        m_Overlay->SetOverlayTexture(m_MainMenuHandle, &m_BackBuffer.m_VRTexture);
-        m_Overlay->ShowOverlay(m_MainMenuHandle);
+        
+        m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_BackBuffer.m_VRTexture);
+        m_MainOverlay.ShowOverlay();
 
         vr::VRCompositor()->Submit(vr::Eye_Left, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
         vr::VRCompositor()->Submit(vr::Eye_Right, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
@@ -382,18 +694,38 @@ void VR::SubmitVRTextures()
     }
 
     //3D mode
-    if (ShouldCapture())
+    else if (ShouldCapture(Capture_MenuUI))
     {
-        if (!m_Overlay->IsOverlayVisible(m_MainMenuHandle) || !m_LastOverlayRepos)
+        if (!m_MainOverlay.m_Visible || m_MainOverlay.m_StateFlag != 2)
         {
-            RepositionOverlays();
-            m_LastOverlayRepos = true;
+            //This forces foward spawn on background levels
+            if (!m_IsLevelBackground)
+                RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, { RotFlag_UseYaw });
+            
+            else
+                RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
+
+            m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
+            m_MainOverlay.m_StateFlag = 2;
         }
 
-        m_Overlay->SetOverlayTexture(m_MainMenuHandle, &m_MenuTexture.m_VRTexture);
-        m_Overlay->ShowOverlay(m_MainMenuHandle);
+        m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_MenuTexture.m_VRTexture);
+        m_MainOverlay.ShowOverlay();
     }
-    else m_Overlay->HideOverlay(m_MainMenuHandle);
+
+    else if (ShouldCapture(Capture_HudUI))
+    {
+        if (!m_MainOverlay.m_Visible || m_MainOverlay.m_StateFlag != 3)
+        {
+            RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_Attached, { 0.0f, -0.2f, 2.0f });
+            m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_None);
+            m_MainOverlay.m_StateFlag = 3;
+        }
+
+        m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_MenuTexture.m_VRTexture);
+        m_MainOverlay.ShowOverlay();
+    }
+    else m_MainOverlay.HideOverlay();
     
     vr::VRCompositor()->Submit(vr::Eye_Left, &m_LeftEye.m_VRTexture, &(m_TextureBounds)[0], vr::Submit_Default);
     vr::VRCompositor()->Submit(vr::Eye_Right, &m_RightEye.m_VRTexture, &(m_TextureBounds)[1], vr::Submit_Default);
@@ -421,79 +753,131 @@ void VR::GetPoseData(const vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseDa
     poseOut.TrackedDeviceAngVel.z = poseRaw.vAngularVelocity.v[1] * PRECALC_RAD_TO_DEG;
 }
 
-void VR::RepositionOverlays()
+void VR::RepositionOverlay(vr::VROverlayHandle_t overlay, vr::TrackedDeviceIndex_t referenceDevice, OverlayRelitive con, Vector offset, OverlayRotation rot)
 {
-    vr::TrackedDevicePose_t hmdPose = m_Poses[vr::k_unTrackedDeviceIndex_Hmd];
-    vr::HmdMatrix34_t hmdMat = hmdPose.mDeviceToAbsoluteTracking;
-    Vector hmdPosition = { hmdMat.m[0][3], hmdMat.m[1][3], hmdMat.m[2][3] };
-    Vector hmdForward = { -hmdMat.m[0][2], 0, -hmdMat.m[2][2] };
-    VectorNormalize(hmdForward);
-
-    vr::HmdMatrix34_t menuTransform =
-    {
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 1.0f,
-        0.0f, 0.0f, 1.0f, 1.0f
-    };
-
     vr::ETrackingUniverseOrigin trackingOrigin = vr::VRCompositor()->GetTrackingSpace();
+    vr::HmdMatrix34_t device = m_Poses[referenceDevice].mDeviceToAbsoluteTracking;
 
-    menuTransform.m[0][0] *= m_WScaleDownRatio;
-    menuTransform.m[1][1] *= m_HScaleDownRatio;
+    Vector deviceRight = { device.m[0][0], device.m[1][0], device.m[2][0] };
+    Vector deviceUp = { device.m[0][1], device.m[1][1], device.m[2][1] };
+    Vector deviceForward = { device.m[0][2], device.m[1][2], device.m[2][2] };
+    Vector devicePos = { device.m[0][3], device.m[1][3], device.m[2][3] };
 
-    if (m_Game->m_EngineClient->IsInGame())
+    VectorNormalize(deviceRight);
+    VectorNormalize(deviceUp);
+    VectorNormalize(deviceForward);
+
+    Vector finalPos{};
+
+    switch (con)
     {
-        //Headspace overlay
-        Vector menuDistance = hmdForward * 3.0f; //Forward
-        Vector menuNewPos = hmdPosition + menuDistance;
+        case OverlayRel_WorldSpace:
+        {
+            Vector trackingRight = { 1, 0, 0 };
+            Vector trackingUp = { 0, 1, 0 };
+            Vector trackingForward = { 0, 0, -1 };
 
-        menuTransform.m[0][3] = menuNewPos.x;
-        menuTransform.m[1][3] = menuNewPos.y - 0.25f; //Height
-        menuTransform.m[2][3] = menuNewPos.z;
-
-        float xScale = menuTransform.m[0][0];
-        float hmdRotationDegrees = atan2f(hmdMat.m[0][2], hmdMat.m[2][2]);
-
-        menuTransform.m[0][0] *= cos(hmdRotationDegrees);
-        menuTransform.m[0][2] = sin(hmdRotationDegrees);
-        menuTransform.m[2][0] = -sin(hmdRotationDegrees) * xScale;
-        menuTransform.m[2][2] *= cos(hmdRotationDegrees);
+            finalPos =
+                trackingRight * offset.x +
+                trackingUp * offset.y +
+                trackingForward * offset.z;
+            break;
+        }
+        case OverlayRel_DeviceSpace:
+        {
+            finalPos = devicePos + offset;
+            break;
+        }
+        case OverlayRel_DeviceSpaceForward:
+        {
+            finalPos =
+                devicePos +
+                deviceRight * offset.x +
+                deviceUp * offset.y -
+                deviceForward * offset.z;
+            break;
+        }
+        case OverlayRel_Attached:
+        {
+            finalPos = Vector(offset.x, offset.y, -offset.z);
+            break;
+        }
+        default:
+            return;
     }
+
+    //Rotation flags
+    bool inheritRotation = (con != OverlayRel_Attached);
+
+    float yaw =
+        (inheritRotation && (rot.flags & RotFlag_UseYaw))
+        ? atan2f(deviceForward.x, deviceForward.z) + rot.yawOffset
+        : rot.yawOffset;
+
+    float pitch =
+        (inheritRotation && (rot.flags & RotFlag_UsePitch))
+        ? -atan2f(deviceForward.y, sqrtf(deviceForward.x * deviceForward.x + deviceForward.z * deviceForward.z)) + 
+        rot.pitchOffset : rot.pitchOffset;
+
+    float roll =
+        (inheritRotation && (rot.flags & RotFlag_UseRoll))
+        ? atan2f(deviceRight.y, deviceUp.y) + rot.rollOffset
+        : rot.rollOffset;
+
+    float cy = cosf(yaw);
+    float sy = sinf(yaw);
+
+    float cp = cosf(pitch);
+    float sp = sinf(pitch);
+
+    float cr = cosf(roll);
+    float sr = sinf(roll);
+
+    Vector forward;
+    forward.x = sy * cp;
+    forward.y = -sp;
+    forward.z = cy * cp;
+
+    Vector right;
+    right.x = cy * cr + sy * sp * sr;
+    right.y = cp * sr;
+    right.z = -sy * cr + cy * sp * sr;
+
+    Vector up;
+    up.x = -cy * sr + sy * sp * cr;
+    up.y = cp * cr;
+    up.z = sy * sr + cy * sp * cr;
+
+    VectorNormalize(right);
+    VectorNormalize(up);
+    VectorNormalize(forward);
+
+    vr::HmdMatrix34_t transform{};
+
+    Vector scaledRight = right * m_WScaleDownRatio;
+    Vector scaledUp = up * m_HScaleDownRatio;
+
+    transform.m[0][0] = scaledRight.x;
+    transform.m[1][0] = scaledRight.y;
+    transform.m[2][0] = scaledRight.z;
+
+    transform.m[0][1] = scaledUp.x;
+    transform.m[1][1] = scaledUp.y;
+    transform.m[2][1] = scaledUp.z;
+
+    transform.m[0][2] = forward.x;
+    transform.m[1][2] = forward.y;
+    transform.m[2][2] = forward.z;
+
+    transform.m[0][3] = finalPos.x;
+    transform.m[1][3] = finalPos.y;
+    transform.m[2][3] = finalPos.z;
+
+    if(!inheritRotation)
+        m_Overlay->SetOverlayTransformTrackedDeviceRelative(overlay, referenceDevice, &transform);
+
     else
-    {
-        //World space
-        Vector worldCenter = { 0.0f, 0.0f, 0.0f };
-
-        Vector vrForward = { 0.0f, 0.0f, -1.0f };
-        Vector overlayPos = worldCenter + vrForward * 3.0f; //Forward
-        overlayPos.y = 1.25f; //Height
-
-        Vector forward = worldCenter - overlayPos;
-        forward.y = 0.0f;
-        VectorNormalize(forward);
-
-        float yaw = atan2f(forward.x, forward.z);
-        float cosYaw = cosf(yaw);
-        float sinYaw = sinf(yaw);
-
-        menuTransform.m[0][0] = cosYaw * m_WScaleDownRatio;
-        menuTransform.m[0][1] = 0.0f;
-        menuTransform.m[0][2] = -sinYaw;
-        menuTransform.m[0][3] = overlayPos.x;
-
-        menuTransform.m[1][0] = 0.0f;
-        menuTransform.m[1][1] = 1.0f * m_HScaleDownRatio;
-        menuTransform.m[1][2] = 0.0f;
-        menuTransform.m[1][3] = overlayPos.y;
-
-        menuTransform.m[2][0] = sinYaw;
-        menuTransform.m[2][1] = 0.0f;
-        menuTransform.m[2][2] = cosYaw;
-        menuTransform.m[2][3] = overlayPos.z;
-    }
-
-    m_Overlay->SetOverlayTransformAbsolute(m_MainMenuHandle, trackingOrigin, &menuTransform);
-    m_Overlay->SetOverlayWidthInMeters(m_MainMenuHandle, 1.5f * (1.0f / m_HScaleDownRatio));
+        m_Overlay->SetOverlayTransformAbsolute(overlay, trackingOrigin, &transform);
 }
 
 //Gets raw pose data
@@ -559,7 +943,7 @@ bool VR::GetAnalogActionData(vr::VRActionHandle_t &actionHandle, vr::InputAnalog
 void VR::ProcessMenuInput()
 {
     //vr::VROverlayHandle_t currentOverlay = m_Game->m_EngineClient->IsInGame() ? m_HUDHandle : m_MainMenuHandle;
-    vr::VROverlayHandle_t currentOverlay = m_MainMenuHandle;
+    vr::VROverlayHandle_t currentOverlay = m_MainOverlay.m_Handle;
 
     // Check if left or right hand controller is pointing at the overlay
     const bool isHoveringOverlay = CheckOverlayIntersectionForController(currentOverlay, vr::TrackedControllerRole_LeftHand) ||
@@ -589,7 +973,7 @@ void VR::ProcessMenuInput()
             case vr::VREvent_MouseButtonDown:
                 // Don't allow holding down the mouse down in the pause menu. The resume button can be clicked before
                 // the MouseButtonUp event is polled, which causes issues with the overlay.
-                if (currentOverlay == m_MainMenuHandle)
+                if (currentOverlay == m_MainOverlay.m_Handle)
                 {
                     input.type = INPUT_MOUSE;
                     input.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
@@ -825,12 +1209,11 @@ void VR::ProcessInput()
         vr::VROverlay()->HideOverlay(m_HUDHandle);
     }*/
 
-    m_RenderedHud = false;
-
     if (PressedDigitalAction(m_Pause, true))
     {
         m_Game->ClientCmd_Unrestricted("gameui_activate");
-        RepositionOverlays();
+        if (m_Game->m_EngineClient->IsInGame())
+            RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, { RotFlag_UseYaw });
     }
 }
 
@@ -1062,12 +1445,18 @@ void VR::UpdateTracking()
         C_Portal_Player* portalPlayer = m_Game->GetPortalPlayer(localPlayer);
         CWeaponPortalBase* activeWeapon = portalPlayer->GetActivePortalWeapon();
 
-        if (activeWeapon && m_DrawCrosshair) {
+        if (activeWeapon) {
             if (portalPlayer->m_PointLaser) {
                 portalPlayer->m_PointLaser->SetControlPoint(1, m_AimPos);
                 portalPlayer->m_PointLaser->SetControlPoint(2, m_Game->m_singlePlayerPortalColors[activeWeapon->m_iLastFiredPortal] * 0.5f);
             }
             else {
+                if (!m_ParticleCreated)
+                {
+                    m_Game->m_Hooks->PrecacheParticleSystem("robot_point_beam");
+                    m_ParticleCreated = true;
+                }
+
                 m_Game->logMsg(LOGTYPE_DEBUG, "Creating Point Laser Beam Sight Thingy");
                 m_Game->m_Hooks->CreatePingPointer(localPlayer, m_AimPos);
             }
@@ -1512,13 +1901,11 @@ void VR::ParseConfigFile()
     parseOrDefault("VRScale", m_VRScale, 43.2f);
     parseOrDefault("IPDScale", m_IpdScale, 1.0f);
     parseOrDefault("6DOF", m_6DOF, true);
-    /*parseOrDefault("HudDistance", m_HudDistance, 1.3f);
-    parseOrDefault("HudSize", m_HudSize, 4.0f);
-    parseOrDefault("HudAlwaysVisible", m_HudAlwaysVisible, false);*/
     parseOrDefault("AimMode", m_AimMode, 2);
     parseOrDefault("AntiAliasing", m_AntiAliasing, 0);
     parseOrDefault("RenderWindow", m_RenderWindow, false);
     parseOrDefault("Enable3DBackground", m_3DMenu, false);
+    parseOrDefault("ExperimentalOptimizations", m_ExperimentalOptimizations, 0);
     parseXYZOrDefaultZero("ViewmodelPosCustomOffset", m_ViewmodelPosCustomOffset);
     parseXYZOrDefaultZero("ViewmodelAngCustomOffset", m_ViewmodelAngCustomOffset);
 }
@@ -1640,81 +2027,153 @@ std::string VR::GetNewestPortal2SavePath(const std::string& baseDir)
 }
 
 //Checks and gets if the 3D menu background is loaded and loads it if needed
-void VR::Load3DMenu() 
+int VR::Load3DMenu() 
 {
-    if (!m_3DMenu || m_StopLoading3DBgr || m_Game->m_EngineClient->IsInGame() || m_Game->m_EngineClient->IsDrawingLoadingImage())
-    {
-        m_StopLoading3DBgr = true;
-        return;
-    }
-
     std::string SaveFile = GetNewestPortal2SavePath(m_Game->m_GameDir);
     if (SaveFile.empty())
-    {
-        m_StopLoading3DBgr = true;
-        return;
-    }
+        return -1;
 
     std::string SaveMap = GetMapFromSave(SaveFile.c_str());
     if (SaveMap.empty())
-    {
-        m_StopLoading3DBgr = true;
-        return;
-    }
+        return -1;
 
     std::string backgroundMap;
     auto it = m_BackgroundMapping.find(SaveMap);
     if (it == m_BackgroundMapping.end())
     {
         m_Game->logMsg(LOGTYPE_WARNING, "%s is not mapped to any backgrounds.", SaveMap.c_str());
-        m_StopLoading3DBgr = true;
-        return;
+        return -1;
     }
         
     backgroundMap = it->second;
     m_Game->logMsg(LOGTYPE_DEBUG, "Loading background: %s", backgroundMap.c_str());
     m_Game->m_EngineClient->ClientCmd_Unrestricted(("map_background " + backgroundMap).c_str());
-
-    m_StopLoading3DBgr = true;
+    return 0;
 }
 
-bool VR::ShouldCapture()
+bool VR::ShouldCapture(CaptureConditions con)
 {
-    return m_IsLevelBackground || m_IsCredits || m_Game->m_EngineClient->IsPaused();
+    switch (con)
+    {
+        case Capture_Any: return true;
+        case Capture_2D: return !g_Game->m_EngineClient->IsInGame();
+        case Capture_MenuUI: return m_IsLevelBackground || m_Game->m_EngineClient->IsPaused();
+        case Capture_HudUI: return (m_IsCredits || !m_Game->m_EngineClient->IsPaused()) && m_Game->m_EngineClient->IsInGame() && !m_IsLevelBackground;
+    }
+     
+    return false;
 }
 
 void VR::BuildCaptureMap()
 {
-    m_PanelCaptureMap = {
-        {
-            m_Game->m_EnginePanel->GetPanel(PANEL_GAMEUIDLL),
-            PanelCaptureInfo{ m_MenuTexture.m_MSAAITex, nullptr, [this]() { return this->ShouldCapture(); } }
-        },
-        /*{
-            m_Game->m_EnginePanel->GetPanel(PANEL_GAMEDLL),
-            PanelCaptureInfo{ m_HudTexture.m_ITex, [this]() { return !this->ShouldCapture(); } }
-        }*/
-    };
+    RegisterPanelCaptureRoot(m_Game->m_EnginePanel->GetPanel(PANEL_GAMEUIDLL), m_MenuTexture.m_MSAAITex,
+        [this]() { return this->ShouldCapture(Capture_MenuUI); });
 
+    RegisterPanelCaptureRoot(m_Game->m_EnginePanel->GetPanel(PANEL_CLIENTDLL), m_MenuTexture.m_MSAAITex,
+        [this]() { return this->ShouldCapture(Capture_HudUI); });
+
+    VPANEL panel = FindParentOf(m_Game->m_EnginePanel->GetPanel(PANEL_CLIENTDLL), "HudWeapon");
+    RegisterPanelCaptureRoot(panel, m_MenuTexture.m_MSAAITex, [this]() { return this->ShouldCapture(Capture_HudUI); },
+    { 
+        std::make_pair("HudCrosshair", m_HudTexture.m_ITex),
+        std::make_pair("HUDQuickInfo", m_HudTexture.m_ITex),
+        std::make_pair("HudWeapon", m_HudTexture.m_ITex),
+        std::make_pair("HUDAutoAim", m_HudTexture.m_ITex)
+    });
+   
     m_BuiltCaptureMap = true;
 }
 
-int VR::CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth, UINT textureFlags)
+void VR::CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth, UINT textureFlags)
 {
-    if (!target) return -1;
-
     if (target->m_ITex) target->m_ITex->Release();
+    if (target->m_Surface) target->m_Surface->Release();
+    if (target->m_Texture) target->m_Texture->Release();
+
     if (target->m_MSAAITex) target->m_MSAAITex->Release();
+    if (target->m_MSAASurface) target->m_MSAASurface->Release();
+    if (target->m_MSAATexture) target->m_MSAATexture->Release();
 
     PushTexture(target, false);
     target->m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(name, w, h, sizeMode, format, depth, textureFlags);
 
-    if (target->m_UseMSAA || target->m_OverrideMSAASurface)
+    bool hasOverride = target->m_OverrideMSAASurface.has_value();
+    if (target->m_UseMSAA || hasOverride)
     {
-        TextureSetup Setup = (target->m_OverrideMSAASurface) ? *target->m_OverrideMSAASurface : TextureSetup(w, h, sizeMode, format, depth, textureFlags);
-        PushTexture(target, true);
-        target->m_MSAAITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(std::string(name).append("_MSAA").c_str(), Setup.w, Setup.h, Setup.sizeMode, Setup.format, Setup.depth, Setup.textureFlags);
+        TextureSetup Setup = (hasOverride) ? *target->m_OverrideMSAASurface : TextureSetup(w, h);
+        int Override = (hasOverride) ? -1 : target->m_UseMSAA;
+        PushTexture(target, Override);
+        target->m_MSAAITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(std::string(name).append("_MSAA").c_str(), Setup.w, Setup.h, sizeMode, format, depth, textureFlags);
     }
+}
 
-    return 0;
+const char* VR::EVRInputErrorToString(vr::EVRInputError error)
+{
+    switch (error)
+    {
+        case vr::VRInputError_None: return "None";
+        case vr::VRInputError_NameNotFound: return "Name Not Found";
+        case vr::VRInputError_WrongType: return "Wrong Type";
+        case vr::VRInputError_InvalidHandle: return "Invalid Handle";
+        case vr::VRInputError_InvalidParam: return "Invalid Param";
+        case vr::VRInputError_NoSteam: return "No Steam running";
+        case vr::VRInputError_MaxCapacityReached: return "Max Capacity Reached";
+        case vr::VRInputError_IPCError: return "IPC Error";
+        case vr::VRInputError_NoActiveActionSet: return "No Active Action Set";
+        case vr::VRInputError_InvalidDevice: return "Invalid Device";
+        case vr::VRInputError_InvalidSkeleton: return "Invalid Skeleton";
+        case vr::VRInputError_InvalidBoneCount: return "Invalid Bone Count";
+        case vr::VRInputError_InvalidCompressedData: return "Invalid Compressed Data";
+        case vr::VRInputError_NoData: return "No Data";
+        case vr::VRInputError_BufferTooSmall: return "Buffer Too Small";
+        case vr::VRInputError_MismatchedActionManifest: return "Mismatched Action Manifest";
+        case vr::VRInputError_MissingSkeletonData: return "Missing Skeleton Data";
+        case vr::VRInputError_InvalidBoneIndex: return "Invalid Bone Index";
+        case vr::VRInputError_InvalidPriority: return "Invalid Priority";
+        case vr::VRInputError_PermissionDenied: return "Permission Denied";
+        case vr::VRInputError_InvalidRenderModel: return "Invalid Render Model";
+        default: return "Unknown VRInputError";
+    }
+}
+
+void VR::PushTexture(SharedTextureHolder* holder, int isMSAA)
+{
+    std::lock_guard<std::mutex> lock(m_QueueMutex);
+    m_TextureQueue.push({ isMSAA, holder });
+}
+
+std::pair<int, SharedTextureHolder*> VR::PopNextTexture()
+{
+    std::lock_guard<std::mutex> lock(m_QueueMutex);
+
+    if (m_TextureQueue.empty())
+        return { 0, nullptr };
+
+
+    auto entry = m_TextureQueue.front();
+    m_TextureQueue.pop();
+    return entry;
+}
+
+void VR::RegisterPanelCaptureRoot(VPANEL panel, ITexture* dest, std::function<bool()> func, std::vector<std::pair<const char*, ITexture*>> ExcludeList)
+{
+    m_PanelCaptureMap[panel] = { dest, ExcludeList, func};
+}
+
+void VR::OverridePanelLayout(std::string TargetLayout, OverrideLayout NewLayout)
+{
+    m_PanelLayoutOverride[ToLower(TargetLayout)] = NewLayout;
+}
+
+void VR::RegisterPanelCommandListener(std::initializer_list<std::string> Commands, std::function<bool(const char* cmd, Panel* panel, KeyValues* message)> func)
+{
+    for (const auto& command : Commands)
+    {
+        m_PanelCommands[command] = func;
+    }
+}
+
+void VR::ModifyPanelSettings(std::string PanelName, std::function<bool(Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& SettingRuntimeData)> func)
+{
+    m_PanelSettings[PanelName] = { func };
 }

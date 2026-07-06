@@ -134,6 +134,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -679,6 +680,7 @@
     <ClCompile Include="vr.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="backgrounds.txt" />
     <Text Include="config.txt" />
     <Text Include="Todo.txt" />
   </ItemGroup>

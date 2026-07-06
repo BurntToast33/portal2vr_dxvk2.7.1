@@ -37,6 +37,11 @@ DWORD WINAPI InitL4D2VR(HMODULE hModule)
         AllocConsole();
         FILE* fp;
         freopen_s(&fp, "CONOUT$", "w", stdout);
+        g_hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
+        DWORD mode = 0;
+        GetConsoleMode(g_hConsole, &mode);
+        SetConsoleMode(g_hConsole, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
     }
 
     {
