@@ -14,17 +14,16 @@ This game contains flashing lights and fast motion sequences.
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/nQZ601kEDFI/0.jpg)](https://www.youtube.com/watch?v=nQZ601kEDFI)
 
 ## Things that work
-* In level menus
+* 3D menus
 * Singleplayer
+* Hud for vr player and spectators
 * 6DoF VR view
 * Motion controls for portal gun and grabbable objects
 * Workshop content
 
 ## Things that need fixing
 * Use the game's own haptic feedback
-* In-game hud is broken (planning to redo the hud system to work better with vr)
-* Viewmodel's particle attachment points don't align
-* 6DoF and Roomscale needs to be reimplemented
+* Roomscale needs to be reimplemented
 * CPU is underutilized
 
 ## How to use
@@ -34,17 +33,19 @@ This game contains flashing lights and fast motion sequences.
    ``` -vr -insecure -window -novid -width 1280 -height 720 ```
 
    The (-vr) flag can switch between vr mode and desktop mode.
+   The height and width of the window effects ui resolution.
 
 4. At the menu, feel free to change [these video settings](https://i.imgur.com/yYQMXs6.jpg).
 5. Load into a chapter. 
-6. To recenter the camera height, press down on the left stick. To see the HUD, aim the controller up or down.
+6. To recenter the camera height, press down on the left stick.
 
 ## How to change vr settings
-Go to ```steamapps\common\Portal 2\VR```
-- Open config.txt for vr settings,
-- Open backgrounds.txt for what background map will be loaded based on where you are in your save file.
-- To rebind controlls go to ```SteamVRActionManifest``` and open the corresponding controller you have and mannualy re-map it.
-  I will look into getting a proper rebinding system once I fix all the curret gameplay bugs
+Most VR settings have been moved into in game menus and a button has been added to open the controller rebinding ui.
+
+~~Go to ```steamapps\common\Portal 2\VR```~~
+~~- Open config.txt for vr settings,~~
+~~- Open backgrounds.txt for what background map will be loaded based on where you are in your save file.~~
+~~- To rebind controlls go to ```SteamVRActionManifest``` and open the corresponding controller you have and mannualy re-map it.~~
 
 ## Troubleshooting
 If you have no audio:
@@ -63,15 +64,16 @@ If the game is crashing, try:
 * Re-installing the game
 
 ## Build instructions
-1. ``` git clone --recurse-submodules https://github.com/Gistix/portal2vr.git ```
-2. Open l4d2vr.sln
-3. Set to x86 Debug or Release
+1. ``` git clone --recurse-submodules https://github.com/BurntToast33/portal2vr_dxvk2.7.1.git ```
+2. Open Portal2VR_2.7.1.sln
+3. Set to x86 Release
 4. Build -> Build Solution
 
 Note: After building, it will attempt to copy the new d3d9.dll to your Portal 2/bin directory.
 
 ## Based on
 * [l4d2vr](https://github.com/sd805/l4d2vr)
+* [original portal2vr by Gistix](https://github.com/Gistix/portal2vr)
   
 ## Utilizes code from
 * [VirtualFortress2](https://github.com/PinkMilkProductions/VirtualFortress2)
