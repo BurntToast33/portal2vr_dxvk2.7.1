@@ -41,6 +41,7 @@ This game contains flashing lights and fast motion sequences.
 
 # On Linux
 - Add `WINEDLLOVERRIDES="d3d9=n,b" %command%` to the start of the launch args. (tested on cachyos)
+- If steamvr crashes when starting up, put the headset down and let the displays turn off, then start the game. 
 
 ## How to change vr settings
 Most VR settings have been moved into in game menus and a button has been added to open the controller rebinding ui.
