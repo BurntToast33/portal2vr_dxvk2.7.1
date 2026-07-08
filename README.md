@@ -39,6 +39,9 @@ This game contains flashing lights and fast motion sequences.
 5. Load into a chapter. 
 6. To recenter the camera height, press down on the left stick.
 
+# On Linux
+- Add `WINEDLLOVERRIDES="d3d9=n,b" %command%` to the start of the launch args. (tested on cachyos)
+
 ## How to change vr settings
 Most VR settings have been moved into in game menus and a button has been added to open the controller rebinding ui.
 
