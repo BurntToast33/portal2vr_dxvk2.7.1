@@ -17,6 +17,13 @@
 //Toggles
 //#define GetControllerTipMatrix_HeapBuffer //Enable this for cpu's with 32kb or less of L1 cache
 
+
+#define SAFE_RELEASE(x) \
+    if (x) {            \
+        x->Release();   \
+        x = nullptr;    \
+    }
+
 VR::VR(Game *game) 
 {
     m_Game = game;
@@ -2086,13 +2093,12 @@ void VR::BuildCaptureMap()
 
 void VR::CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth, UINT textureFlags)
 {
-    if (target->m_ITex) target->m_ITex->Release();
-    if (target->m_Surface) target->m_Surface->Release();
-    if (target->m_Texture) target->m_Texture->Release();
-
-    if (target->m_MSAAITex) target->m_MSAAITex->Release();
-    if (target->m_MSAASurface) target->m_MSAASurface->Release();
-    if (target->m_MSAATexture) target->m_MSAATexture->Release();
+    SAFE_RELEASE(target->m_ITex);
+    SAFE_RELEASE(target->m_Surface);
+    SAFE_RELEASE(target->m_Texture);
+    SAFE_RELEASE(target->m_MSAAITex);
+    SAFE_RELEASE(target->m_MSAASurface);
+    SAFE_RELEASE(target->m_MSAATexture);
 
     PushTexture(target, false);
     target->m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(name, w, h, sizeMode, format, depth, textureFlags);
