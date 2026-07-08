@@ -588,7 +588,7 @@ void VR::PostUpdate()
         m_IsCredits = false; //Reset once out of level
         m_Game->m_CachedArmsModel = false;
 
-        if (m_3DMenu && !m_3DMenuLoading && !m_IsLevelBackground && 
+        if (m_3DMenu && !m_3DMenuLoading && !m_IsLevelBackground && m_CreatedVRTextures && 
             !m_Game->m_EngineClient->IsDrawingLoadingImage() && !m_Game->m_EngineClient->IsInGame())
         {
             std::thread([this]()
@@ -664,8 +664,8 @@ void VR::CreateVRTextures()
     m_Game->m_MaterialSystem->BeginRenderTargetAllocation();
     m_Game->m_MaterialSystem->isGameRunning = true;
 
-    m_LeftEye.m_UseMSAA = m_AntiAliasing;
-    m_RightEye.m_UseMSAA = m_AntiAliasing;
+    //m_LeftEye.m_UseMSAA = m_AntiAliasing;
+    //m_RightEye.m_UseMSAA = m_AntiAliasing;
 
     ImageFormat format = m_Game->m_MaterialSystem->GetBackBufferFormat();
     CreateRT(&m_BlankTexture, "blankTexture", 512, 512, RT_SIZE_NO_CHANGE, format);
@@ -693,6 +693,7 @@ void VR::SubmitVRTextures()
             RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
             m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
             m_MainOverlay.m_StateFlag = 1;
+            m_Game->logMsg(LOGTYPE_DEBUG, "2D mode");
         }
         
         m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_BackBuffer.m_VRTexture);
@@ -717,6 +718,7 @@ void VR::SubmitVRTextures()
 
             m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
             m_MainOverlay.m_StateFlag = 2;
+            m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Menu state");
         }
 
         m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_MenuTexture.m_VRTexture);
@@ -730,6 +732,7 @@ void VR::SubmitVRTextures()
             RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_Attached, { 0.0f, -0.2f, 2.0f });
             m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_None);
             m_MainOverlay.m_StateFlag = 3;
+            m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Hud state");
         }
 
         m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_MenuTexture.m_VRTexture);
@@ -2109,6 +2112,7 @@ void VR::BuildCaptureMap()
 
 void VR::CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth, UINT textureFlags)
 {
+    m_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s, W: %d, H: %d", name, w, h);
     SAFE_RELEASE(target->m_ITex);
     SAFE_RELEASE(target->m_Surface);
     SAFE_RELEASE(target->m_Texture);
@@ -2124,6 +2128,8 @@ void VR::CreateRT(SharedTextureHolder* target, const char* name, int w, int h, R
     {
         TextureSetup Setup = (hasOverride) ? *target->m_OverrideMSAASurface : TextureSetup(w, h);
         int Override = (hasOverride) ? -1 : target->m_UseMSAA;
+
+        m_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s_MSAA, W: %d, H: %d", name, w, h);
         PushTexture(target, Override);
         target->m_MSAAITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(std::string(name).append("_MSAA").c_str(), Setup.w, Setup.h, sizeMode, format, depth, textureFlags);
     }

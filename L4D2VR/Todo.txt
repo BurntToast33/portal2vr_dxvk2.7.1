@@ -16,13 +16,10 @@ Todo:
 
 Todo:
 - Custscenecs on linux causes spectator cam to become black
-- viewmodel transforms weirdly, probably same problem as attachments
+- viewmodel transforms weirdly, probably same problem as attachments from before
 
 V0.2.1
 Done:
-- Compress ViewmodelPosCustomOffset and ViewmodelAngCustomOffset into 1 line each instead of 3 each (config file)
-- Got P2VR working on linux using proton
-- Moved Controller settings to KeyboardMouse.res layout style (Requires updated portal2_dlc3 file)
 
 
 
@@ -42,6 +39,9 @@ Done:
 - Moved `mat_*` commands from launch arguments to `VR_autoexec.cfg` (located in `portal2_dlc3/cfg/VR_autoexec.cfg`).
 - Updated console colors for warnings and errors.
 - Replaced the portal gun model with one by SpiritedSpy.
+- Compress ViewmodelPosCustomOffset and ViewmodelAngCustomOffset into 1 line each instead of 3 each (config file)
+- Got P2VR working on linux using proton
+- Moved Controller settings to KeyboardMouse.res layout style (Requires updated portal2_dlc3 file)
 
 - Added 3D backgrounds. (To add custom backgrounds, see `VR/backgrounds.txt` for the mapping format.)
 - Added a 3D in-level menu.

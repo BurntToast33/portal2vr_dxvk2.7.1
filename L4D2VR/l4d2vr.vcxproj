@@ -144,7 +144,7 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>$(SolutionDir)dxvk\src\d3d9\d3d9.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>openvr_api.lib;libMinHook.x86.lib;$(SolutionDir)dxvk\lib32\vulkan-1.lib;SetupAPI.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>openvr_api.lib;libMinHook.x86.lib;Version.lib;$(SolutionDir)dxvk\lib32\vulkan-1.lib;SetupAPI.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
