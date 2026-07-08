@@ -577,7 +577,6 @@ bool __fastcall Hooks::dLevelInit(void* ecx, void* edx, const char* pMapName, ch
 	if (m_VR->m_3DMenu)
 		m_VR->m_IsLevelBackground = background;
 	
-	m_VR->m_CreatedVRTextures = false; //Apparently need to recreate textures or workshop maps don't render properly
 	m_FirstFrame = true;
 	m_VR->m_ParticleCreated = false; //Need to recache particle
 	return hkLevelInit.fOriginal(ecx, pMapName, pMapEntities, pOldLevel, pLandmarkName, loadGame, background);
@@ -635,10 +634,11 @@ void __fastcall Hooks::dLoadControlSettings(void* ecx, void* edx, const char* di
 	if (it != m_VR->m_PanelLayoutOverride.end())
 	{
 		OverrideLayout& layout = it->second;
-		if (layout.m_Func(layout.NewLayoutPath)) 
+		std::string path = layout.NewLayoutPath;
+		if (layout.m_Func(path)) 
 		{
 			pPreloadedKeyValues = NULL;
-			dialogResourceName = layout.NewLayoutPath.c_str();
+			dialogResourceName = path.c_str();
 		}
 	}
 

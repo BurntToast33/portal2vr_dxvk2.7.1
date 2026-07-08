@@ -1,5 +1,12 @@
+V0.2.3
+- Add Portal 2 Reloaded 3rd portal support,
+- Test co-op
+- Add gesture support
+
+
 V0.2.2
 Todo:
+- Update to dxvk 3.0
 - Finish Overlay based aiming
 - Fix MSAA (I don't know how, everything is transparent so run without msaa for now)
 - Add cube map transisions between levels to stay in the aptiure envrionment while loading
@@ -7,46 +14,53 @@ Todo:
 - ask about adding Spencer0187's roomscale code
 
 
+Todo:
+- Custscenecs on linux causes spectator cam to become black
+- viewmodel transforms weirdly, probably same problem as attachments
 
 V0.2.1
 Done:
-- Updated to DXVK 2.7.1 +fps
-
-- Fixed function hook offsets for current portal 2 build
-- Fixed crash in sp_a2_bts4.
-- Fixed ending: credits now render to overlay in level.
-- Fixed laser pointer particles crashing on creation.
-- Fixed possible softlock when exiting level
-- Possibly fixed memory leak due to never releasing old render targets.
-- Fixed an issue introduced by the current build of the game where viewmodel particle attachment points were transformed incorrectly.
-
-- Added 3D backgrounds. (If you want to add custom backgrounds check VR/backgrounds.txt for how it's mapped)
-- Added 3D in the level menu.
-- Added a toggle to enable and disable vr mode and assets in launch option. ( -vr )
-- Added a toggle to enable debug console. ( -vrdebug )
-- Added automatic recentering when loading into map.
-- Added error logging from l4d2 branch, sessions will generate vrmod_log.txt.
-- Added setting to enable sharing of visibility between eyes (ExperimentalOptimizations)
-- Added hud compositing for spectators and vr player
-- Added hud for vr player
-- Added vr settings in game options menu
-- Added button to open controller remapping ui in game. (In vr settings menu)
-
-- Changed Overlay now spawns based on your vr environment's forward when in the main menu.
-- Changed m_RenderWindow setting to copy left eye to backbuffer instead of rendering a third time. +fps
-- Force disabled motion blur in vr mode. +fps
-- Moved mat_ commands from launch args to VR_autoexec.cfg. (located in portal2_dlc3/cfg/VR_autoexec.cfg)
-- Updated console color for warnings and errors.
-
-- Replaced Portal Gun: model by SpiritedSpy
+- Compress ViewmodelPosCustomOffset and ViewmodelAngCustomOffset into 1 line each instead of 3 each (config file)
+- Got P2VR working on linux using proton
+- Moved Controller settings to KeyboardMouse.res layout style (Requires updated portal2_dlc3 file)
 
 
-Code Changes: 
-- Overhauled overly repositioning system.
-- Removed the old hud system to make way for a new capture method.
-- Redone texture capture.
-- Overhauled vgui capture system to support hud as well.
-- Added automatic system to find differences in defined offset to what's in the binary.
-- Added utils for finding functions in the binarys
-- Cleaned up hooks files and reorganized everything in the hooks files
-- Added systems to override layouts, override panel settings, and listen to panel command stream
+
+V0.2.1-preview
+Done:
+- Updated to DXVK 2.7.1. (+FPS)
+- Fixed function hook offsets for the current Portal 2 build (as of July 7, 2026).
+- Fixed a crash in `sp_a2_bts4`.
+- Fixed the ending: credits now render to the HUD in-game.
+- Fixed a crash caused by laser pointer particles on creation.
+- Fixed a possible soft lock when exiting a level.
+- Fixed a potential memory leak caused by old render targets not being released.
+- Fixed an issue introduced by the current game build where viewmodel particle attachment points were transformed incorrectly.
+- The 2D menu now spawns based on your VR environment's forward direction.
+- Added the `m_RenderWindow` setting to copy the left eye to the back buffer instead of rendering a third view. (+FPS)
+- Force-disabled motion blur in VR mode. (+FPS)
+- Moved `mat_*` commands from launch arguments to `VR_autoexec.cfg` (located in `portal2_dlc3/cfg/VR_autoexec.cfg`).
+- Updated console colors for warnings and errors.
+- Replaced the portal gun model with one by SpiritedSpy.
+
+- Added 3D backgrounds. (To add custom backgrounds, see `VR/backgrounds.txt` for the mapping format.)
+- Added a 3D in-level menu.
+- Added the `-vr` launch option to enable or disable VR mode and VR assets.
+- Added the `-vrdebug` launch option to enable the debug console.
+- Added automatic recentering when loading into a map.
+- Added error logging from the Left 4 Dead 2 branch. Sessions now generate `vrmod_log.txt`.
+- Added the `ExperimentalOptimizations` setting to share visibility data between both eyes.
+- Added HUD compositing for spectators and the VR player.
+- Added a VR HUD.
+- Added VR settings to the in-game Options menu.
+- Added a button to open the controller remapping UI from the VR settings menu.
+
+- Overhauled the overlay repositioning system.
+- Removed the old HUD system to make way for a new capture method.
+- Reworked texture capture.
+- Overhauled the VGUI capture system to support HUD rendering.
+- Added an automatic system to compare defined offsets against those found in the binary.
+- Added utilities for finding functions in binaries and other development tools.
+- Cleaned up and reorganized the hook files.
+- Cleaned up and organized the offsets file.
+- Added systems for overriding layouts, overriding panel settings, and listening to the panel command stream.

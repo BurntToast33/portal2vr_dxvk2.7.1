@@ -10,9 +10,5 @@ AntiAliasing=0 # 0, 2, 4, 8
 RenderWindow=false # Whether or not to copy eye texture to application window
 Enable3DBackground=true # Overrides main menu background with a 3D replacement map from backgrounds.txt
 ExperimentalOptimizations=0 # Enables shareing of data between eyes, 1 = Shadow data
-ViewmodelPosCustomOffsetX=0.0
-ViewmodelPosCustomOffsetY=0.0
-ViewmodelPosCustomOffsetZ=0.0
-ViewmodelAngCustomOffsetX=0.0
-ViewmodelAngCustomOffsetY=0.0
-ViewmodelAngCustomOffsetZ=0.0
+ViewmodelPosCustomOffset={ 0.0, 0.0, 0.0 } # Position offset (x, y, z)
+ViewmodelAngCustomOffset={ 0.0, 0.0, 0.0 } # Rotation offset (x, y, z)

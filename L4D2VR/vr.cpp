@@ -245,8 +245,7 @@ void VR::CreateHashMaps()
 
     //UI stuff from here
     OverridePanelLayout("options.res", { "resource/ui/vr_options.res" });
-    OverridePanelLayout("KeyboardMouse.res", { "resource/ui/vr_settings.res" });
-    OverridePanelLayout("ControllerOptions.res", { "resource/ui/vr_controllersettings.res", [this](std::string& LayoutPath)
+    OverridePanelLayout("KeyboardMouse.res", { "resource/ui/vr_controllersettings.res", [this](std::string& LayoutPath)
     {
         if (m_OverrideControllerUI)
         {
@@ -254,12 +253,13 @@ void VR::CreateHashMaps()
             return true;
         }
 
-        return false;
+        LayoutPath = "resource/ui/vr_settings.res";
+        return true;
     }});
 
     RegisterPanelCommandListener({ "VRController" }, [this](const char* cmd, Panel* panel, KeyValues* message)
     {
-        message->SetString("command", "Controller");
+        message->SetString("command", "KeyboardMouse");
         m_OverrideControllerUI = true;
         
         return false;
@@ -378,9 +378,9 @@ void VR::CreateHashMaps()
     });
     RegisterPanelCommandListener({ "VRExperimentalOptimizations0", "VRExperimentalOptimizations1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
     {
-        bool con = !strcmp(cmd, "VR3DBackground1");
+        int con = (strcmp(cmd, "VR3DBackground1") == 0);
         m_Game->logMsg(LOGTYPE_DEBUG, "Experimental optimizations set to ",
-            con ? "'true'" : "'false'", " via in game menu.");
+            con ? "'1'" : "'0'", " via in game menu.");
 
         WriteConfigEntry("ExperimentalOptimizations", con);
         return false;
@@ -643,6 +643,9 @@ void VR::PostUpdate()
 
 void VR::FirstFrameUpdate()
 {
+    //Crashes in debug mode for some reason
+    //m_CreatedVRTextures = false; //Apparently need to recreate textures or workshop maps don't render properly
+    
     m_Game->ClientCmd_Unrestricted("mat_motion_blur_enabled 0");
      
     if (m_Game->m_EngineClient->IsPaused())
@@ -1808,9 +1811,7 @@ static void concatErrorMsg(Game& game, const Ts&... args)
 // missing or if the parsing fails, 'defaultValue' is returned and an error message is
 // generated.
 template <typename T>
-static T parseConfigEntry(
-    const std::unordered_map<std::string, std::string>& userConfig, Game& game,
-    const char* key, const T& defaultValue)
+static T parseConfigEntry(const std::unordered_map<std::string, std::string>& userConfig, Game& game, const char* key, const T& defaultValue)
 try
 {
     const auto itr = userConfig.find(key);
@@ -1883,8 +1884,7 @@ void VR::ParseConfigFile()
     // Parse a single entry with key 'key' from the config into 'target'.
     // If the entry does not exist, or if the parsing fails, sets 'target' to
     // 'defaultValue'.
-    const auto parseOrDefault = [&](const char* key, auto& target,
-                                    const auto& defaultValue) 
+    const auto parseOrDefault = [&](const char* key, auto& target, const auto& defaultValue) 
     { 
         target = parseConfigEntry(userConfig, *m_Game, key, defaultValue);
         m_Game->logMsg(LOGTYPE_DEBUG, "Setting %s to %s", key, std::to_string(target).c_str());
@@ -1894,11 +1894,27 @@ void VR::ParseConfigFile()
     // are read from three separate config entries with key 'keyPrefix' + 'X'/'Y'/'Z'.
     // If any entry does not exist, or if the parsing fails, sets the corresponding
     // coordinate in 'target' to zero.
-    const auto parseXYZOrDefaultZero = [&](std::string keyPrefix, auto& target)
+    const auto parseVectorOrDefaultZero = [&](const char* key, auto& target)
     {
-        parseOrDefault((keyPrefix + "X").c_str(), target.x, 0.f);
-        parseOrDefault((keyPrefix + "Y").c_str(), target.y, 0.f);
-        parseOrDefault((keyPrefix + "Z").c_str(), target.z, 0.f);
+        auto it = userConfig.find(key);
+
+        target.x = target.y = target.z = 0.0f;
+
+        if (it != userConfig.end())
+        {
+            std::string value = it->second;
+            value.erase(std::remove(value.begin(), value.end(), '{'), value.end());
+            value.erase(std::remove(value.begin(), value.end(), '}'), value.end());
+
+            std::replace(value.begin(), value.end(), ',', ' ');
+
+            std::istringstream stream(value);
+
+            if (!(stream >> target.x >> target.y >> target.z))
+                target.x = target.y = target.z = 0.0f;
+        }
+
+        m_Game->logMsg(LOGTYPE_DEBUG, "Setting %s to { %.3f, %.3f, %.3f }", key, target.x, target.y, target.z);
     };
 
     parseOrDefault("SnapTurning", m_SnapTurning, false);
@@ -1913,8 +1929,8 @@ void VR::ParseConfigFile()
     parseOrDefault("RenderWindow", m_RenderWindow, false);
     parseOrDefault("Enable3DBackground", m_3DMenu, false);
     parseOrDefault("ExperimentalOptimizations", m_ExperimentalOptimizations, 0);
-    parseXYZOrDefaultZero("ViewmodelPosCustomOffset", m_ViewmodelPosCustomOffset);
-    parseXYZOrDefaultZero("ViewmodelAngCustomOffset", m_ViewmodelAngCustomOffset);
+    parseVectorOrDefaultZero("ViewmodelPosCustomOffset", m_ViewmodelPosCustomOffset);
+    parseVectorOrDefaultZero("ViewmodelAngCustomOffset", m_ViewmodelAngCustomOffset);
 }
 
 void VR::WaitForConfigUpdate()
