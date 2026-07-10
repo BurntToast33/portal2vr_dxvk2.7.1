@@ -75,7 +75,6 @@ struct Hook {
 
 
 using tPlayerPortalled = void(__thiscall*)(void* thisptr, void* a2, __int64 a3);
-using tUpdateProgressBar = float(__thiscall*)(void* thisptr);
 
 //Movement
 using tCreateMove = bool(__thiscall*)(void* thisptr, float flInputSampleTime, CUserCmd* cmd);
@@ -106,6 +105,7 @@ using tLoadControlSettings = void(__thiscall*)(void* thisptr, const char* dialog
 using tPaintTraverse = void(__thiscall*)(void* thisptr, VPANEL vguiPanel, bool forceRepaint, bool allowForce);
 using tPostActionSignal = void(__thiscall*)(void* thisptr, KeyValues* message);
 using tApplySettings = void(__thiscall*)(void* thisptr, KeyValues* inResourceData);
+using tUpdateProgressBar = float(__thiscall*)(void* thisptr);
 
 //Grabbles
 using tComputeError = double(__thiscall*)(void* thisptr);
@@ -139,7 +139,6 @@ public:
 
 
 	static inline Hook<tPlayerPortalled> hkPlayerPortalled;
-	static inline Hook<tUpdateProgressBar> hkUpdateProgressBar;
 
 	//Movement
 	static inline Hook<tCreateMove> hkCreateMove;
@@ -169,6 +168,7 @@ public:
 	static inline Hook<tPostActionSignal> hkPostActionSignal;
 	static inline Hook<tLoadControlSettings> hkLoadControlSettings;
 	static inline Hook<tApplySettings> hkApplySettings;
+	static inline Hook<tUpdateProgressBar> hkUpdateProgressBar;
 
 	//Grabbles
 	static inline Hook<tComputeError> hkComputeError;
@@ -218,12 +218,6 @@ public:
 		Direct = reinterpret_cast<T>(offset.address);
 	}
 
-	template <typename T>
-	void BuildDirectCall(T& Direct, uintptr_t address)
-	{
-		Direct = reinterpret_cast<T>(address);
-	}
-
 	static inline bool IsPanelExcluded(VPANEL panel, const std::vector<std::pair<const char*, ITexture*>>* excludeList, ITexture*& Override)
 	{
 		const char* name = m_Game->m_VguiIPanel->GetName(panel);
@@ -244,48 +238,49 @@ public:
 		return false;
 	}
 
-
-	// Detour functions
-	static void __fastcall dRenderView(void *ecx, void *edx, CViewSetup &setup, CViewSetup &hudViewSetup, int nClearFlags, int whatToDraw);
-	static bool __fastcall dCreateMove(void *ecx, void *edx, float flInputSampleTime, CUserCmd *cmd);
-	static void __fastcall dCalcViewModelView(void *ecx, void *edx, const Vector &eyePosition, const QAngle &eyeAngles);
-	static float __fastcall dProcessUsercmds(void *ecx, void *edx, edict_t *player, void *buf, int numcmds, int totalcmds, int dropped_packets, bool ignore, bool paused);
-	static int dReadUsercmd(bf_read *buf, CUserCmd *move, CUserCmd *from);
-	static int dWriteUsercmd(bf_write *buf, CUserCmd *to, CUserCmd *from);
-	static void dAdjustEngineViewport(int &x, int &y, int &width, int &height);
-	static void __fastcall dGetViewport(void *ecx, void *edx, int &x, int &y, int &width, int &height);
-	static void __fastcall dDrawModelExecute(void *ecx, void* edx, void *state, const ModelRenderInfo_t &info, void *pCustomBoneToWorld);
-	
-
-	// Fire portals from right controller
-	static bool __fastcall dTraceFirePortal(void* ecx, void* edx, const Vector& vTraceStart, const Vector& vDirection, bool bPortal2, int iPlacedBy, void* tr);
-
-	// Portalling angle fix
 	static void __fastcall dPlayerPortalled(void* ecx, void* edx, void* a2, __int64 a3);
 
-	// Grabbable objects
-	static Vector* __fastcall dWeapon_ShootPosition(void* ecx, void* edx, Vector* shootPos);
-	static double __fastcall dComputeError(void* ecx, void* edx);
-	static bool __fastcall dUpdateObject(void* ecx, void* edx, void* pPlayer, float flError, bool bIsTeleport = false);
-	static void __fastcall dRotateObject(void* ecx, void* edx, void* pPlayer, float fRotAboutUp, float fRotAboutRight, bool bUseWorldUpInsteadOfPlayerUp);
-	static QAngle& __fastcall dEyeAngles(void* ecx, void* edx);
-
-	static int __fastcall dGetDefaultFOV(void* ecx, void* edx);
-	static double __fastcall dGetFOV(void* ecx, void* edx);
-	static double __fastcall dGetViewModelFOV(void* ecx, void* edx);
-
-	static void __fastcall dSetDrawOnlyForSplitScreenUser(void* ecx, void* edx, int nSlot);
-
+	//Weapon
+	static bool __fastcall dTraceFirePortal(void* ecx, void* edx, const Vector& vTraceStart, const Vector& vDirection, bool bPortal2, int iPlacedBy, void* tr);
 	static void* __fastcall dCWeaponPortalgun_FirePortal(void* ecx, void* edx, bool bPortal2, Vector* pVector = 0);
+	static Vector* __fastcall dWeapon_ShootPosition(void* ecx, void* edx, Vector* shootPos);
 
-	static void __fastcall dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bool forceRepaint, bool allowForce = true);
-	static bool __fastcall dLevelInit(void* ecx, void* edx, const char* pMapName, char const* pMapEntities, char const* pOldLevel, char const* pLandmarkName, bool loadGame, bool background);
-	static void __fastcall dPrepareCredits(void* ecx, void* edx, const char* pKeyName);
+	//Movement
+	static bool __fastcall dCreateMove(void* ecx, void* edx, float flInputSampleTime, CUserCmd* cmd);
+	static float __fastcall dProcessUsercmds(void* ecx, void* edx, edict_t* player, void* buf, int numcmds, int totalcmds, int dropped_packets, bool ignore, bool paused);
+	static int dReadUsercmd(bf_read* buf, CUserCmd* move, CUserCmd* from);
+	static int dWriteUsercmd(bf_write* buf, CUserCmd* to, CUserCmd* from);
+
+	//Rendering
+	static void __fastcall dRenderView(void *ecx, void *edx, CViewSetup &setup, CViewSetup &hudViewSetup, int nClearFlags, int whatToDraw);
+	static void __fastcall dCalcViewModelView(void* ecx, void* edx, const Vector& eyePosition, const QAngle& eyeAngles);
+	static void dAdjustEngineViewport(int& x, int& y, int& width, int& height);
+	static void __fastcall dGetViewport(void* ecx, void* edx, int& x, int& y, int& width, int& height);
+	static void __fastcall dDrawModelExecute(void* ecx, void* edx, void* state, const ModelRenderInfo_t& info, void* pCustomBoneToWorld);
+	static void __fastcall dSetDrawOnlyForSplitScreenUser(void* ecx, void* edx, int nSlot);
 	static void __fastcall dComputeShadowDepthTextures(void* ecx, void* edx, const CViewSetup& pView);
 	static void __fastcall dUnlockAllShadowDepthTextures(void* ecx, void* edx);
+	static void dFormatViewModelAttachment(void* param_1, Vector& vOrigin, bool bInverse);
+
+	//In game UI
+	static void __fastcall dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bool forceRepaint, bool allowForce = true);
+	static void __fastcall dPrepareCredits(void* ecx, void* edx, const char* pKeyName);
 	static void __fastcall dPostActionSignal(void* ecx, void* edx, KeyValues* message);
 	static void __fastcall dLoadControlSettings(void* ecx, void* edx, const char* dialogResourceName, const char* pathID, KeyValues* pPreloadedKeyValues, KeyValues* pConditions);
 	static void __fastcall dApplySettings(void* ecx, void* edx, KeyValues* inResourceData);
 	static float __fastcall dUpdateProgressBar(void* ecx, void* edx);
-	static void dFormatViewModelAttachment(void* param_1, Vector& vOrigin, bool bInverse);
+
+	//Grabbles
+	static double __fastcall dComputeError(void* ecx, void* edx);
+	static bool __fastcall dUpdateObject(void* ecx, void* edx, void* pPlayer, float flError, bool bIsTeleport = false);
+	static void __fastcall dRotateObject(void* ecx, void* edx, void* pPlayer, float fRotAboutUp, float fRotAboutRight, bool bUseWorldUpInsteadOfPlayerUp);
+	static QAngle& __fastcall dEyeAngles(void* ecx, void* edx);
+	
+	//For Portal gun VFX
+	static int __fastcall dGetDefaultFOV(void* ecx, void* edx);
+	static double __fastcall dGetFOV(void* ecx, void* edx);
+	static double __fastcall dGetViewModelFOV(void* ecx, void* edx);
+
+	//Map related
+	static bool __fastcall dLevelInit(void* ecx, void* edx, const char* pMapName, char const* pMapEntities, char const* pOldLevel, char const* pLandmarkName, bool loadGame, bool background);
 };

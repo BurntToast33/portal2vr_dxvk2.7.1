@@ -5,8 +5,6 @@
 #include "openvr.h"
 #include "vr.h"
 
-// Release if buggy, so we'll be releasing the debug binary (as of 2025 the debug binary crashes on map load)
-
 DWORD WINAPI InitL4D2VR(HMODULE hModule)
 {
     // Make sure -insecure is used
@@ -16,13 +14,26 @@ DWORD WINAPI InitL4D2VR(HMODULE hModule)
 
     bool insecureEnabled = false; //Change to false to enable -insecure check 
     bool vrEnabled = false;
-    bool console = false;
+    int vrDebuglvl = 0;
 
     for (int i = 0; i < nArgs; ++i)
     {
         if (!wcscmp(szArglist[i], L"-insecure")) insecureEnabled = true;
         else if (!wcscmp(szArglist[i], L"-vr")) vrEnabled = true;
-        else if (!wcscmp(szArglist[i], L"-vrdebug")) console = true;
+        else if (!wcscmp(szArglist[i], L"-vrdebug"))
+        {
+            if (i + 1 < nArgs)
+            {
+                wchar_t* end = nullptr;
+                long level = wcstol(szArglist[i + 1], &end, 10);
+
+                if (*end == L'\0')
+                {
+                    vrDebuglvl = static_cast<int>(level);
+                    ++i;
+                }
+            }
+        }
     }
     LocalFree(szArglist);
 
@@ -32,7 +43,7 @@ DWORD WINAPI InitL4D2VR(HMODULE hModule)
         ExitProcess(0);
     }
 
-    if (console) 
+    if (vrDebuglvl) 
     {
         AllocConsole();
         FILE* fp;
@@ -48,6 +59,7 @@ DWORD WINAPI InitL4D2VR(HMODULE hModule)
         std::lock_guard<std::mutex> lock(g_GameMutex);
         g_Game = new Game();
         g_Game->m_VrEnabled = vrEnabled;
+        g_Game->m_VRDebuglvl = vrDebuglvl;
     }
     g_GameCondVar.notify_all();
     g_Game->Initialize();

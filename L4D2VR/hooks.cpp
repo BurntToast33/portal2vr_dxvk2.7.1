@@ -574,6 +574,9 @@ void __fastcall Hooks::dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bo
 
 bool __fastcall Hooks::dLevelInit(void* ecx, void* edx, const char* pMapName, char const* pMapEntities, char const* pOldLevel, char const* pLandmarkName, bool loadGame, bool background)
 {
+	if (m_Game->m_VRDebuglvl) 
+		m_Game->logMsg(LOGTYPE_DEBUG, "Loading level: %s, Background: %s", pMapName, (background) ? "True" : "False");
+
 	if (m_VR->m_3DMenu)
 		m_VR->m_IsLevelBackground = background;
 	

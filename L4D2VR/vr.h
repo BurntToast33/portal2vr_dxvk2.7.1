@@ -8,12 +8,17 @@
 #include <optional>
 #include <variant>
 #include <d3d9.h>
+#include "json.hpp"
 #include "sdk.h"
-#include "util.h"
+
+#define SAFE_RELEASE(x) \
+    if (x) {            \
+        x->Release();   \
+        x = nullptr;    \
+    }
 
 class Game;
 class ITexture;
-
 
 struct TrackedDevicePoseData 
 {
@@ -57,6 +62,24 @@ struct SharedTextureHolder
 
 	bool m_UseMSAA = false; //Will be ignored if m_OverrideMSAASurface is set
 	std::optional<TextureSetup> m_OverrideMSAASurface; //Creates texture without any msaa sampling
+
+	void Release()
+	{
+		m_SurfaceImage = nullptr;
+		m_MSAASurfaceImage = nullptr;
+
+		SAFE_RELEASE(m_Surface);
+		SAFE_RELEASE(m_MSAASurface);
+
+		m_Texture = nullptr;
+		m_MSAATexture = nullptr;
+
+		SAFE_RELEASE(m_ITex);
+		SAFE_RELEASE(m_MSAAITex);
+
+		m_VulkanData = {};
+		m_VRTexture = {};
+	};
 };
 
 struct PanelCaptureInfo
@@ -138,9 +161,60 @@ struct PanelSettings
 	}
 };
 
+enum OverlayRotationFlags : uint32_t
+{
+	RotFlag_None = 0,
+
+	RotFlag_UseYaw = 1 << 0,
+	RotFlag_UsePitch = 1 << 1,
+	RotFlag_UseRoll = 1 << 2,
+	RotFlag_UseAll = RotFlag_UseYaw | RotFlag_UsePitch | RotFlag_UseRoll
+};
+
+struct OverlayRotation
+{
+	OverlayRotationFlags flags = RotFlag_None; //Used to define what axis is inherited from target
+
+	float pitchOffset = 0.0f;
+	float yawOffset = 0.0f;
+	float rollOffset = 0.0f;
+};
+
+enum OverlayRelitive
+{
+	//Offset is interpreted directly in tracking / world space.
+	//No reference device required.
+	OverlayRel_WorldSpace,
+
+	//Overlay follows the reference device's position.
+	//Offset is interpreted in tracking/world space.
+	OverlayRel_DeviceSpace,
+
+	//Overlay follows the reference device's position.
+	//Offset is interpreted in the reference device's local axes.
+	OverlayRel_DeviceSpaceForward,
+
+	//Overlay follows reference device's position and rotation
+	//OverlayRotationFlags are ignored
+	OverlayRel_Attached
+};
+
+enum CaptureConditions
+{
+	Capture_Any,
+	Capture_2D,
+	Capture_MenuUI,
+	Capture_HudUI
+};
+
+
 class VR
 {
 public:
+	//====================
+	// Variables
+	//====================
+
 	Game *m_Game = nullptr;
 
 	vr::IVRSystem *m_System = nullptr;
@@ -236,7 +310,6 @@ public:
 	float m_WScaleDownRatio, m_HScaleDownRatio, m_WScaleUpRatio, m_HScaleUpRatio;
 
 	std::unordered_map<std::string, std::string> m_BackgroundMapping{}; //Map map names to background names
-
 	std::unordered_map<VPANEL, PanelCaptureInfo> m_PanelCaptureMap{}; //Captures the children of the parent panel
 	std::unordered_map<std::string, OverrideLayout> m_PanelLayoutOverride{}; //Override layout for loaded panels
 	std::unordered_map<std::string, std::function<bool(const char* cmd, Panel* panel, KeyValues* message)>> m_PanelCommands{}; //Listen or override commands from panels
@@ -250,6 +323,8 @@ public:
 	bool m_OverrideControllerUI = false;
 	bool m_LevelExitFix = false; //Disconnects from level before exiting level to fix soft lock
 	bool m_3DMenuLoading = false;
+
+	vr::EVRCompositorError m_LastLeftEyeError = vr::VRCompositorError_None, m_LastRightEyeError = vr::VRCompositorError_None;
 
 	// action set
 	vr::VRActionSetHandle_t m_ActionSet = {};
@@ -298,9 +373,6 @@ public:
 	float m_VRScale = 43.2;
 	float m_IpdScale = 1.0;
 	bool m_6DOF = true;
-	float m_HudDistance = 1.3;
-	float m_HudSize = 4.0;
-	bool m_HudAlwaysVisible = false;
 	int m_AimMode = 2;
 	bool m_3DMenu = false;
 	bool m_RenderWindow = false;
@@ -309,8 +381,10 @@ public:
 
 	uint64_t m_SteamID = 0; //Used to know the exact directory to find the save files
 
+	//===============
+	//	Helpers
+	//===============
 
-	//Helpers
 	std::string ToLower(std::string str)
 	{
 		std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });
@@ -354,69 +428,209 @@ public:
 		return 0;
 	}
 
-	enum CaptureConditions
+	template<typename MapType>
+	bool LoadStringMap(const char* filePath, const char* key, MapType& map)
 	{
-		Capture_Any,
-		Capture_2D,
-		Capture_MenuUI,
-		Capture_HudUI
-	};
+		static_assert(
+			std::is_same_v<typename MapType::key_type, std::string>,
+			"LoadStringMap requires std::string keys"
+			);
 
-	enum OverlayRelitive
+		using ValueType = typename MapType::mapped_type;
+
+		std::ifstream file(filePath);
+		if (!file.is_open())
+		{
+			m_Game->logMsg(LOGTYPE_WARNING, "Could not open file: %s", filePath);
+			return false;
+		}
+
+		//Filter out comments
+		std::stringstream buffer;
+		buffer << file.rdbuf();
+		file.close();
+
+		std::string contents = buffer.str();
+
+		std::string jsonText;
+		jsonText.reserve(contents.size());
+
+		bool inString = false;
+
+		for (size_t i = 0; i < contents.size(); i++)
+		{
+			char c = contents[i];
+
+			if (c == '"' && (i == 0 || contents[i - 1] != '\\'))
+				inString = !inString;
+
+			if (!inString && c == '/' && i + 1 < contents.size() && contents[i + 1] == '/')
+			{
+				while (i < contents.size() && contents[i] != '\n')
+					i++;
+
+				jsonText += '\n';
+				continue;
+			}
+
+			jsonText += c;
+		}
+
+		//Parse file
+		nlohmann::json json;
+		try
+		{
+			json = nlohmann::json::parse(jsonText);
+		}
+		catch (const nlohmann::json::parse_error& e)
+		{
+			m_Game->logMsg(LOGTYPE_WARNING, "JSON parse error in %s: %s", filePath, e.what());
+			return false;
+		}
+		catch (const std::exception& e)
+		{
+			m_Game->logMsg(LOGTYPE_WARNING, "JSON error in %s: %s", filePath, e.what());
+			return false;
+		}
+
+		auto section = json.find(key);
+		if (section == json.end() || !section->is_object())
+		{
+			m_Game->logMsg(LOGTYPE_WARNING, "Could not find key in %s: %s", filePath, key);
+			return false;
+		}
+
+		map.clear();
+
+		for (const auto& [k, v] : section->items())
+		{
+			try
+			{
+				map[k] = v.get<ValueType>();
+			}
+			catch (const std::exception& e)
+			{
+				m_Game->logMsg(LOGTYPE_WARNING, "Failed converting JSON value '%s' in %s: %s", k.c_str(), filePath, e.what());
+			}
+		}
+
+		return !map.empty();
+	}
+
+	const char* EVRInputErrorToString(vr::EVRInputError error)
 	{
-		//Offset is interpreted directly in tracking / world space.
-		//No reference device required.
-		OverlayRel_WorldSpace,
+		switch (error)
+		{
+			case vr::VRInputError_None: return "None";
+			case vr::VRInputError_NameNotFound: return "Name Not Found";
+			case vr::VRInputError_WrongType: return "Wrong Type";
+			case vr::VRInputError_InvalidHandle: return "Invalid Handle";
+			case vr::VRInputError_InvalidParam: return "Invalid Param";
+			case vr::VRInputError_NoSteam: return "No Steam running";
+			case vr::VRInputError_MaxCapacityReached: return "Max Capacity Reached";
+			case vr::VRInputError_IPCError: return "IPC Error";
+			case vr::VRInputError_NoActiveActionSet: return "No Active Action Set";
+			case vr::VRInputError_InvalidDevice: return "Invalid Device";
+			case vr::VRInputError_InvalidSkeleton: return "Invalid Skeleton";
+			case vr::VRInputError_InvalidBoneCount: return "Invalid Bone Count";
+			case vr::VRInputError_InvalidCompressedData: return "Invalid Compressed Data";
+			case vr::VRInputError_NoData: return "No Data";
+			case vr::VRInputError_BufferTooSmall: return "Buffer Too Small";
+			case vr::VRInputError_MismatchedActionManifest: return "Mismatched Action Manifest";
+			case vr::VRInputError_MissingSkeletonData: return "Missing Skeleton Data";
+			case vr::VRInputError_InvalidBoneIndex: return "Invalid Bone Index";
+			case vr::VRInputError_InvalidPriority: return "Invalid Priority";
+			case vr::VRInputError_PermissionDenied: return "Permission Denied";
+			case vr::VRInputError_InvalidRenderModel: return "Invalid Render Model";
+			default: return "Unknown VRInputError";
+		}
+	}
 
-		//Overlay follows the reference device's position.
-		//Offset is interpreted in tracking/world space.
-		OverlayRel_DeviceSpace,
-
-		//Overlay follows the reference device's position.
-		//Offset is interpreted in the reference device's local axes.
-		OverlayRel_DeviceSpaceForward,
-
-		//Overlay follows refrence device's posistion and rotation
-		//OverlayRotationFlags are ignored
-		OverlayRel_Attached
-	};
-
-	enum OverlayRotationFlags : uint32_t
+	const char* CompositorErrorToString(vr::EVRCompositorError err)
 	{
-		RotFlag_None = 0,
+		switch (err)
+		{
+			case vr::VRCompositorError_None: return "None";
+			case vr::VRCompositorError_RequestFailed: return "RequestFailed";
+			case vr::VRCompositorError_IncompatibleVersion: return "IncompatibleVersion";
+			case vr::VRCompositorError_DoNotHaveFocus: return "DoNotHaveFocus";
+			case vr::VRCompositorError_InvalidTexture: return "InvalidTexture";
+			case vr::VRCompositorError_IsNotSceneApplication: return "IsNotSceneApplication";
+			case vr::VRCompositorError_TextureIsOnWrongDevice: return "TextureIsOnWrongDevice";
+			case vr::VRCompositorError_TextureUsesUnsupportedFormat: return "TextureUsesUnsupportedFormat";
+			case vr::VRCompositorError_SharedTexturesNotSupported: return "SharedTexturesNotSupported";
+			case vr::VRCompositorError_IndexOutOfRange: return "IndexOutOfRange";
+			case vr::VRCompositorError_AlreadySubmitted: return "AlreadySubmitted";
+			default: return "Unknown";
+		}
+	}
 
-		RotFlag_UseYaw = 1 << 0,
-		RotFlag_UsePitch = 1 << 1,
-		RotFlag_UseRoll = 1 << 2,
-		RotFlag_UseAll = RotFlag_UseYaw | RotFlag_UsePitch | RotFlag_UseRoll
-	};
+	//====================
+	// Functions
+	//====================
 
-	struct OverlayRotation
-	{
-		OverlayRotationFlags flags = RotFlag_None; //Used to define what axis is inherited from target
-
-		float pitchOffset = 0.0f;
-		float yawOffset = 0.0f;
-		float rollOffset = 0.0f;
-	};
-
+	//===== Setup =====
 
 	VR() {};
 	VR(Game *game);
 	~VR();
 
-	//Post initialization setup stage
-	void CreateHashMaps();
+	void CreateHashMaps(); //Post initialization setup stage
 	int SetActionManifest(const char *fileName);
 	void InstallApplicationManifest(const char *fileName);
+
+
+	//===== Rendering/Texture =====
+
 	void PreUpdate();
 	void PostUpdate();
 	void FirstFrameUpdate();
 	void CreateVRTextures();
 	void SubmitVRTextures();
+	void CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth = MATERIAL_RT_DEPTH_SEPARATE, UINT textureFlags = TEXTUREFLAGS_NOMIP);
+	void BuildCaptureMap();
+	int Load3DMenu();
+	bool ShouldCapture(CaptureConditions con);
 
-	//Attach mode ignores RotFlags and inherits rotation from reference.
+	//Push/Pop texture is used to account for any delay between the game calling to create texture and dxvk creating it
+	void PushTexture(SharedTextureHolder* holder, int isMSAA);
+	std::pair<int, SharedTextureHolder*> PopNextTexture();
+
+
+	//===== UI =====
+	//Captures children and descendances of parent panel
+	// - VPANEL is used because the capture happens inside the draw function so speed is needed
+	// - Return in Lamba function is used to Decide to capture or not
+	// - When excluding panel by panel name if you set a texture with it the excluded panel will render to the new target instead
+	void RegisterPanelCaptureRoot(VPANEL panel, ITexture* dest, std::function<bool()> func, std::vector<std::pair<const char*, ITexture*>> ExcludeList = {});
+
+	//Override layout loaded by engine 
+	// - Default callback returns true to say yes I will override the engine
+	// - Can define your own callback to set conditions
+	void OverridePanelLayout(std::string TargetLayout, OverrideLayout NewLayout);
+
+	//Listens to command stream and calls defined function on match. 
+	// - Return true to intercept command from being sent out
+	// - Can modify message being sent
+	void RegisterPanelCommandListener(std::initializer_list<std::string> Commands, std::function<bool(const char* cmd, Panel* panel, KeyValues* message)> func);
+
+	//Used to modify panels that have settings 
+	// - Return true tells program to not apply settings, useful if you will handle the call
+	// - Can store the KeyValues in the defined SettingRuntimeData that comes with the panel
+	void ModifyPanelSettings(std::string PanelName, std::function<bool(Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& SettingRuntimeData)> func);
+
+	//Attach mode ignores RotFlags and inherits position and rotation from reference.
 	void RepositionOverlay(vr::VROverlayHandle_t overlay, vr::TrackedDeviceIndex_t referenceDevice, OverlayRelitive con, Vector offset, OverlayRotation rot = {});
+
+
+	//===== Config/File Parser's =====
+
+	void ParseConfigFile();
+	void WaitForConfigUpdate();
+	std::string GetMapFromSave(const char* fileName);
+	std::string GetNewestPortal2SavePath(const std::string& baseDir);
+
+	
 	void GetPoses();
 	void UpdatePosesAndActions();
 	void GetViewParameters();
@@ -441,42 +655,11 @@ public:
 	bool GetAnalogActionData(vr::VRActionHandle_t &actionHandle, vr::InputAnalogActionData_t &analogDataOut);
 	void ResetPosition();
 	void GetPoseData(const vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseData &poseOut);
-	void ParseConfigFile();
-	void WaitForConfigUpdate();
 	Vector Trace(uint32_t* localPlayer);
 	Vector TraceEye(uint32_t* localPlayer, Vector cameraPos, Vector eyePos, QAngle& eyeAngle);
-	int Load3DMenu();
-	std::string GetMapFromSave(const char* fileName);
-	std::string GetNewestPortal2SavePath(const std::string& baseDir);
-	bool ShouldCapture(CaptureConditions con);
-	void BuildCaptureMap();
-	void CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth = MATERIAL_RT_DEPTH_SEPARATE, UINT textureFlags = TEXTUREFLAGS_NOMIP);
-	const char* EVRInputErrorToString(vr::EVRInputError error);
-	void PushTexture(SharedTextureHolder* holder, int isMSAA);
-	std::pair<int, SharedTextureHolder*> PopNextTexture();
-
-	//Captures children and descendances of parent panel
-	// - VPANEL is used because the capture happens inside the draw function so speed is needed
-	// - Return in Lamba function is used to Decide to capture or not
-	// - When excluding panel by panel name if you set a texture with it the excluded panel will render to the new target instead
-	void RegisterPanelCaptureRoot(VPANEL panel, ITexture* dest, std::function<bool()> func, std::vector<std::pair<const char*, ITexture*>> ExcludeList = {});
-
-	//Override layout loaded by engine 
-	// - Default callback returns true to say yes I will override the engine
-	// - Can define your own callback to set conditions
-	void OverridePanelLayout(std::string TargetLayout, OverrideLayout NewLayout); 
-
-	//Listens to command stream and calls defined function on match. 
-	// - Return true to intercept command from being sent out
-	// - Can modify message being sent
-	void RegisterPanelCommandListener(std::initializer_list<std::string> Commands, std::function<bool(const char* cmd, Panel* panel, KeyValues* message)> func); 
-
-	//Used to modify panels that have settings 
-	// - Return true tells program to not apply settings, useful if you will handle the call
-	// - Can store the KeyValues in the defined SettingRuntimeData that comes with the panel
-	void ModifyPanelSettings(std::string PanelName, std::function<bool(Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& SettingRuntimeData)> func);
 };
 
+//Ques up textures that use msaa to be resolved before compositing
 class VRTextureResolveQueue
 {
 public:

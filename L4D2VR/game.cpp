@@ -71,13 +71,11 @@ static void* GetInterfaceSafe(const char* dllname, const char* interfacename)
     return iface;
 }
 
-
 // === Game Constructor ===
 Game::Game() 
 {
     clearLog();
 }
-
 
 // === Class Initializer === 
 void Game::Initialize() 
@@ -92,6 +90,8 @@ void Game::Initialize()
         return;
     }
 #endif
+
+    logMsg(LOGTYPE_DEBUG, "Debug level: %d", m_VRDebuglvl);
 
     //Waiting for dll's to be loaded
     m_BaseClient = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("client.dll"));

@@ -1568,7 +1568,7 @@
       <Filter>Source Files</Filter>
     </Text>
     <Text Include="Todo.txt" />
-    <Text Include="backgrounds.txt">
+    <Text Include="backgrounds.json">
       <Filter>Source Files</Filter>
     </Text>
   </ItemGroup>

@@ -18,12 +18,6 @@
 //#define GetControllerTipMatrix_HeapBuffer //Enable this for cpu's with 32kb or less of L1 cache
 
 
-#define SAFE_RELEASE(x) \
-    if (x) {            \
-        x->Release();   \
-        x = nullptr;    \
-    }
-
 VR::VR(Game *game) 
 {
     m_Game = game;
@@ -54,6 +48,9 @@ VR::VR(Game *game)
     m_System = vr::OpenVRInternal_ModuleContext().VRSystem();
 
     m_System->GetRecommendedRenderTargetSize(&m_RenderWidth, &m_RenderHeight);
+
+    if (m_Game->m_VRDebuglvl) 
+        m_Game->logMsg(LOGTYPE_DEBUG, "Height: %d, Width: %d", m_Game->m_WindowHeight, m_Game->m_WindowWidth);
 
     m_WScaleDownRatio = (float)m_Game->m_WindowWidth / m_RenderWidth;
     m_HScaleDownRatio = (float)m_Game->m_WindowHeight / m_RenderHeight;
@@ -120,6 +117,12 @@ VR::~VR()
 {
     m_IsInitialized = false;
     m_IsVREnabled = false;
+
+    m_BackBuffer.Release();
+    m_LeftEye.Release();
+    m_RightEye.Release();
+    m_MenuTexture.Release();
+    m_HudTexture.Release();
 }
 
 //Need to write setting changes back to file
@@ -188,59 +191,12 @@ void VR::CreateHashMaps()
 
     //Background mappings
     char path[MAX_STR_LEN]{};
-    sprintf_s(path, MAX_STR_LEN, "%s\\VR\\backgrounds.txt", m_Game->m_GameDir);
+    sprintf_s(path, MAX_STR_LEN, "%s\\VR\\backgrounds.json", m_Game->m_GameDir);
 
-    std::ifstream file(path);
-    if (!file.is_open())
-    {
-        m_Game->logMsg(LOGTYPE_WARNING, "Failed to open: %s%s", path, "\nDisabling 3D backgrounds");
-        m_3DMenu = false;
-        return;
-    }
-
-    m_BackgroundMapping.clear();
-
-    std::string line;
-    while (std::getline(file, line))
-    {
-        //Trimming whitespace before and after data entry
-        line.erase(0, line.find_first_not_of(" \t\r\n"));
-        line.erase(line.find_last_not_of(" \t\r\n") + 1);
-
-        //Skipping empty lines or comments
-        if (line.empty() || line[0] == '#')
-            continue;
-
-        //Finding middle point
-        size_t MiddlePos = line.find('=');
-        if (MiddlePos == std::string::npos)
-            continue;
-
-        //Getting data
-        std::string chapter = line.substr(0, MiddlePos);
-        std::string background = line.substr(MiddlePos + 1);
-
-        //Trimming redundant white space of data
-        chapter.erase(0, chapter.find_first_not_of(" \t\r\n"));
-        chapter.erase(chapter.find_last_not_of(" \t\r\n") + 1);
-
-        background.erase(0, background.find_first_not_of(" \t\r\n"));
-        background.erase(background.find_last_not_of(" \t\r\n") + 1);
-
-        if (!chapter.empty() && !background.empty())
-            m_BackgroundMapping[chapter] = background;
-    }
-
-    file.close();
-
-    if (m_BackgroundMapping.size())
-        m_Game->logMsg(LOGTYPE_DEBUG, "Loaded %zu background mappings.", m_BackgroundMapping.size());
-
-    else
-    {
-        m_Game->logMsg(LOGTYPE_WARNING, "Failed to parse backgrounds.txt or there are no entries.%s", "\nDisabling 3D backgrounds");
-        m_3DMenu = false;
-    }
+    if (!LoadStringMap(path, "backgroundMappings", m_BackgroundMapping))
+        m_Game->logMsg(LOGTYPE_WARNING, "Failed to parse: %s%s", path, "\nDisabling 3D backgrounds");
+    
+    m_Game->logMsg(static_cast<LOGTYPE>(!m_BackgroundMapping.size()), "Loaded %zu background mappings.", m_BackgroundMapping.size());
 
 
     //UI stuff from here
@@ -682,6 +638,8 @@ void VR::CreateVRTextures()
 //Submits vr textures and handles menus
 void VR::SubmitVRTextures()
 {
+    vr::EVRCompositorError leftEye = vr::VRCompositorError_None, rightEye = vr::VRCompositorError_None;
+
     if (!m_CreatedVRTextures)
         CreateVRTextures();
 
@@ -693,14 +651,29 @@ void VR::SubmitVRTextures()
             RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
             m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
             m_MainOverlay.m_StateFlag = 1;
-            m_Game->logMsg(LOGTYPE_DEBUG, "2D mode");
+            if (m_Game->m_VRDebuglvl) m_Game->logMsg(LOGTYPE_DEBUG, "2D mode");
         }
         
         m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_BackBuffer.m_VRTexture);
         m_MainOverlay.ShowOverlay();
 
-        vr::VRCompositor()->Submit(vr::Eye_Left, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
-        vr::VRCompositor()->Submit(vr::Eye_Right, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
+        leftEye = vr::VRCompositor()->Submit(vr::Eye_Left, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
+        rightEye = vr::VRCompositor()->Submit(vr::Eye_Right, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
+
+        if (m_Game->m_VRDebuglvl > 1)
+        {
+            if (leftEye != vr::VRCompositorError_None && leftEye != m_LastLeftEyeError)
+            {
+                m_Game->logMsg(LOGTYPE_ERROR, "2D mode left eye error: %s", CompositorErrorToString(leftEye));
+                m_LastLeftEyeError = leftEye;
+            }
+
+            if (rightEye != vr::VRCompositorError_None && rightEye != m_LastRightEyeError)
+            {
+                m_Game->logMsg(LOGTYPE_ERROR, "2D mode right eye error: %s", CompositorErrorToString(rightEye));
+                m_LastRightEyeError = rightEye;
+            }
+        }
         return;
     }
 
@@ -709,7 +682,7 @@ void VR::SubmitVRTextures()
     {
         if (!m_MainOverlay.m_Visible || m_MainOverlay.m_StateFlag != 2)
         {
-            //This forces foward spawn on background levels
+            //This forces forward spawn on background levels
             if (!m_IsLevelBackground)
                 RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, { RotFlag_UseYaw });
             
@@ -718,7 +691,7 @@ void VR::SubmitVRTextures()
 
             m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
             m_MainOverlay.m_StateFlag = 2;
-            m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Menu state");
+            if (m_Game->m_VRDebuglvl) m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Menu state");
         }
 
         m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_MenuTexture.m_VRTexture);
@@ -732,7 +705,7 @@ void VR::SubmitVRTextures()
             RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_Attached, { 0.0f, -0.2f, 2.0f });
             m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_None);
             m_MainOverlay.m_StateFlag = 3;
-            m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Hud state");
+            if (m_Game->m_VRDebuglvl) m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Hud state");
         }
 
         m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_MenuTexture.m_VRTexture);
@@ -740,8 +713,23 @@ void VR::SubmitVRTextures()
     }
     else m_MainOverlay.HideOverlay();
     
-    vr::VRCompositor()->Submit(vr::Eye_Left, &m_LeftEye.m_VRTexture, &(m_TextureBounds)[0], vr::Submit_Default);
-    vr::VRCompositor()->Submit(vr::Eye_Right, &m_RightEye.m_VRTexture, &(m_TextureBounds)[1], vr::Submit_Default);
+    leftEye = vr::VRCompositor()->Submit(vr::Eye_Left, &m_LeftEye.m_VRTexture, &(m_TextureBounds)[0], vr::Submit_Default);
+    rightEye = vr::VRCompositor()->Submit(vr::Eye_Right, &m_RightEye.m_VRTexture, &(m_TextureBounds)[1], vr::Submit_Default);
+
+    if (m_Game->m_VRDebuglvl > 1)
+    {
+        if (leftEye != vr::VRCompositorError_None && leftEye != m_LastLeftEyeError)
+        {
+            m_Game->logMsg(LOGTYPE_ERROR, "2D mode left eye error: %s", CompositorErrorToString(leftEye));
+            m_LastLeftEyeError = leftEye;
+        }
+
+        if (rightEye != vr::VRCompositorError_None && rightEye != m_LastRightEyeError)
+        {
+            m_Game->logMsg(LOGTYPE_ERROR, "2D mode right eye error: %s", CompositorErrorToString(rightEye));
+            m_LastRightEyeError = rightEye;
+        }
+    }
 }
 
 //Converts the raw pose data to usable pose data
@@ -2112,13 +2100,8 @@ void VR::BuildCaptureMap()
 
 void VR::CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth, UINT textureFlags)
 {
-    m_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s, W: %d, H: %d", name, w, h);
-    SAFE_RELEASE(target->m_ITex);
-    SAFE_RELEASE(target->m_Surface);
-    SAFE_RELEASE(target->m_Texture);
-    SAFE_RELEASE(target->m_MSAAITex);
-    SAFE_RELEASE(target->m_MSAASurface);
-    SAFE_RELEASE(target->m_MSAATexture);
+    if (m_Game->m_VRDebuglvl) m_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s, W: %d, H: %d", name, w, h);
+    target->Release();
 
     PushTexture(target, false);
     target->m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(name, w, h, sizeMode, format, depth, textureFlags);
@@ -2129,38 +2112,9 @@ void VR::CreateRT(SharedTextureHolder* target, const char* name, int w, int h, R
         TextureSetup Setup = (hasOverride) ? *target->m_OverrideMSAASurface : TextureSetup(w, h);
         int Override = (hasOverride) ? -1 : target->m_UseMSAA;
 
-        m_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s_MSAA, W: %d, H: %d", name, w, h);
+        if (m_Game->m_VRDebuglvl) m_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s_MSAA, W: %d, H: %d", name, w, h);
         PushTexture(target, Override);
         target->m_MSAAITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(std::string(name).append("_MSAA").c_str(), Setup.w, Setup.h, sizeMode, format, depth, textureFlags);
-    }
-}
-
-const char* VR::EVRInputErrorToString(vr::EVRInputError error)
-{
-    switch (error)
-    {
-        case vr::VRInputError_None: return "None";
-        case vr::VRInputError_NameNotFound: return "Name Not Found";
-        case vr::VRInputError_WrongType: return "Wrong Type";
-        case vr::VRInputError_InvalidHandle: return "Invalid Handle";
-        case vr::VRInputError_InvalidParam: return "Invalid Param";
-        case vr::VRInputError_NoSteam: return "No Steam running";
-        case vr::VRInputError_MaxCapacityReached: return "Max Capacity Reached";
-        case vr::VRInputError_IPCError: return "IPC Error";
-        case vr::VRInputError_NoActiveActionSet: return "No Active Action Set";
-        case vr::VRInputError_InvalidDevice: return "Invalid Device";
-        case vr::VRInputError_InvalidSkeleton: return "Invalid Skeleton";
-        case vr::VRInputError_InvalidBoneCount: return "Invalid Bone Count";
-        case vr::VRInputError_InvalidCompressedData: return "Invalid Compressed Data";
-        case vr::VRInputError_NoData: return "No Data";
-        case vr::VRInputError_BufferTooSmall: return "Buffer Too Small";
-        case vr::VRInputError_MismatchedActionManifest: return "Mismatched Action Manifest";
-        case vr::VRInputError_MissingSkeletonData: return "Missing Skeleton Data";
-        case vr::VRInputError_InvalidBoneIndex: return "Invalid Bone Index";
-        case vr::VRInputError_InvalidPriority: return "Invalid Priority";
-        case vr::VRInputError_PermissionDenied: return "Permission Denied";
-        case vr::VRInputError_InvalidRenderModel: return "Invalid Render Model";
-        default: return "Unknown VRInputError";
     }
 }
 

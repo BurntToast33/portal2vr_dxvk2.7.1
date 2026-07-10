@@ -118,6 +118,7 @@ public:
 
     bool m_Initialized = false;
     bool m_VrEnabled = false;
+    int m_VRDebuglvl = 0;
 
     std::array<Player, 24> m_PlayersVRInfo;
     int m_CurrentUsercmdID = -1;

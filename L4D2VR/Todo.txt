@@ -1,6 +1,6 @@
 V0.2.3
-- Add Portal 2 Reloaded 3rd portal support,
 - Test co-op
+- Add splitscreen support
 - Add gesture support
 
 
@@ -10,17 +10,22 @@ Todo:
 - Finish Overlay based aiming
 - Fix MSAA (I don't know how, everything is transparent so run without msaa for now)
 - Add cube map transisions between levels to stay in the aptiure envrionment while loading
-- Possibly add a system to generate a cube map of a save point (512x512)
-- ask about adding Spencer0187's roomscale code
+- ask about adding Spencer0187's roomscale code (see about adding the ability to walk through portals)
+- Add 3rd portal support for P2:Reloaded
+- Add smooth rotation through portals
 
 
 Todo:
-- Custscenecs on linux causes spectator cam to become black
-- viewmodel transforms weirdly, probably same problem as attachments from before
+- Wait on feedback from playtesters
+- Fix blackscreen issue with HoriZon
+
 
 V0.2.1
 Done:
-
+- Fixed some maps setting a invalid render state when compositing hud onto spectator cam causing a black screen.
+- Overhalled how backgrounds file is parsed to make way for mapping cube maps to loading zones in the future.
+- Disabled msaa due to being broken right now.
+- Added levels to debug command `-vrdebug`, `-vrdebug 1` opens console and logs more detail, `-vrdebug 2`  adds compositer error logging.
 
 
 V0.2.1-preview

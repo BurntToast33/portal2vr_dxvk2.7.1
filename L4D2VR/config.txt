@@ -6,7 +6,7 @@ VRScale=43.2 # Real word units to source units scale
 IPDScale=1.0 # Scale of interpupillary distance 
 6DOF=true
 AimMode=2 # 0 = None, 1 = Crosshair (does not work properly), 2 = Laser sight/beam
-AntiAliasing=0 # 0, 2, 4, 8 (Currently broken)
+AntiAliasing=0 # 0, 2, 4, 8 (Currently broken and disabled)
 RenderWindow=false # Whether or not to copy eye texture to application window
 Enable3DBackground=true # Overrides main menu background with a 3D replacement map from backgrounds.txt
 ExperimentalOptimizations=0 # Enables shareing of data between eyes, 1 = Shadow data
