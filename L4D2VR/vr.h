@@ -672,6 +672,7 @@ public:
 	void FirstFrameUpdate();
 	void CreateVRTextures();
 	void SubmitVRTextures();
+	void DeviceReset(); //When D3D reset's this is called
 	void CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth = MATERIAL_RT_DEPTH_SEPARATE, UINT textureFlags = TEXTUREFLAGS_NOMIP);
 	void BuildCaptureMap();
 	int Load3DMenu();

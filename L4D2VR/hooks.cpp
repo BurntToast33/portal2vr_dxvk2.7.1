@@ -6,7 +6,6 @@
 #include "vr.h"
 #include "offsets.h"
 #include <iostream>
-#include "util.h"
 
 
 //#define PrintTraverseNames //Print panel names

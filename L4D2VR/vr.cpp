@@ -90,7 +90,6 @@ VR::VR(Game *game)
     while (!g_D3DVR9) 
         Sleep(10);
 
-    g_D3DVR9->GetBackBufferData(&m_BackBuffer);
     m_Overlay = vr::VROverlay();
 
     m_Overlay->CreateOverlay("MenuOverlayKey", "MenuOverlay", &m_MainOverlay.m_Handle);
@@ -624,6 +623,9 @@ void VR::CreateVRTextures()
     //m_LeftEye.m_UseMSAA = m_AntiAliasing;
     //m_RightEye.m_UseMSAA = m_AntiAliasing;
 
+    m_BackBuffer.Release();
+    g_D3DVR9->GetBackBufferData(&m_BackBuffer); //Back buffer needs to be re-grabbed on device reset
+
     ImageFormat format = m_Game->m_MaterialSystem->GetBackBufferFormat();
     CreateRT(&m_BlankTexture, "blankTexture", 512, 512, RT_SIZE_NO_CHANGE, format);
     CreateRT(&m_LeftEye, "leftEye", m_RenderWidth, m_RenderHeight, RT_SIZE_NO_CHANGE, format);
@@ -998,36 +1000,44 @@ void VR::ProcessMenuInput()
 
         for (auto& binding : m_Bindings)
         {
-            if (binding.m_BindingType == VRBindingType_Menu)
+            if (binding.m_BindingType != VRBindingType_Menu)
+                continue;
+
+            bool ButtonState = PressedDigitalAction(binding.m_Handle, false);
+            bool Pressed = ButtonState && !binding.m_LastButtonState;
+            bool Released = !ButtonState && binding.m_LastButtonState;
+
+            if (binding.m_HoldPress)
             {
-                bool Pressed = PressedDigitalAction(binding.m_Handle, true);
-
-                if (binding.m_HoldPress)
+                if (Pressed)
                 {
-                    if (Pressed && !binding.m_LastButtonState)
-                    {
-                        binding.m_HoldState = !binding.m_HoldState;
+                    binding.m_HoldState = !binding.m_HoldState;
 
-                        if (binding.m_HoldState)
-                        {
-                            if (binding.m_PressCommand) m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
-                            binding.m_Func(binding.m_Handle);
-                        }
-                        else if (binding.m_ReleaseCommand) m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
-                    }
-
-                    binding.m_LastButtonState = Pressed;
-                }
-                else
-                {
-                    if (Pressed)
+                    if (binding.m_HoldState)
                     {
-                        if (binding.m_PressCommand) m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+                        if (binding.m_PressCommand)
+                            m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+
                         binding.m_Func(binding.m_Handle);
                     }
-                    else if (binding.m_ReleaseCommand) m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
+                    else if (binding.m_ReleaseCommand)
+                        m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
                 }
             }
+            else
+            {
+                if (Pressed)
+                {
+                    if (binding.m_PressCommand)
+                        m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+
+                    binding.m_Func(binding.m_Handle);
+                }
+                if (Released && binding.m_ReleaseCommand)
+                    m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
+            }
+
+            binding.m_LastButtonState = ButtonState;
         }
     }
 }
@@ -1044,35 +1054,42 @@ void VR::ProcessInput()
 
         else if (binding.m_BindingType == VRBindingType_Input)
         {
-            bool Pressed = PressedDigitalAction(binding.m_Handle, true);
+            bool ButtonState = PressedDigitalAction(binding.m_Handle, false);
+
+            bool Pressed = ButtonState && !binding.m_LastButtonState;
+            bool Released = !ButtonState && binding.m_LastButtonState;
 
             if (binding.m_HoldPress)
             {
-                if (Pressed && !binding.m_LastButtonState)
+                if (Pressed)
                 {
                     binding.m_HoldState = !binding.m_HoldState;
 
                     if (binding.m_HoldState)
                     {
-                        if (binding.m_PressCommand) m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+                        if (binding.m_PressCommand)
+                            m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+
                         binding.m_Func(binding.m_Handle);
                     }
                     else if (binding.m_ReleaseCommand)
                         m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
                 }
-
-                binding.m_LastButtonState = Pressed;
             }
             else
             {
                 if (Pressed)
                 {
-                    if (binding.m_PressCommand) m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+                    if (binding.m_PressCommand)
+                        m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+
                     binding.m_Func(binding.m_Handle);
                 }
-                else if (binding.m_ReleaseCommand)
+                if (Released && binding.m_ReleaseCommand)
                     m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
             }
+
+            binding.m_LastButtonState = ButtonState;
         }
     }
 
@@ -2083,4 +2100,16 @@ void VR::SetBinding(const char* pchActionName, VRBindingType bindingType, const 
 
     m_Input->GetActionHandle(pchActionName, &Bind.m_Handle);
     m_Bindings.push_back(Bind);
+}
+
+void VR::DeviceReset() 
+{
+    if (m_Game->m_VRDebuglvl > 0) m_Game->logMsg(LOGTYPE_DEBUG, "D3D device reset");
+    m_CreatedVRTextures = false;
+    m_BackBuffer.Release();
+    m_BlankTexture.Release();
+    m_LeftEye.Release();
+    m_RightEye.Release();
+    m_MenuTexture.Release();
+    m_HudTexture.Release();
 }
