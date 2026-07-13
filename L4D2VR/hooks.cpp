@@ -6,6 +6,7 @@
 #include "vr.h"
 #include "offsets.h"
 #include <iostream>
+#include "util.h"
 
 
 //#define PrintTraverseNames //Print panel names
@@ -52,13 +53,13 @@ Hooks::Hooks(Game *game)
 	BuildHook(hkFormatViewModelAttachment, O->FormatViewModelAttachment, dFormatViewModelAttachment);
 	
 	//In game UI
-	BuildHook(hkPrepareCredits, O->PrepareCredits, dPrepareCredits);
-	BuildHook(hkPaintTraverse, O->VGui_IPanel_PaintTraverse, dPaintTraverse);
 	BuildHook(hkPostActionSignal, O->PostActionSignal, dPostActionSignal);
 	BuildHook(hkLoadControlSettings, O->LoadControlSettings, dLoadControlSettings);
 	BuildHook(hkApplySettings, O->ApplySettings, dApplySettings);
 	BuildHook(hkUpdateProgressBar, O->UpdateProgressBar, dUpdateProgressBar);
-
+	BuildHook(hkPrepareCredits, O->PrepareCredits, dPrepareCredits);
+	BuildHook(hkPaintTraverse, O->PaintTraverse, dPaintTraverse);
+	
 	// Grabbles
 	BuildHook(hkComputeError, O->ComputeError, dComputeError, false);
 	BuildHook(hkUpdateObject, O->UpdateObject, dUpdateObject);
@@ -121,10 +122,13 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 		float distance = sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 
 		// Rudimentary portalling detection
-		if (distance > 35) {
-			//m_VR->m_RotationOffset.x += m_VR->m_PortalRotationOffset.x;
+		if (distance > m_VR->m_PortallingDetectionDistanceThreshold) {
 			m_VR->m_RotationOffset.y += m_VR->m_PortalRotationOffset.y;
-			//m_VR->m_RotationOffset.z += m_VR->m_PortalRotationOffset.z;
+			
+			if (m_VR->m_SmoothRotation) {
+				m_VR->m_RotationOffset.x += m_VR->m_PortalRotationOffset.x;
+				m_VR->m_RotationOffset.z += m_VR->m_PortalRotationOffset.z;
+			}
 
 			m_VR->UpdateHMDAngles();
 
@@ -547,7 +551,7 @@ void __fastcall Hooks::dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bo
 		ITexture* OverrideTexture = it->second.m_ITex;
 		bool excluded = IsPanelExcluded(vguiPanel, &it->second.m_ExcludePanel, OverrideTexture);
 
-		if (!excluded) 
+		if (!excluded)
 		{
 			IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
 			rndrContext->SetRenderTarget(OverrideTexture);
@@ -610,7 +614,7 @@ void __fastcall Hooks::dUnlockAllShadowDepthTextures(void* ecx, void* edx)
 void __fastcall Hooks::dPostActionSignal(void* ecx, void* edx, KeyValues* message)
 {
 #ifdef PanelCommands
-	printf("%s, %s\n", message->GetName(), message->GetString(message->GetName(), ""));
+	printf("PostActionSignal: %s, %s\n", message->GetName(), message->GetString(message->GetName(), ""));
 #endif
 
 	if (!strcmp(message->GetName(), "Command")) 
@@ -629,7 +633,7 @@ void __fastcall Hooks::dPostActionSignal(void* ecx, void* edx, KeyValues* messag
 
 void __fastcall Hooks::dLoadControlSettings(void* ecx, void* edx, const char* dialogResourceName, const char* pathID, KeyValues* pPreloadedKeyValues, KeyValues* pConditions)
 {
-	std::string input = m_VR->ToLower(dialogResourceName);
+	std::string input = ToLower(dialogResourceName);
 	size_t pos = input.find_last_of("/\\");
 	std::string filePath = (pos == std::string::npos) ? input : input.substr(pos + 1);
 
@@ -650,7 +654,7 @@ void __fastcall Hooks::dLoadControlSettings(void* ecx, void* edx, const char* di
 	if (pPreloadedKeyValues)
 		Key = pPreloadedKeyValues->GetName();
 
-	printf("%s, %s\n", dialogResourceName, Key);
+	printf("LoadControlSettings: %s, %s\n", dialogResourceName, Key);
 #endif
 
 	hkLoadControlSettings.fOriginal(ecx, dialogResourceName, pathID, pPreloadedKeyValues, pConditions);
@@ -660,7 +664,7 @@ void __fastcall Hooks::dApplySettings(void* ecx, void* edx, KeyValues* inResourc
 {
 	Panel* pan = reinterpret_cast<Panel*>(ecx);
 #ifdef PrintPanelSettings
-	printf("%s\n", pan->m_PanelName);
+	printf("ApplySettings: %s\n", pan->m_PanelName);
 #endif
 
 	auto it = m_VR->m_PanelSettings.find(pan->m_PanelName);

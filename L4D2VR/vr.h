@@ -96,6 +96,7 @@ struct Overlay
 	vr::VROverlayHandle_t m_Handle = 0;
 	int m_StateFlag = 0; //Can be used for anything
 	bool m_Visible = false;
+	const char* m_Name = nullptr;
 	vr::VROverlayInputMethod m_InputMethod = vr::VROverlayInputMethod_None;
 	vr::VROverlayInputMethod m_SaveStateMethod = vr::VROverlayInputMethod_None;
 
@@ -149,14 +150,14 @@ struct PanelSettings
 		auto it = m_Data.find(key);
 		if (it == m_Data.end())
 		{
-			g_Game->logMsg(LOGTYPE_WARNING, "%s not found in PanelSettings", key.c_str());
+			Game::logMsg(LOGTYPE_WARNING, "%s not found in PanelSettings", key.c_str());
 			return T{};
 		}
 
 		if (auto val = std::get_if<T>(&it->second))
 			return *val;
 
-		g_Game->logMsg(LOGTYPE_WARNING, "%s type mismatch in PanelSettings", key.c_str());
+		Game::logMsg(LOGTYPE_WARNING, "%s type mismatch in PanelSettings", key.c_str());
 		return T{};
 	}
 };
@@ -180,7 +181,7 @@ struct OverlayRotation
 	float rollOffset = 0.0f;
 };
 
-enum OverlayRelitive
+enum OverlayRel
 {
 	//Offset is interpreted directly in tracking / world space.
 	//No reference device required.
@@ -205,6 +206,52 @@ enum CaptureConditions
 	Capture_2D,
 	Capture_MenuUI,
 	Capture_HudUI
+};
+
+enum VRBindingType
+{
+	VRBindingType_None,
+
+	//Processes when a menu is not active.
+	//Supports digital button press/release handling, commands, callbacks, and optional hold/toggle behavior.
+	VRBindingType_Input,
+
+	//Processes when a menu is open.
+	//Supports digital button press/release handling, commands, callbacks, and optional hold/toggle behavior.
+	VRBindingType_Menu,
+
+	//Processes when a menu is not active.
+	//Intended for analog actions (joysticks/trackpads).
+	//Calls the callback every frame and leaves all input handling to the callback. 
+	//Press/release commands and hold behavior are disabled.
+	VRBindingType_Analog
+};
+
+struct VRBindings
+{
+	vr::VRActionHandle_t m_Handle = vr::k_ulInvalidActionHandle;
+	const char* m_Name = nullptr;
+	VRBindingType m_BindingType = VRBindingType_None;
+
+	const char* m_PressCommand = nullptr;
+	const char* m_ReleaseCommand = nullptr;
+
+	bool m_PressState = false;
+	bool m_HoldPress = false;
+	bool m_LastButtonState = false;
+	bool m_HoldState = false;
+
+	std::function<void(vr::VRActionHandle_t handle)> m_Func;
+
+	VRBindings(const char* name, VRBindingType BindingType, const char* pressCmd, const char* releaseCmd, std::function<void(vr::VRActionHandle_t handle)> func, bool holdPress)
+	{
+		m_Name = name;
+		m_BindingType = BindingType;
+		m_PressCommand = pressCmd;
+		m_ReleaseCommand = releaseCmd;
+		m_Func = func;
+		m_HoldPress = holdPress;
+	}
 };
 
 
@@ -285,6 +332,10 @@ public:
 	Vector m_ViewmodelPosCustomOffset; // Custom (from config) viewmodel position offset applied on top of hardcoded ones
     QAngle m_ViewmodelAngCustomOffset; // Custom (from config) viewmodel angle offset applied on top of hardcoded ones
 
+	float m_PortallingDetectionDistanceThreshold; // The distance threshold used to detect portalling
+	bool m_SmoothRotation; // If `true`, the camera pitch/roll follows the exit portal's orientation when portalling
+	float m_CameraUprightRecoverySpeed; // If the above is `true`, this controls how quickly the camera turns back upright after portalling
+
 	float m_Ipd = 0;															
 	float m_EyeZ = 0;
 
@@ -331,29 +382,8 @@ public:
 	vr::VRActiveActionSet_t m_ActiveActionSet = {};
 
 	// actions
-	vr::VRActionHandle_t m_ActionJump = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_ActionPrimaryAttack = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_ActionSecondaryAttack = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_ActionReload = vr::k_ulInvalidActionHandle;
+	std::vector<VRBindings> m_Bindings;
 	vr::VRActionHandle_t m_ActionWalk = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_ActionTurn = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_ActionUse = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_ActionNextItem = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_ActionPrevItem = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_ActionResetPosition = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_ActionCrouch = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_ActionFlashlight = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_ActionActivateVR = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_MenuSelect = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_MenuBack = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_MenuUp = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_MenuDown = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_MenuLeft = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_MenuRight = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_Spray = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_Scoreboard = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_ShowHUD = vr::k_ulInvalidActionHandle;
-	vr::VRActionHandle_t m_Pause = vr::k_ulInvalidActionHandle;
 
 	TrackedDevicePoseData m_HmdPose;
 	TrackedDevicePoseData m_LeftControllerPose;
@@ -385,15 +415,60 @@ public:
 	//	Helpers
 	//===============
 
-	std::string ToLower(std::string str)
+	template<typename T>
+	void WriteConfigEntry(const std::string& key, const T& value)
 	{
-		std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });
-		return str;
-	}
+		std::ifstream inFile("VR\\config.txt");
 
-	std::string ToLower(const char* input)
-	{
-		return ToLower(std::string(input));
+		if (!inFile.is_open())
+			return;
+
+		std::vector<std::string> lines;
+		std::string line;
+		std::string valueStr;
+
+		if constexpr (std::is_same_v<T, bool>)
+			valueStr = value ? "true" : "false";
+		else
+			valueStr = std::to_string(value);
+
+		while (std::getline(inFile, line))
+		{
+			// Find key=value
+			const size_t equalsPos = line.find('=');
+
+			if (equalsPos != std::string::npos)
+			{
+				std::string currentKey = line.substr(0, equalsPos);
+
+				if (currentKey == key)
+				{
+					// Preserve comments
+					const size_t commentPos = line.find('#');
+
+					std::string newLine = key + "=" + valueStr;
+
+					if (commentPos != std::string::npos)
+					{
+						newLine += " ";
+						newLine += line.substr(commentPos);
+					}
+
+					line = newLine;
+				}
+			}
+
+			lines.push_back(line);
+		}
+
+		inFile.close();
+
+		std::ofstream outFile("VR\\config.txt", std::ios::trunc);
+
+		for (const auto& l : lines)
+			outFile << l << "\n";
+
+		outFile.close();
 	}
 
 	//Due to valve jank the slider controls percentage needs to be inversed to work correctly
@@ -441,7 +516,7 @@ public:
 		std::ifstream file(filePath);
 		if (!file.is_open())
 		{
-			m_Game->logMsg(LOGTYPE_WARNING, "Could not open file: %s", filePath);
+			Game::logMsg(LOGTYPE_WARNING, "Could not open file: %s", filePath);
 			return false;
 		}
 
@@ -484,19 +559,19 @@ public:
 		}
 		catch (const nlohmann::json::parse_error& e)
 		{
-			m_Game->logMsg(LOGTYPE_WARNING, "JSON parse error in %s: %s", filePath, e.what());
+			Game::logMsg(LOGTYPE_WARNING, "JSON parse error in %s: %s", filePath, e.what());
 			return false;
 		}
 		catch (const std::exception& e)
 		{
-			m_Game->logMsg(LOGTYPE_WARNING, "JSON error in %s: %s", filePath, e.what());
+			Game::logMsg(LOGTYPE_WARNING, "JSON error in %s: %s", filePath, e.what());
 			return false;
 		}
 
 		auto section = json.find(key);
 		if (section == json.end() || !section->is_object())
 		{
-			m_Game->logMsg(LOGTYPE_WARNING, "Could not find key in %s: %s", filePath, key);
+			Game::logMsg(LOGTYPE_WARNING, "Could not find key in %s: %s", filePath, key);
 			return false;
 		}
 
@@ -510,7 +585,7 @@ public:
 			}
 			catch (const std::exception& e)
 			{
-				m_Game->logMsg(LOGTYPE_WARNING, "Failed converting JSON value '%s' in %s: %s", k.c_str(), filePath, e.what());
+				Game::logMsg(LOGTYPE_WARNING, "Failed converting JSON value '%s' in %s: %s", k.c_str(), filePath, e.what());
 			}
 		}
 
@@ -563,6 +638,16 @@ public:
 			case vr::VRCompositorError_AlreadySubmitted: return "AlreadySubmitted";
 			default: return "Unknown";
 		}
+	}
+
+	void SendButton(int key)
+	{
+		INPUT input{};
+		input.type = INPUT_KEYBOARD;
+		input.ki.wVk = key;
+		SendInput(1, &input, sizeof(INPUT));
+		input.ki.dwFlags = KEYEVENTF_KEYUP;
+		SendInput(1, &input, sizeof(INPUT));
 	}
 
 	//====================
@@ -620,7 +705,7 @@ public:
 	void ModifyPanelSettings(std::string PanelName, std::function<bool(Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& SettingRuntimeData)> func);
 
 	//Attach mode ignores RotFlags and inherits position and rotation from reference.
-	void RepositionOverlay(vr::VROverlayHandle_t overlay, vr::TrackedDeviceIndex_t referenceDevice, OverlayRelitive con, Vector offset, OverlayRotation rot = {});
+	void RepositionOverlay(vr::VROverlayHandle_t overlay, vr::TrackedDeviceIndex_t referenceDevice, OverlayRel con, Vector offset, OverlayRotation rot = {});
 
 
 	//===== Config/File Parser's =====
@@ -630,7 +715,8 @@ public:
 	std::string GetMapFromSave(const char* fileName);
 	std::string GetNewestPortal2SavePath(const std::string& baseDir);
 
-	
+	//Used to set binds
+	void SetBinding(const char* pchActionName, VRBindingType bindingType, const char* pressCommand, const char* releaseCommand = nullptr, bool holdPress = false, std::function<void(vr::VRActionHandle_t handle)> func = [](vr::VRActionHandle_t) {});
 	void GetPoses();
 	void UpdatePosesAndActions();
 	void GetViewParameters();

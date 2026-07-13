@@ -108,7 +108,7 @@ VR::VR(Game *game)
 
     UpdatePosesAndActions();
 
-    m_SteamID = GetSteamID64();
+    if (m_Game->m_GameType == GAMETYPE_PORTAL2) m_SteamID = GetSteamID64();
     m_IsInitialized = true;
     m_IsVREnabled = true;
 }
@@ -123,63 +123,6 @@ VR::~VR()
     m_RightEye.Release();
     m_MenuTexture.Release();
     m_HudTexture.Release();
-}
-
-//Need to write setting changes back to file
-template<typename T>
-void WriteConfigEntry(const std::string& key, const T& value)
-{
-    std::ifstream inFile("VR\\config.txt");
-
-    if (!inFile.is_open())
-        return;
-
-    std::vector<std::string> lines;
-    std::string line;
-    std::string valueStr;
-
-    if constexpr (std::is_same_v<T, bool>)
-        valueStr = value ? "true" : "false";
-    else
-        valueStr = std::to_string(value);
-
-    while (std::getline(inFile, line))
-    {
-        // Find key=value
-        const size_t equalsPos = line.find('=');
-
-        if (equalsPos != std::string::npos)
-        {
-            std::string currentKey = line.substr(0, equalsPos);
-
-            if (currentKey == key)
-            {
-                // Preserve comments
-                const size_t commentPos = line.find('#');
-
-                std::string newLine = key + "=" + valueStr;
-
-                if (commentPos != std::string::npos)
-                {
-                    newLine += " ";
-                    newLine += line.substr(commentPos);
-                }
-
-                line = newLine;
-            }
-        }
-
-        lines.push_back(line);
-    }
-
-    inFile.close();
-
-    std::ofstream outFile("VR\\config.txt", std::ios::trunc);
-
-    for (const auto& l : lines)
-        outFile << l << "\n";
-
-    outFile.close();
 }
 
 //Creates the hash maps used to later
@@ -217,13 +160,11 @@ void VR::CreateHashMaps()
     {
         message->SetString("command", "KeyboardMouse");
         m_OverrideControllerUI = true;
-        
         return false;
     });
     RegisterPanelCommandListener({ "ExitToMainMenu" }, [this](const char* cmd, Panel* panel, KeyValues* message)
     {
         m_LevelExitFix = true;
-
         return false;
     });
     RegisterPanelCommandListener({ "Btn0" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -297,7 +238,6 @@ void VR::CreateHashMaps()
     ModifyPanelSettings("DrpRenderWindow", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
         reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_RenderWindow;
-
         return false;
     });
     RegisterPanelCommandListener({ "VRRenderWindow0", "VRRenderWindow1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -313,7 +253,6 @@ void VR::CreateHashMaps()
     ModifyPanelSettings("Drp3DBackground", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
         reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_3DMenu;
-
         return false;
     });
     RegisterPanelCommandListener({ "VR3DBackground0", "VR3DBackground1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -329,7 +268,6 @@ void VR::CreateHashMaps()
     ModifyPanelSettings("DrpExperimentalOptimizations", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
         reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_ExperimentalOptimizations;
-
         return false;
     });
     RegisterPanelCommandListener({ "VRExperimentalOptimizations0", "VRExperimentalOptimizations1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -339,6 +277,21 @@ void VR::CreateHashMaps()
             con ? "'1'" : "'0'", " via in game menu.");
 
         WriteConfigEntry("ExperimentalOptimizations", con);
+        return false;
+    });
+
+    ModifyPanelSettings("DrpSmoothRotation", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
+    {
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_SmoothRotation;
+        return false;
+    });
+    RegisterPanelCommandListener({ "VRSmoothRotation0", "VRSmoothRotation1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
+    {
+        bool con = !strcmp(cmd, "VRSmoothRotation1");
+        m_Game->logMsg(LOGTYPE_DEBUG, "Smooth rotation set to ",
+            con ? "'true'" : "'false'", " via in game menu.");
+
+        WriteConfigEntry("SmoothRotation", con);
         return false;
     });
 
@@ -365,7 +318,6 @@ void VR::CreateHashMaps()
         settingData["ready"] = 2;
         settingData["min"] = inResourceData->GetFloat("minValue", 0);
         settingData["max"] = inResourceData->GetFloat("maxValue", 0);
-
         return false;
     });
     m_SlideRead["SldTurnSpeed"] = [this](Panel* panel, float Percentage)
@@ -391,7 +343,6 @@ void VR::CreateHashMaps()
     ModifyPanelSettings("DrpSnapTurning", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
         reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_SnapTurning;
-
         return false;
     });
     RegisterPanelCommandListener({ "VRSnapTurning0", "VRSnapTurning1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -407,7 +358,6 @@ void VR::CreateHashMaps()
     ModifyPanelSettings("DrpLeftHanded", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
         reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_LeftHanded;
-
         return false;
     });
     RegisterPanelCommandListener({ "VRLeftHanded0", "VRLeftHanded1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -423,7 +373,6 @@ void VR::CreateHashMaps()
     ModifyPanelSettings("Drp6DOF", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
         reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_6DOF;
-
         return false;
     });
     RegisterPanelCommandListener({ "VR6DOF0", "VR6DOF1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -439,7 +388,6 @@ void VR::CreateHashMaps()
     ModifyPanelSettings("DrpAimMode", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
         reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_AimMode;
-
         return false;
     });
     RegisterPanelCommandListener({ "VRAimMode0", "VRAimMode1", "VRAimMode2" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -461,29 +409,82 @@ int VR::SetActionManifest(const char *fileName)
     if (m_Input->SetActionManifestPath(path) != vr::VRInputError_None) 
         Game::errorMsg("SetActionManifestPath failed");
 
-    m_Input->GetActionHandle("/actions/main/in/ActivateVR", &m_ActionActivateVR);
-    m_Input->GetActionHandle("/actions/main/in/Jump", &m_ActionJump);
-    m_Input->GetActionHandle("/actions/main/in/PrimaryAttack", &m_ActionPrimaryAttack);
-    m_Input->GetActionHandle("/actions/main/in/Reload", &m_ActionReload);
-    m_Input->GetActionHandle("/actions/main/in/Use", &m_ActionUse);
-    m_Input->GetActionHandle("/actions/main/in/Walk", &m_ActionWalk);
-    m_Input->GetActionHandle("/actions/main/in/Turn", &m_ActionTurn);
-    m_Input->GetActionHandle("/actions/main/in/SecondaryAttack", &m_ActionSecondaryAttack);
-    m_Input->GetActionHandle("/actions/main/in/NextItem", &m_ActionNextItem);
-    m_Input->GetActionHandle("/actions/main/in/PrevItem", &m_ActionPrevItem);
-    m_Input->GetActionHandle("/actions/main/in/ResetPosition", &m_ActionResetPosition);
-    m_Input->GetActionHandle("/actions/main/in/Crouch", &m_ActionCrouch);
-    m_Input->GetActionHandle("/actions/main/in/Flashlight", &m_ActionFlashlight);
-    m_Input->GetActionHandle("/actions/main/in/MenuSelect", &m_MenuSelect);
-    m_Input->GetActionHandle("/actions/main/in/MenuBack", &m_MenuBack);
-    m_Input->GetActionHandle("/actions/main/in/MenuUp", &m_MenuUp);
-    m_Input->GetActionHandle("/actions/main/in/MenuDown", &m_MenuDown);
-    m_Input->GetActionHandle("/actions/main/in/MenuLeft", &m_MenuLeft);
-    m_Input->GetActionHandle("/actions/main/in/MenuRight", &m_MenuRight);
-    m_Input->GetActionHandle("/actions/main/in/Spray", &m_Spray);
-    m_Input->GetActionHandle("/actions/main/in/Scoreboard", &m_Scoreboard);
-    m_Input->GetActionHandle("/actions/main/in/ShowHUD", &m_ShowHUD);
-    m_Input->GetActionHandle("/actions/main/in/Pause", &m_Pause);
+    //SetBinding("/actions/main/in/ActivateVR", );
+    SetBinding("/actions/main/in/Jump", VRBindingType_Input, "+jump", "-jump");
+    SetBinding("/actions/main/in/PrimaryAttack", VRBindingType_Input, "+attack", "-attack");
+    SetBinding("/actions/main/in/Reload", VRBindingType_Input, "+reload", "-reload");
+    SetBinding("/actions/main/in/Use", VRBindingType_Input, "+use", "-use");
+    SetBinding("/actions/main/in/SecondaryAttack", VRBindingType_Input, "+attack2", "-attack2");
+    SetBinding("/actions/main/in/NextItem", VRBindingType_Input, "invnext");
+    SetBinding("/actions/main/in/PrevItem", VRBindingType_Input, "invprev");
+    SetBinding("/actions/main/in/ResetPosition", VRBindingType_Input, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { ResetPosition(); });
+    SetBinding("/actions/main/in/Crouch", VRBindingType_Input, "+duck", "-duck", true);
+    SetBinding("/actions/main/in/Flashlight", VRBindingType_Input, "impulse 100");
+    SetBinding("/actions/main/in/MenuSelect", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_RETURN); });
+    SetBinding("/actions/main/in/MenuBack", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_ESCAPE); });
+    SetBinding("/actions/main/in/MenuUp", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_UP); });
+    SetBinding("/actions/main/in/MenuDown", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_DOWN); });
+    SetBinding("/actions/main/in/MenuLeft", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_LEFT); });
+    SetBinding("/actions/main/in/MenuRight", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_RIGHT); });
+    SetBinding("/actions/main/in/Spray", VRBindingType_Input, "impulse 201");
+    SetBinding("/actions/main/in/Scoreboard", VRBindingType_Input, "+showscores", "-showscores", true);
+    //SetBinding("/actions/main/in/ShowHUD");
+    SetBinding("/actions/main/in/Pause", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_ESCAPE); });
+
+    if (g_Game->m_GameType == GAMETYPE_PORTAl_RELOADED) SetBinding("/actions/main/in/ThirdAttack", VRBindingType_Input, "att3");
+
+    SetBinding("/actions/main/in/Pause", VRBindingType_Input, "gameui_activate", nullptr, false, [this](vr::VRActionHandle_t handle)
+    { 
+        if (m_Game->m_EngineClient->IsInGame())
+            RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, { RotFlag_UseYaw }); 
+    });
+    SetBinding("/actions/main/in/Turn", VRBindingType_Analog, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle)
+    {
+        vr::InputAnalogActionData_t analogActionData;
+        if (GetAnalogActionData(handle, analogActionData))
+        {
+            if (m_SnapTurning)
+            {
+                if (!m_PressedTurn && analogActionData.x > 0.5)
+                {
+                    m_RotationOffset.y -= m_SnapTurnAngle;
+                    m_PressedTurn = true;
+                }
+                else if (!m_PressedTurn && analogActionData.x < -0.5)
+                {
+                    m_RotationOffset.y += m_SnapTurnAngle;
+                    m_PressedTurn = true;
+                }
+                else if (analogActionData.x < 0.3 && analogActionData.x > -0.3)
+                    m_PressedTurn = false;
+            }
+            // Smooth turning
+            else
+            {
+                typedef std::chrono::duration<float, std::milli> duration;
+                auto currentTime = std::chrono::steady_clock::now();
+                duration elapsed = currentTime - m_PrevFrameTime;
+                float deltaTime = elapsed.count();
+                m_PrevFrameTime = currentTime;
+
+                float deadzone = 0.2;
+                // smoother turning
+                float xNormalized = (abs(analogActionData.x) - deadzone) / (1 - deadzone);
+                if (analogActionData.x > deadzone)
+                {
+                    m_RotationOffset.y -= m_TurnSpeed * deltaTime * xNormalized;
+                }
+                if (analogActionData.x < -deadzone)
+                {
+                    m_RotationOffset.y += m_TurnSpeed * deltaTime * xNormalized;
+                }
+            }
+
+            // Wrap from 0 to 360
+            m_RotationOffset.y -= 360 * std::floor(m_RotationOffset.y / 360);
+        }
+    });
+    m_Input->GetActionHandle("/actions/main/in/Walk", &m_ActionWalk); //Due to being in a hook I can't use SetBinding
 
     m_Input->GetActionSetHandle("/actions/main", &m_ActionSet);
     m_ActiveActionSet = {};
@@ -754,7 +755,7 @@ void VR::GetPoseData(const vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseDa
     poseOut.TrackedDeviceAngVel.z = poseRaw.vAngularVelocity.v[1] * PRECALC_RAD_TO_DEG;
 }
 
-void VR::RepositionOverlay(vr::VROverlayHandle_t overlay, vr::TrackedDeviceIndex_t referenceDevice, OverlayRelitive con, Vector offset, OverlayRotation rot)
+void VR::RepositionOverlay(vr::VROverlayHandle_t overlay, vr::TrackedDeviceIndex_t referenceDevice, OverlayRel con, Vector offset, OverlayRotation rot)
 {
     vr::ETrackingUniverseOrigin trackingOrigin = vr::VRCompositor()->GetTrackingSpace();
     vr::HmdMatrix34_t device = m_Poses[referenceDevice].mDeviceToAbsoluteTracking;
@@ -943,278 +944,190 @@ bool VR::GetAnalogActionData(vr::VRActionHandle_t &actionHandle, vr::InputAnalog
 
 void VR::ProcessMenuInput()
 {
-    //vr::VROverlayHandle_t currentOverlay = m_Game->m_EngineClient->IsInGame() ? m_HUDHandle : m_MainMenuHandle;
-    vr::VROverlayHandle_t currentOverlay = m_MainOverlay.m_Handle;
-
     // Check if left or right hand controller is pointing at the overlay
-    const bool isHoveringOverlay = CheckOverlayIntersectionForController(currentOverlay, vr::TrackedControllerRole_LeftHand) ||
-                                   CheckOverlayIntersectionForController(currentOverlay, vr::TrackedControllerRole_RightHand);
+    const bool isHoveringOverlay = CheckOverlayIntersectionForController(m_MainOverlay.m_Handle, vr::TrackedControllerRole_LeftHand) ||
+                                   CheckOverlayIntersectionForController(m_MainOverlay.m_Handle, vr::TrackedControllerRole_RightHand);
 
     // Overlays can't process action inputs if the laser is active, so
     // only activate laser if a controller is pointing at the overlay
     if (isHoveringOverlay)
     {
-        m_Overlay->SetOverlayFlag(currentOverlay, vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible, true);
+        m_Overlay->SetOverlayFlag(m_MainOverlay.m_Handle, vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible, true);
 
         vr::VREvent_t vrEvent;
-        while (m_Overlay->PollNextOverlayEvent(currentOverlay, &vrEvent, sizeof(vrEvent)))
+        while (m_Overlay->PollNextOverlayEvent(m_MainOverlay.m_Handle, &vrEvent, sizeof(vrEvent)))
         {
             INPUT input;
             switch (vrEvent.eventType)
             {
-            case vr::VREvent_MouseMove:
-            {
-                float laserX = (vrEvent.data.mouse.x / m_RenderWidth) * m_Game->m_WindowWidth;
-                float laserY = ((-vrEvent.data.mouse.y + m_RenderHeight) / m_RenderHeight) * m_Game->m_WindowHeight;
-
-                m_Game->m_VguiInput->SetCursorPos(laserX, laserY);
-                break;
-            }
-
-            case vr::VREvent_MouseButtonDown:
-                // Don't allow holding down the mouse down in the pause menu. The resume button can be clicked before
-                // the MouseButtonUp event is polled, which causes issues with the overlay.
-                if (currentOverlay == m_MainOverlay.m_Handle)
+                case vr::VREvent_MouseMove:
                 {
-                    input.type = INPUT_MOUSE;
-                    input.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-                    SendInput(1, &input, sizeof(INPUT));
+                    float laserX = (vrEvent.data.mouse.x / m_RenderWidth) * m_Game->m_WindowWidth;
+                    float laserY = ((-vrEvent.data.mouse.y + m_RenderHeight) / m_RenderHeight) * m_Game->m_WindowHeight;
+
+                    m_Game->m_VguiInput->SetCursorPos(laserX, laserY);
+                    break;
                 }
-                break;
-
-            case vr::VREvent_MouseButtonUp:
-                /*if (currentOverlay == m_HUDHandle)
+                case vr::VREvent_MouseButtonDown:
                 {
+                    // Don't allow holding down the mouse down in the pause menu. The resume button can be clicked before
+                    // the MouseButtonUp event is polled, which causes issues with the overlay.
                     input.type = INPUT_MOUSE;
                     input.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
                     SendInput(1, &input, sizeof(INPUT));
-                }*/
-                input.type = INPUT_MOUSE;
-                input.mi.dwFlags = MOUSEEVENTF_LEFTUP;
-                SendInput(1, &input, sizeof(INPUT));
-                break;
-
-            case vr::VREvent_ScrollDiscrete:
-                m_Game->m_VguiInput->InternalMouseWheeled((int)vrEvent.data.scroll.ydelta);
-                break;
+                    break;
+                }
+                case vr::VREvent_MouseButtonUp:
+                {
+                    input.type = INPUT_MOUSE;
+                    input.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+                    SendInput(1, &input, sizeof(INPUT));
+                    break;
+                }
+                case vr::VREvent_ScrollDiscrete:
+                {
+                    m_Game->m_VguiInput->InternalMouseWheeled((int)vrEvent.data.scroll.ydelta);
+                    break;
+                }
             }
         }
     }
     else
     {
-        m_Overlay->SetOverlayFlag(currentOverlay, vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible, false);
-        
-        if (PressedDigitalAction(m_MenuSelect, true))
+        m_Overlay->SetOverlayFlag(m_MainOverlay.m_Handle, vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible, false);
+
+        for (auto& binding : m_Bindings)
         {
-            INPUT input {};
-            input.type = INPUT_KEYBOARD;
-            input.ki.wVk = VK_RETURN;
-            SendInput(1, &input, sizeof(INPUT));
-            input.ki.dwFlags = KEYEVENTF_KEYUP;
-            SendInput(1, &input, sizeof(INPUT));
-        }
-        if (PressedDigitalAction(m_MenuBack, true) || PressedDigitalAction(m_Pause, true))
-        {
-            INPUT input {};
-            input.type = INPUT_KEYBOARD;
-            input.ki.wVk = VK_ESCAPE;
-            SendInput(1, &input, sizeof(INPUT));
-            input.ki.dwFlags = KEYEVENTF_KEYUP;
-            SendInput(1, &input, sizeof(INPUT));
-        }
-        if (PressedDigitalAction(m_MenuUp, true))
-        {
-            INPUT input {};
-            input.type = INPUT_KEYBOARD;
-            input.ki.wVk = VK_UP;
-            SendInput(1, &input, sizeof(INPUT));
-            input.ki.dwFlags = KEYEVENTF_KEYUP;
-            SendInput(1, &input, sizeof(INPUT));
-        }
-        if (PressedDigitalAction(m_MenuDown, true))
-        {
-            INPUT input {};
-            input.type = INPUT_KEYBOARD;
-            input.ki.wVk = VK_DOWN;
-            SendInput(1, &input, sizeof(INPUT));
-            input.ki.dwFlags = KEYEVENTF_KEYUP;
-            SendInput(1, &input, sizeof(INPUT));
-        }
-        if (PressedDigitalAction(m_MenuLeft, true))
-        {
-            INPUT input {};
-            input.type = INPUT_KEYBOARD;
-            input.ki.wVk = VK_LEFT;
-            SendInput(1, &input, sizeof(INPUT));
-            input.ki.dwFlags = KEYEVENTF_KEYUP;
-            SendInput(1, &input, sizeof(INPUT));
-        }
-        if (PressedDigitalAction(m_MenuRight, true))
-        {
-            INPUT input {};
-            input.type = INPUT_KEYBOARD;
-            input.ki.wVk = VK_RIGHT;
-            SendInput(1, &input, sizeof(INPUT));
-            input.ki.dwFlags = KEYEVENTF_KEYUP;
-            SendInput(1, &input, sizeof(INPUT));
+            if (binding.m_BindingType == VRBindingType_Menu)
+            {
+                bool Pressed = PressedDigitalAction(binding.m_Handle, true);
+
+                if (binding.m_HoldPress)
+                {
+                    if (Pressed && !binding.m_LastButtonState)
+                    {
+                        binding.m_HoldState = !binding.m_HoldState;
+
+                        if (binding.m_HoldState)
+                        {
+                            if (binding.m_PressCommand) m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+                            binding.m_Func(binding.m_Handle);
+                        }
+                        else if (binding.m_ReleaseCommand) m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
+                    }
+
+                    binding.m_LastButtonState = Pressed;
+                }
+                else
+                {
+                    if (Pressed)
+                    {
+                        if (binding.m_PressCommand) m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+                        binding.m_Func(binding.m_Handle);
+                    }
+                    else if (binding.m_ReleaseCommand) m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
+                }
+            }
         }
     }
 }
 
 void VR::ProcessInput()
 {
-    if (!m_IsVREnabled)
-        return;
-
-    //vr::VROverlay()->SetOverlayFlag(m_HUDHandle, vr::VROverlayFlags_MakeOverlaysInteractiveIfVisible, false);
-
-    vr::InputAnalogActionData_t analogActionData;
-
-    if (GetAnalogActionData(m_ActionTurn, analogActionData))
+    for (auto& binding : m_Bindings)
     {
-        if (m_SnapTurning)
+        if (binding.m_BindingType == VRBindingType_Analog)
         {
-            if (!m_PressedTurn && analogActionData.x > 0.5)
-            {
-                m_RotationOffset.y -= m_SnapTurnAngle;
-                m_PressedTurn = true;
-            }
-            else if (!m_PressedTurn && analogActionData.x < -0.5)
-            {
-                m_RotationOffset.y += m_SnapTurnAngle;
-                m_PressedTurn = true;
-            }
-            else if (analogActionData.x < 0.3 && analogActionData.x > -0.3)
-                m_PressedTurn = false;
-        }
-        // Smooth turning
-        else
-        {
-            typedef std::chrono::duration<float, std::milli> duration;
-            auto currentTime = std::chrono::steady_clock::now();
-            duration elapsed = currentTime - m_PrevFrameTime;
-            float deltaTime = elapsed.count();
-            m_PrevFrameTime = currentTime;
-
-            float deadzone = 0.2;
-            // smoother turning
-            float xNormalized = (abs(analogActionData.x) - deadzone) / (1 - deadzone);
-            if (analogActionData.x > deadzone)
-            {
-                m_RotationOffset.y -= m_TurnSpeed * deltaTime * xNormalized;
-            }
-            if (analogActionData.x < -deadzone)
-            {
-                m_RotationOffset.y += m_TurnSpeed * deltaTime * xNormalized;
-            }
+            binding.m_Func(binding.m_Handle);
+            continue;
         }
 
-        // Wrap from 0 to 360
-        m_RotationOffset.y -= 360 * std::floor(m_RotationOffset.y / 360);
+        else if (binding.m_BindingType == VRBindingType_Input)
+        {
+            bool Pressed = PressedDigitalAction(binding.m_Handle, true);
+
+            if (binding.m_HoldPress)
+            {
+                if (Pressed && !binding.m_LastButtonState)
+                {
+                    binding.m_HoldState = !binding.m_HoldState;
+
+                    if (binding.m_HoldState)
+                    {
+                        if (binding.m_PressCommand) m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+                        binding.m_Func(binding.m_Handle);
+                    }
+                    else if (binding.m_ReleaseCommand)
+                        m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
+                }
+
+                binding.m_LastButtonState = Pressed;
+            }
+            else
+            {
+                if (Pressed)
+                {
+                    if (binding.m_PressCommand) m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+                    binding.m_Func(binding.m_Handle);
+                }
+                else if (binding.m_ReleaseCommand)
+                    m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
+            }
+        }
     }
 
-    if (PressedDigitalAction(m_ActionPrimaryAttack))
+    // Re-align camera upright after portalling
+    if (m_RotationOffset.x != 0.f || m_RotationOffset.z != 0.f)
     {
-        m_Game->ClientCmd_Unrestricted("+attack");
-    }
-    else
-    {
-        m_Game->ClientCmd_Unrestricted("-attack");
-    }
+        // Last valid yaw angle, in case we need to revert to it.
+        const float lastYaw = m_RotationOffset.y;
 
-    if (PressedDigitalAction(m_ActionSecondaryAttack))
-    {
-        m_Game->ClientCmd_Unrestricted("+attack2");
-    }
-    else
-    {
-        m_Game->ClientCmd_Unrestricted("-attack2");
-    }
+        // Get normalized forward direction vector from current rotation offset:
+        Vector fwdSrc;
+        QAngle::AngleVectors(m_RotationOffset, &fwdSrc, nullptr, nullptr);
+        VectorNormalize(fwdSrc);
 
-    if (PressedDigitalAction(m_ActionJump))
-    {
-        m_Game->ClientCmd_Unrestricted("+jump");
-    }
-    else
-    {
-        m_Game->ClientCmd_Unrestricted("-jump");
-    }
+        // Get normalized forward direction vector from target rotation offset:
+        const QAngle targetRotation(0, lastYaw, 0);
+        Vector fwdTarget;
+        QAngle::AngleVectors(targetRotation, &fwdTarget, nullptr, nullptr);
+        VectorNormalize(fwdTarget);
 
-    if (PressedDigitalAction(m_ActionCrouch))
-    {
-        m_Game->ClientCmd_Unrestricted("+duck");
-    }
-    else
-    {
-        m_Game->ClientCmd_Unrestricted("-duck");
-    }
+        // Slerp taken from `glm/rotate_vector.inl`:
+        const auto slerp = [](const Vector& x, const Vector& y, float a) -> Vector {
+            // get cosine of angle between vectors (-1 -> 1)
+            auto CosAlpha = DotProduct(x, y);
+            // get angle (0 -> pi)
+            auto Alpha = std::acos(CosAlpha);
+            // get sine of angle between vectors (0 -> 1)
+            auto SinAlpha = std::sin(Alpha);
+            // this breaks down when SinAlpha = 0, i.e. Alpha = 0 or pi
 
-    if (PressedDigitalAction(m_ActionUse))
-    {
-        m_Game->ClientCmd_Unrestricted("+use");
-    }
-    else
-    {
-        m_Game->ClientCmd_Unrestricted("-use");
-    }
+            if (SinAlpha == 0.f) {
+                return y;
+            }
 
-    if (PressedDigitalAction(m_ActionReload))
-    {
-        m_Game->ClientCmd_Unrestricted("+reload");
-    }
-    else
-    {
-        m_Game->ClientCmd_Unrestricted("-reload");
-    }
+            auto t1 = std::sin((1.f - a) * Alpha) / SinAlpha;
+            auto t2 = std::sin(a * Alpha) / SinAlpha;
 
-    if (PressedDigitalAction(m_ActionPrevItem, true))
-    {
-        m_Game->ClientCmd_Unrestricted("invprev");
-    }
-    else if (PressedDigitalAction(m_ActionNextItem, true))
-    {
-        m_Game->ClientCmd_Unrestricted("invnext");
-    }
+            // interpolate src vectors
+            return x * t1 + y * t2;
+            };
 
-    if (PressedDigitalAction(m_ActionResetPosition, true))
-    {
-        ResetPosition();
-    }
+        // Calculate slerp between source and target direction vectors:
+        Vector slerped = slerp(fwdSrc, fwdTarget, m_CameraUprightRecoverySpeed);
+        VectorNormalize(slerped);
 
-    if (PressedDigitalAction(m_ActionFlashlight, true))
-    {
-        m_Game->ClientCmd_Unrestricted("impulse 100");
-    }
+        // Turn the final direction vector into Euler angles and apply it:
+        QAngle finalAngles;
+        QAngle::VectorAngles(slerped, finalAngles);
+        m_RotationOffset = finalAngles;
 
-    if (PressedDigitalAction(m_Spray, true))
-    {
-        m_Game->ClientCmd_Unrestricted("impulse 201");
-    }
-    
-    /*bool isControllerVertical = m_RightControllerAngAbs.x > 60 || m_RightControllerAngAbs.x < -45;
-    if ((PressedDigitalAction(m_ShowHUD) || PressedDigitalAction(m_Scoreboard) || isControllerVertical || m_HudAlwaysVisible)
-        && m_RenderedHud)
-    {
-        if (!vr::VROverlay()->IsOverlayVisible(m_HUDHandle) || m_HudAlwaysVisible)
-            RepositionOverlays();
-
-        if (PressedDigitalAction(m_Scoreboard))
-            m_Game->ClientCmd_Unrestricted("+showscores");
-        else
-            m_Game->ClientCmd_Unrestricted("-showscores");
-
-        vr::VROverlay()->ShowOverlay(m_HUDHandle);
-    }
-    else
-    {
-        vr::VROverlay()->HideOverlay(m_HUDHandle);
-    }*/
-
-    if (PressedDigitalAction(m_Pause, true))
-    {
-        m_Game->ClientCmd_Unrestricted("gameui_activate");
-        if (m_Game->m_EngineClient->IsInGame())
-            RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, { RotFlag_UseYaw });
+        // Just in case any calculation went awry, revert to an upright vector:
+        if (std::isnan(m_RotationOffset.x) || std::isnan(m_RotationOffset.y) || std::isnan(m_RotationOffset.z))
+        {
+            m_RotationOffset = QAngle(0.f, lastYaw, 0.f);
+        }
     }
 }
 
@@ -1918,8 +1831,11 @@ void VR::ParseConfigFile()
     parseOrDefault("AimMode", m_AimMode, 2);
     parseOrDefault("AntiAliasing", m_AntiAliasing, 0);
     parseOrDefault("RenderWindow", m_RenderWindow, false);
-    parseOrDefault("Enable3DBackground", m_3DMenu, false);
+    if (m_Game->m_GameType == GAMETYPE_PORTAL2) parseOrDefault("Enable3DBackground", m_3DMenu, false);
     parseOrDefault("ExperimentalOptimizations", m_ExperimentalOptimizations, 0);
+    parseOrDefault("PortallingDetectionDistanceThreshold", m_PortallingDetectionDistanceThreshold, 35);
+    parseOrDefault("CameraUprightRecoverySpeed", m_CameraUprightRecoverySpeed, 0.2f);
+    parseOrDefault("SmoothRotation", m_SmoothRotation, false);
     parseVectorOrDefaultZero("ViewmodelPosCustomOffset", m_ViewmodelPosCustomOffset);
     parseVectorOrDefaultZero("ViewmodelAngCustomOffset", m_ViewmodelAngCustomOffset);
 }
@@ -2158,4 +2074,13 @@ void VR::RegisterPanelCommandListener(std::initializer_list<std::string> Command
 void VR::ModifyPanelSettings(std::string PanelName, std::function<bool(Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& SettingRuntimeData)> func)
 {
     m_PanelSettings[PanelName] = { func };
+}
+
+void VR::SetBinding(const char* pchActionName, VRBindingType bindingType, const char* pressCommand, const char* releaseCommand, bool holdPress, std::function<void(vr::VRActionHandle_t handle)> func)
+{
+    std::string path = pchActionName;
+    VRBindings Bind = VRBindings(path.substr(path.find_last_of('/') + 1).c_str(), bindingType, pressCommand, releaseCommand, func, holdPress);
+
+    m_Input->GetActionHandle(pchActionName, &Bind.m_Handle);
+    m_Bindings.push_back(Bind);
 }

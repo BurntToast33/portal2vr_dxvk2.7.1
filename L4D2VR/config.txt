@@ -10,5 +10,8 @@ AntiAliasing=0 # 0, 2, 4, 8 (Currently broken and disabled)
 RenderWindow=false # Whether or not to copy eye texture to application window
 Enable3DBackground=true # Overrides main menu background with a 3D replacement map from backgrounds.txt
 ExperimentalOptimizations=0 # Enables shareing of data between eyes, 1 = Shadow data
+PortallingDetectionDistanceThreshold=35
+CameraUprightRecoverySpeed=0.2
+SmoothRotation=true # The camera pitch/roll follows the exit portal's orientation when portalling
 ViewmodelPosCustomOffset={ 0.0, 0.0, 0.0 } # Position offset (x, y, z)
 ViewmodelAngCustomOffset={ 0.0, 0.0, 0.0 } # Rotation offset (x, y, z)

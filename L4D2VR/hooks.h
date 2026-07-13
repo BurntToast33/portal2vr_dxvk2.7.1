@@ -102,10 +102,10 @@ using tFormatViewModelAttachment = void(__cdecl*)(void* param_1, Vector& vOrgin,
 using tPrepareCredits = void(__thiscall*)(void* thisptr, const char* pKeyName);
 using tCHudCrosshair_ShouldDraw = bool(__thiscall*)(void* thisptr);
 using tLoadControlSettings = void(__thiscall*)(void* thisptr, const char* dialogResourceName, const char* pathID, KeyValues* pPreloadedKeyValues, KeyValues* pConditions);
-using tPaintTraverse = void(__thiscall*)(void* thisptr, VPANEL vguiPanel, bool forceRepaint, bool allowForce);
 using tPostActionSignal = void(__thiscall*)(void* thisptr, KeyValues* message);
 using tApplySettings = void(__thiscall*)(void* thisptr, KeyValues* inResourceData);
 using tUpdateProgressBar = float(__thiscall*)(void* thisptr);
+using tPaintTraverse = void(__thiscall*)(void* thisptr, VPANEL vguiPanel, bool forceRepaint, bool allowForce);
 
 //Grabbles
 using tComputeError = double(__thiscall*)(void* thisptr);
@@ -263,7 +263,7 @@ public:
 	static void dFormatViewModelAttachment(void* param_1, Vector& vOrigin, bool bInverse);
 
 	//In game UI
-	static void __fastcall dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bool forceRepaint, bool allowForce = true);
+	static void __fastcall dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bool forceRepaint, bool allowForce);
 	static void __fastcall dPrepareCredits(void* ecx, void* edx, const char* pKeyName);
 	static void __fastcall dPostActionSignal(void* ecx, void* edx, KeyValues* message);
 	static void __fastcall dLoadControlSettings(void* ecx, void* edx, const char* dialogResourceName, const char* pathID, KeyValues* pPreloadedKeyValues, KeyValues* pConditions);

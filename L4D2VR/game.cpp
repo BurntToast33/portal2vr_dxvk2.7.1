@@ -10,65 +10,17 @@
 
 
 static std::mutex logMutex;
-using tCreateInterface = void* (__cdecl*)(const char* name, int* returnCode);
 
 
-// === Utility: Retry module load with logging ===
-static HMODULE GetModuleWithTimeout(const char* dllname, int timeoutMs = 20000, int pollMs = 50)
+std::string ToLower(std::string str)
 {
-    using namespace std::chrono;
-    auto start = steady_clock::now();
-
-    while (true)
-    {
-        HMODULE handle = GetModuleHandleA(dllname);
-        if (handle)
-            return handle;
-
-        auto elapsed = duration_cast<milliseconds>(steady_clock::now() - start).count();
-        if (elapsed >= timeoutMs)
-            break;
-
-        Game::logMsg(LOGTYPE_DEBUG, "Waiting for module to load: %s (elapsed %lld ms)", dllname, (long long)elapsed);
-        Sleep(pollMs);
-    }
-
-    Game::errorMsg(("Failed to load module after timeout: " + std::string(dllname)).c_str());
-    return nullptr;
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });
+    return str;
 }
 
-
-// === Utility: Safe interface fetch with static cache ===
-static void* GetInterfaceSafe(const char* dllname, const char* interfacename)
+std::string ToLower(const char* input)
 {
-    static std::unordered_map<std::string, void*> cache;
-
-    std::string key = std::string(dllname) + "::" + interfacename;
-    auto it = cache.find(key);
-    if (it != cache.end())
-        return it->second;
-
-    HMODULE mod = GetModuleWithTimeout(dllname);
-    if (!mod)
-        return nullptr;
-
-    auto CreateInterface = reinterpret_cast<tCreateInterface>(GetProcAddress(mod, "CreateInterface"));
-    if (!CreateInterface)
-    {
-        Game::errorMsg(("CreateInterface not found in " + std::string(dllname)).c_str());
-        return nullptr;
-    }
-
-    int returnCode = 0;
-    void* iface = CreateInterface(interfacename, &returnCode);
-    if (!iface)
-    {
-        Game::errorMsg(("Interface not found: " + std::string(interfacename)).c_str());
-        return nullptr;
-    }
-
-    cache[key] = iface;
-    return iface;
+    return ToLower(std::string(input));
 }
 
 // === Game Constructor ===
@@ -81,6 +33,14 @@ Game::Game()
 void Game::Initialize() 
 {
     GetCurrentDirectory(MAX_STR_LEN, m_GameDir);
+
+    std::string gameDir = m_GameDir;
+    std::string GameType = ToLower(gameDir.erase(0, gameDir.find_last_of("\\/") + 1));
+    
+    if (!strcmp("portal 2", GameType.c_str())) m_GameType = GAMETYPE_PORTAL2;
+    else if (!strcmp("portal reloaded", GameType.c_str())) m_GameType = GAMETYPE_PORTAl_RELOADED;
+    logMsg(LOGTYPE_DEBUG, "Game: %s, Game type set to %d", GameType.c_str(), m_GameType);
+
     SetVRDlcDisabled(); //Enable / Disable vr assets
 
 #ifndef OVERRIDEVRMODE
@@ -113,8 +73,7 @@ void Game::Initialize()
     m_VguiSurface = static_cast<ISurface*>(GetInterfaceSafe("vguimatsurface.dll", "VGUI_Surface031"));
     m_VguiIPanel = static_cast<IPanel*>(GetInterfaceSafe("vgui2.dll", "VGUI_Panel009"));
 
-
-    m_Offsets = new Offsets();
+    m_Offsets = new Offsets(m_GameType);
     LoadCommands();
 
 #ifndef OVERRIDEVRMODE
@@ -330,6 +289,7 @@ void Game::SetVRDlcDisabled()
             std::filesystem::remove(path, ec);
             if (ec)
                 logMsg(LOGTYPE_WARNING, "Failed to delete dlc_disabled.txt: %s", ec.message().c_str());
+
             else
                 logMsg(LOGTYPE_DEBUG, "Deleted dlc_disabled.txt");
         }

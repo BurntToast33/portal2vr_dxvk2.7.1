@@ -118,15 +118,6 @@
                "mode" : "button",
                "path" : "/user/hand/right/input/b"
             },
-			{
-               "inputs" : {
-                  "click" : {
-                     "output" : "/actions/main/in/ActivateVR"
-                  }
-               },
-               "mode" : "button",
-               "path" : "/user/hand/right/input/a"
-            },
             {
                "inputs" : {
                   "click" : {

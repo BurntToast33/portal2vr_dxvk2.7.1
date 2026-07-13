@@ -11,21 +11,25 @@ Todo:
 - Fix MSAA (I don't know how, everything is transparent so run without msaa for now)
 - Add cube map transisions between levels to stay in the aptiure envrionment while loading
 - ask about adding Spencer0187's roomscale code (see about adding the ability to walk through portals)
-- Add 3rd portal support for P2:Reloaded
 - Add smooth rotation through portals
 
 
 Todo:
 - Wait on feedback from playtesters
-- Fix blackscreen issue with HoriZon
+- Add support for Portal Reloaded
+	- Custom menu buttons need to be added
+	- Add 3D background support
 
 
 V0.2.1
 Done:
 - Fixed some maps setting a invalid render state when compositing hud onto spectator cam causing a black screen.
-- Overhalled how backgrounds file is parsed to make way for mapping cube maps to loading zones in the future.
 - Disabled msaa due to being broken right now.
 - Added levels to debug command `-vrdebug`, `-vrdebug 1` opens console and logs more detail, `-vrdebug 2`  adds compositer error logging.
+- Added smooth rotation through portals by vittorioromeo.
+- Added Portal: Reloaded support
+- Overhalled how backgrounds file is parsed to make way for mapping cube maps to loading zones in the future.
+- Overhalled input binding system to make adding and modifying binds easier to code.
 
 
 V0.2.1-preview

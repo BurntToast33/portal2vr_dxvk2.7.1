@@ -14,6 +14,9 @@ struct Offset
 
     Offset(std::string hookName,std::string moduleName, int currentOffset, std::string signature, int sigOffset = 0)
     {
+        if (hookName.empty() && moduleName.empty() && currentOffset == 0 && signature.empty() && sigOffset == 0)
+            return;
+
         this->hookName = hookName;
         this->moduleName = moduleName;
         this->offset = currentOffset;
@@ -50,7 +53,7 @@ class Offsets
 public:
     Offset CBaseEntity_entindex = { "CBaseEntity_entindex", DLL_SERVER, 0x3A050, "8B 41 1C 85 C0 75 01 C3 8B 0D ? ? ? ? 2B 41 58 C1 F8 04 C3 CC" };
     Offset PlayerPortalled = { "PlayerPortalled", DLL_CLIENT, 0x27CB70, "55 8B EC 83 EC 78 53 56 8B D9 8B 0D ? ? ? ? 8B 01 8B 90 ? ? ? ? 57 33 FF 57 FF D2" };
-    Offset GetName = { "GetName", DLL_CLIENT, 0x62D3E0, "56 8B F1 85 F6 74 1F FF 15 90 A3 ? ?" }; //KeyValues
+    Offset GetName; //KeyValues
     Offset GetString = { "GetString", DLL_CLIENT, 0x62FAD0, "55 8B EC 81 EC 40 02 00 00 53 56 57 8B 7D 08" }; //KeyValues
     Offset SetString = { "SetString", DLL_CLIENT, 0x62E9F0, "55 8B EC 8B 45 08 6A 01 50 E8 32 FB FF FF" }; //KeyValues
     Offset GetFloat = { "GetFloat", DLL_CLIENT, 0x62E810, "55 8B EC 8b 45 08 83 EC 08 6A 00 50 E8 0F FD FF FF" }; //KeyValues
@@ -70,22 +73,22 @@ public:
     Offset RenderView = { "RenderView", DLL_CLIENT, 0x1F2620, "55 8B EC 83 EC 2C 53 56 8B F1 6A 00 8D 8E ? ? ? ? E8 ? ? ? ?" };
     Offset CalcViewModelView = { "CalcViewModelView", DLL_CLIENT, 0x27D8F0, "55 8B EC 83 EC 34 53 8B D9 80 BB" };
     Offset SetDrawOnlyForSplitScreenUser = { "SetDrawOnlyForSplitScreenUser", DLL_CLIENT, 0x17B9E0, "55 8B EC 8B 45 08 53 8B D9 3B 83 ? ? ? ? 74 55" };
-    Offset ComputeShadowDepthTextures = { "ComputeShadowDepthTextures", DLL_CLIENT, 0xF1C10, "55 8B EC 81 EC 78 09 00 00 A1 9C EE ? ?" };
+    Offset ComputeShadowDepthTextures;
     Offset UnlockAllShadowDepthTextures = { "UnlockAllShadowDepthTextures", DLL_CLIENT, 0xEF110, "33 C0 39 81 6C 01 00 00 7E 19 8D 9B 00 00 00 00" };
     Offset FormatViewModelAttachment = { "FormatViewModelAttachment", DLL_CLIENT, 0x951E0, "55 8B EC 8b 45 08 83 EC 28 53 56 57 33 FF 85 C0" };
 
     //In game UI
-    Offset VGui_IPanel_PaintTraverse = { "VGui_IPanel_PaintTraverse", DLL_VGUI2, 0x197D0, "55 8B EC 8B 01 8B 55 08 8B 80 04 01" };
+    Offset PaintTraverse;
     Offset PrepareCredits = { "PrepareCredits", DLL_CLIENT, 0x292D20, "55 8B EC 56 57 8B F9 E8 04 F6 ? ? 6A 24" };
     Offset PostActionSignal = { "PostActionSignal", DLL_CLIENT, 0x646F70, "55 8B EC 83 EC 08 53 56 8B F1 F6 86 B4 00 00 00 04" }; //Panel
-    Offset LoadControlSettings = { "LoadControlSettings", DLL_CLIENT, 0x659DD0, "55 8B EC 8B 45 14 8B 55 0C 56 50 8B 45 08 8B F1 8B 4D 10" }; //Panel
+    Offset LoadControlSettings; //Panel
     Offset ApplySettings = { "ApplySettings", DLL_CLIENT, 0x6508A0, "55 8B EC 83 EC 4C 56 ? F1 F6 86 B4 00 00 00 01" }; //Panel
     Offset UpdateProgressBar = { "UpdateProgressBar", DLL_CLIENT, 0x36FD50, "55 8B EC 83 EC 08 56 8B F1 80 BE B4 01 00 00 00" }; //SlideControl
    
     //Pointer laser 
     Offset CreatePingPointer = { "CreatePingPointer", DLL_CLIENT, 0x280800, "55 8B EC 83 EC 14 53 56 8B F1 8B 8E ? ? ? ? 57 85 C9 74 30"};
     Offset GetPortalPlayer = { "GetPortalPlayer", DLL_CLIENT, 0x8DF20, "55 8B EC 8B 45 08 83 F8 FF 75 10 8B 0D ? ? ? ? 8B 01 8B 90 ? ? ? ? FF D2"};
-    Offset PrecacheParticleSystem = { "PrecacheParticleSystem", DLL_CLIENT, 0xD1530, "55 8B EC 8B 0D AC A2 ? ? 8B 01 8B 50 20 56 57" };
+    Offset PrecacheParticleSystem;
     Offset SetControlPoint = { "SetControlPoint", DLL_CLIENT, 0x17C230, "55 8B EC 53 56 8B 75 0C 57 8B F9 BB ? ? ? ? 84 9F ? ? ? ?"};
     Offset StopEmission = { "StopEmission", DLL_CLIENT, 0x17BBA0, "55 8B EC 53 8B 5D 08 57 8B F9 F6 87 ? ? ? ? ? 74 7F" };
 
@@ -109,9 +112,44 @@ public:
     Offset GetOwner = { "GetOwner", DLL_SERVER, 0xD7C00, "8B 81 ? ? ? ? 83 F8 FF 74 23 8B 15 ? ? ? ?"};
 
     //Map related
-    Offset LevelInit = { "LevelInit", DLL_SERVER, 0x1720B0, "55 8B EC 53 56 57 8B F9 E8 03 62 FD FF 8B 5D 08 53" }; //CServerGameDLL
+    Offset LevelInit; //CServerGameDLL
 
     //SteamApi (Needed to know what save folder to look in for backgrounds)
     Offset GetSteamID = { "GetSteamID", DLL_STEAMAPI, 0x54C0, "55 8B EC 8B 4D 08 8D 55 F8" };
-    Offset SteamUser = { "SteamUser", DLL_STEAMAPI, 0x6210, "68 00 C0 ? ? E8 F6 40 00 00" };
+    Offset SteamUser;
+
+    Offsets(GAMETYPE GameType) :
+        GetName("", "", 0, ""),
+        ComputeShadowDepthTextures("", "", 0, ""),
+        PrecacheParticleSystem("", "", 0, ""),
+        LevelInit("", "", 0, ""),
+        SteamUser("", "", 0, ""),
+        PaintTraverse("", "", 0, ""),
+        LoadControlSettings("", "", 0, "")
+    {
+        switch (GameType)
+        {
+            case GAMETYPE_PORTAL2: 
+            {
+                GetName = { "GetName", DLL_CLIENT, 0x62D3E0, "56 8B F1 85 F6 74 1F FF 15 90 A3 ? ?" };
+                ComputeShadowDepthTextures = { "ComputeShadowDepthTextures", DLL_CLIENT, 0xF1C10, "55 8B EC 81 EC 78 09 00 00 A1 9C EE ? ?" };
+                PrecacheParticleSystem = { "PrecacheParticleSystem", DLL_CLIENT, 0xD1530, "55 8B EC 8B 0D AC A2 ? ? 8B 01 8B 50 20 56 57" };
+                LevelInit = { "LevelInit", DLL_SERVER, 0x1720B0, "55 8B EC 53 56 57 8B F9 E8 03 62 FD FF 8B 5D 08 53" };
+                SteamUser = { "SteamUser", DLL_STEAMAPI, 0x6210, "68 00 C0 ? ? E8 F6 40 00 00" };
+                PaintTraverse = { "PaintTraverse", DLL_VGUI2, 0x197D0, "55 8B EC 8B 01 8B 55 08 8B 80 04 01" };
+                LoadControlSettings = { "LoadControlSettings", DLL_CLIENT, 0x659DD0, "55 8B EC 8B 45 14 8B 55 0C 56 50 8B 45 08 8B F1 8B 4D 10" };
+                break;
+            }
+            case GAMETYPE_PORTAl_RELOADED:
+            {
+                GetName = { "GetName", DLL_CLIENT, 0x628160, "56 8B F1 85 f6 74 1F FF 15 90 43 ? ?" };
+                ComputeShadowDepthTextures = { "ComputeShadowDepthTextures", DLL_CLIENT, 0xF0E40, "55 8B EC 81 EC 78 09 00 00 A1 84 AB ? ?" };
+                PrecacheParticleSystem = { "PrecacheParticleSystem", DLL_CLIENT, 0xD0890, "55 8B EC 8B 0D 94 5F ? ? 8B 01 8B 50 20 56 57" };
+                LevelInit = { "LevelInit", DLL_SERVER, 0x16FD10, "55 8B EC 53 56 57 8B F9 E8 D3 68 FD FF 8b 5d 08 53" };
+                PaintTraverse = { "PaintTraverse", DLL_VGUI2, 0x196A0, "55 8B EC 8B 01 8B 55 08 8B 80 04 01" };
+                LoadControlSettings = { "LoadControlSettings", DLL_CLIENT, 0x652130, "55 8B EC 8B 45 14 8B 55 0C 56 50 8B 45 08 8B F1 8B 4D 10" };
+                break;
+            }
+        }
+    }
 };

@@ -78,6 +78,16 @@ enum LOGTYPE
     LOGTYPE_ERROR = 2
 };
 
+enum GAMETYPE
+{
+    GAMETYPE_UNKNOWN,
+    GAMETYPE_PORTAL2,
+    GAMETYPE_PORTAl_RELOADED
+};
+
+std::string ToLower(std::string str);
+
+std::string ToLower(const char* input);
 
 class Game
 {
@@ -119,6 +129,7 @@ public:
     bool m_Initialized = false;
     bool m_VrEnabled = false;
     int m_VRDebuglvl = 0;
+    GAMETYPE m_GameType = GAMETYPE_UNKNOWN;
 
     std::array<Player, 24> m_PlayersVRInfo;
     int m_CurrentUsercmdID = -1;
@@ -164,6 +175,65 @@ public:
     void LoadCommands();
     void SetVRDlcDisabled();
 };
+
+using tCreateInterface = void* (__cdecl*)(const char* name, int* returnCode);
+
+static HMODULE GetModuleWithTimeout(const char* dllname, int timeoutMs = 20000, int pollMs = 50)
+{
+    using namespace std::chrono;
+    auto start = steady_clock::now();
+
+    while (true)
+    {
+        HMODULE handle = GetModuleHandleA(dllname);
+        if (handle)
+        {
+            Game::logMsg(LOGTYPE_DEBUG, "%s took %d ms to load", dllname, (long long)duration_cast<milliseconds>(steady_clock::now() - start).count());
+            return handle;
+        }
+
+        auto elapsed = duration_cast<milliseconds>(steady_clock::now() - start).count();
+        if (elapsed >= timeoutMs)
+            break;
+
+        Sleep(pollMs);
+    }
+
+    Game::errorMsg(("Failed to load module after timeout: " + std::string(dllname)).c_str());
+    return nullptr;
+}
+
+static void* GetInterfaceSafe(const char* dllname, const char* interfacename)
+{
+    static std::unordered_map<std::string, void*> cache;
+
+    std::string key = std::string(dllname) + "::" + interfacename;
+    auto it = cache.find(key);
+    if (it != cache.end())
+        return it->second;
+
+    HMODULE mod = GetModuleWithTimeout(dllname);
+    if (!mod)
+        return nullptr;
+
+    auto CreateInterface = reinterpret_cast<tCreateInterface>(GetProcAddress(mod, "CreateInterface"));
+    if (!CreateInterface)
+    {
+        Game::errorMsg(("CreateInterface not found in " + std::string(dllname)).c_str());
+        return nullptr;
+    }
+
+    int returnCode = 0;
+    void* iface = CreateInterface(interfacename, &returnCode);
+    if (!iface)
+    {
+        Game::errorMsg(("Interface not found: " + std::string(interfacename)).c_str());
+        return nullptr;
+    }
+
+    cache[key] = iface;
+    return iface;
+}
 
 
 // === Logging Macros (Debug Only) ===
