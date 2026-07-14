@@ -14,17 +14,16 @@ Todo:
 
 
 Todo:
-- Wait on feedback from playtesters
 - Add support for Portal Reloaded
 	- Custom menu buttons need to be added
 	- Add 3D background support
-	- BackBuffer changes during loadup?
 
 
 V0.2.1
 Done:
 - Fixed some maps setting a invalid render state when compositing hud onto spectator cam causing a black screen.
 - Fixed bug where VR loses textures on device reset.
+- Fixed viewmodel's fov.
 - Disabled msaa due to being broken right now.
 - Added levels to debug command `-vrdebug`, `-vrdebug 1` opens console and logs more detail, `-vrdebug 2`  adds compositer error logging.
 - Added smooth rotation through portals by vittorioromeo.

@@ -92,7 +92,8 @@ VR::VR(Game *game)
 
     m_Overlay = vr::VROverlay();
 
-    m_Overlay->CreateOverlay("MenuOverlayKey", "MenuOverlay", &m_MainOverlay.m_Handle);
+    m_MainOverlay.m_Name = "MenuOverlay";
+    m_Overlay->CreateOverlay("MenuOverlayKey", m_MainOverlay.m_Name, &m_MainOverlay.m_Handle);
     m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
     m_Overlay->SetOverlayFlag(m_MainOverlay.m_Handle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
 
@@ -409,35 +410,36 @@ int VR::SetActionManifest(const char *fileName)
         Game::errorMsg("SetActionManifestPath failed");
 
     //SetBinding("/actions/main/in/ActivateVR", );
-    SetBinding("/actions/main/in/Jump", VRBindingType_Input, "+jump", "-jump");
-    SetBinding("/actions/main/in/PrimaryAttack", VRBindingType_Input, "+attack", "-attack");
-    SetBinding("/actions/main/in/Reload", VRBindingType_Input, "+reload", "-reload");
-    SetBinding("/actions/main/in/Use", VRBindingType_Input, "+use", "-use");
-    SetBinding("/actions/main/in/SecondaryAttack", VRBindingType_Input, "+attack2", "-attack2");
-    SetBinding("/actions/main/in/NextItem", VRBindingType_Input, "invnext");
-    SetBinding("/actions/main/in/PrevItem", VRBindingType_Input, "invprev");
-    SetBinding("/actions/main/in/ResetPosition", VRBindingType_Input, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { ResetPosition(); });
-    SetBinding("/actions/main/in/Crouch", VRBindingType_Input, "+duck", "-duck", true);
-    SetBinding("/actions/main/in/Flashlight", VRBindingType_Input, "impulse 100");
-    SetBinding("/actions/main/in/MenuSelect", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_RETURN); });
-    SetBinding("/actions/main/in/MenuBack", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_ESCAPE); });
-    SetBinding("/actions/main/in/MenuUp", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_UP); });
-    SetBinding("/actions/main/in/MenuDown", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_DOWN); });
-    SetBinding("/actions/main/in/MenuLeft", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_LEFT); });
-    SetBinding("/actions/main/in/MenuRight", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_RIGHT); });
-    SetBinding("/actions/main/in/Spray", VRBindingType_Input, "impulse 201");
-    SetBinding("/actions/main/in/Scoreboard", VRBindingType_Input, "+showscores", "-showscores", true);
+    SetBinding("/actions/main/in/Jump", VRBindingType_Input, { "+jump", "-jump" });
+    SetBinding("/actions/main/in/PrimaryAttack", VRBindingType_Input, { "+attack", "-attack" }, VRBindingMode_Hold);
+    SetBinding("/actions/main/in/Reload", VRBindingType_Input, { "+reload", "-reload" });
+    SetBinding("/actions/main/in/Use", VRBindingType_Input, { "+use", "-use" }, VRBindingMode_Toggle);
+    SetBinding("/actions/main/in/SecondaryAttack", VRBindingType_Input, { "+attack2", "-attack2" }, VRBindingMode_Hold);
+    SetBinding("/actions/main/in/NextItem", VRBindingType_Input, { "invnext" });
+    SetBinding("/actions/main/in/PrevItem", VRBindingType_Input, { "invprev" });
+    SetBinding("/actions/main/in/ResetPosition", VRBindingType_Input, {}, VRBindingMode_Button, [this](vr::VRActionHandle_t handle) { ResetPosition(); });
+    SetBinding("/actions/main/in/Crouch", VRBindingType_Input, { "+duck", "-duck" }, VRBindingMode_Toggle);
+    SetBinding("/actions/main/in/Flashlight", VRBindingType_Input, { "impulse 100" }, VRBindingMode_Toggle);
+    SetBinding("/actions/main/in/MenuSelect", VRBindingType_Menu, {}, VRBindingMode_Button, [this](vr::VRActionHandle_t handle) { SendButton(VK_RETURN); });
+    SetBinding("/actions/main/in/MenuBack", VRBindingType_Menu, {}, VRBindingMode_Button, [this](vr::VRActionHandle_t handle) { SendButton(VK_ESCAPE); });
+    SetBinding("/actions/main/in/MenuUp", VRBindingType_Menu, {}, VRBindingMode_Button, [this](vr::VRActionHandle_t handle) { SendButton(VK_UP); });
+    SetBinding("/actions/main/in/MenuDown", VRBindingType_Menu, {}, VRBindingMode_Button, [this](vr::VRActionHandle_t handle) { SendButton(VK_DOWN); });
+    SetBinding("/actions/main/in/MenuLeft", VRBindingType_Menu, {}, VRBindingMode_Button, [this](vr::VRActionHandle_t handle) { SendButton(VK_LEFT); });
+    SetBinding("/actions/main/in/MenuRight", VRBindingType_Menu, {}, VRBindingMode_Button, [this](vr::VRActionHandle_t handle) { SendButton(VK_RIGHT); });
+    SetBinding("/actions/main/in/Spray", VRBindingType_Input, { "impulse 201" });
+    SetBinding("/actions/main/in/Scoreboard", VRBindingType_Input, { "+showscores", "-showscores" }, VRBindingMode_Toggle);
     //SetBinding("/actions/main/in/ShowHUD");
-    SetBinding("/actions/main/in/Pause", VRBindingType_Menu, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle) { SendButton(VK_ESCAPE); });
+    SetBinding("/actions/main/in/Pause", VRBindingType_Menu, {}, VRBindingMode_Button, [this](vr::VRActionHandle_t handle) { SendButton(VK_ESCAPE); });
 
-    if (g_Game->m_GameType == GAMETYPE_PORTAl_RELOADED) SetBinding("/actions/main/in/ThirdAttack", VRBindingType_Input, "att3");
+    if (g_Game->m_GameType == GAMETYPE_PORTAl_RELOADED) 
+        SetBinding("/actions/main/in/ThirdAttack", VRBindingType_Input, { "att3" }, VRBindingMode_Repeat);
 
-    SetBinding("/actions/main/in/Pause", VRBindingType_Input, "gameui_activate", nullptr, false, [this](vr::VRActionHandle_t handle)
+    SetBinding("/actions/main/in/Pause", VRBindingType_Input, { "gameui_activate" }, VRBindingMode_Button, [this](vr::VRActionHandle_t handle)
     { 
         if (m_Game->m_EngineClient->IsInGame())
-            RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, { RotFlag_UseYaw }); 
+            RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, { RotFlag_UseYaw }); 
     });
-    SetBinding("/actions/main/in/Turn", VRBindingType_Analog, nullptr, nullptr, false, [this](vr::VRActionHandle_t handle)
+    SetBinding("/actions/main/in/Turn", VRBindingType_Analog, {}, VRBindingMode_Button, [this](vr::VRActionHandle_t handle)
     {
         vr::InputAnalogActionData_t analogActionData;
         if (GetAnalogActionData(handle, analogActionData))
@@ -651,7 +653,7 @@ void VR::SubmitVRTextures()
     {
         if (!m_MainOverlay.m_Visible || m_MainOverlay.m_StateFlag != 1)
         {
-            RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
+            RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
             m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
             m_MainOverlay.m_StateFlag = 1;
             if (m_Game->m_VRDebuglvl) m_Game->logMsg(LOGTYPE_DEBUG, "2D mode");
@@ -687,10 +689,10 @@ void VR::SubmitVRTextures()
         {
             //This forces forward spawn on background levels
             if (!m_IsLevelBackground)
-                RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, { RotFlag_UseYaw });
+                RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, { RotFlag_UseYaw });
             
             else
-                RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
+                RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
 
             m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
             m_MainOverlay.m_StateFlag = 2;
@@ -705,7 +707,7 @@ void VR::SubmitVRTextures()
     {
         if (!m_MainOverlay.m_Visible || m_MainOverlay.m_StateFlag != 3)
         {
-            RepositionOverlay(m_MainOverlay.m_Handle, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_Attached, { 0.0f, -0.2f, 2.0f });
+            RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_Attached, { 0.0f, -0.2f, 2.0f });
             m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_None);
             m_MainOverlay.m_StateFlag = 3;
             if (m_Game->m_VRDebuglvl) m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Hud state");
@@ -757,7 +759,7 @@ void VR::GetPoseData(const vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseDa
     poseOut.TrackedDeviceAngVel.z = poseRaw.vAngularVelocity.v[1] * PRECALC_RAD_TO_DEG;
 }
 
-void VR::RepositionOverlay(vr::VROverlayHandle_t overlay, vr::TrackedDeviceIndex_t referenceDevice, OverlayRel con, Vector offset, OverlayRotation rot)
+void VR::RepositionOverlay(Overlay& overlay, vr::TrackedDeviceIndex_t referenceDevice, OverlayRel con, Vector offset, OverlayRotation rot)
 {
     vr::ETrackingUniverseOrigin trackingOrigin = vr::VRCompositor()->GetTrackingSpace();
     vr::HmdMatrix34_t device = m_Poses[referenceDevice].mDeviceToAbsoluteTracking;
@@ -770,6 +772,10 @@ void VR::RepositionOverlay(vr::VROverlayHandle_t overlay, vr::TrackedDeviceIndex
     VectorNormalize(deviceRight);
     VectorNormalize(deviceUp);
     VectorNormalize(deviceForward);
+
+    float deviceYaw = atan2f(deviceForward.x, deviceForward.z);
+    float devicePitch = -atan2f(deviceForward.y, sqrtf(deviceForward.x * deviceForward.x + deviceForward.z * deviceForward.z));
+    float deviceRoll = atan2f(deviceRight.y, deviceUp.y);
 
     Vector finalPos{};
 
@@ -878,10 +884,36 @@ void VR::RepositionOverlay(vr::VROverlayHandle_t overlay, vr::TrackedDeviceIndex
     transform.m[2][3] = finalPos.z;
 
     if(!inheritRotation)
-        m_Overlay->SetOverlayTransformTrackedDeviceRelative(overlay, referenceDevice, &transform);
+        m_Overlay->SetOverlayTransformTrackedDeviceRelative(overlay.m_Handle, referenceDevice, &transform);
 
     else
-        m_Overlay->SetOverlayTransformAbsolute(overlay, trackingOrigin, &transform);
+        m_Overlay->SetOverlayTransformAbsolute(overlay.m_Handle, trackingOrigin, &transform);
+
+
+    if (m_Game->m_VRDebuglvl > 1) 
+    {
+        m_Game->logMsg(LOGTYPE_DEBUG, "Overlay transform: %s", overlay.m_Name);
+        m_Game->logMsg(LOGTYPE_DEBUG, "Overlay tracking condition: %s", OverlayRelToString(con));
+        m_Game->logMsg(LOGTYPE_DEBUG,
+            "Overlay world position: %.3f %.3f %.3f",
+            finalPos.x, finalPos.y, finalPos.z);
+
+        m_Game->logMsg(LOGTYPE_DEBUG,
+            "Overlay offset: %.3f %.3f %.3f",
+            offset.x, offset.y, offset.z);
+
+        m_Game->logMsg(LOGTYPE_DEBUG,
+            "Overlay rotation (degrees): Yaw %.2f Pitch %.2f Roll %.2f",
+            RAD2DEG(yaw), RAD2DEG(pitch), RAD2DEG(roll));
+
+        m_Game->logMsg(LOGTYPE_DEBUG,
+            "Reference device position: %.3f %.3f %.3f",
+            devicePos.x, devicePos.y, devicePos.z);
+
+        m_Game->logMsg(LOGTYPE_DEBUG,
+            "Device rotation: Yaw %.2f Pitch %.2f Roll %.2f",
+            RAD2DEG(deviceYaw), RAD2DEG(devicePitch), RAD2DEG(deviceRoll));
+    }
 }
 
 //Gets raw pose data
@@ -1004,38 +1036,20 @@ void VR::ProcessMenuInput()
                 continue;
 
             bool ButtonState = PressedDigitalAction(binding.m_Handle, false);
+
             bool Pressed = ButtonState && !binding.m_LastButtonState;
             bool Released = !ButtonState && binding.m_LastButtonState;
 
-            if (binding.m_HoldPress)
+            if (Pressed)
             {
-                if (Pressed)
-                {
-                    binding.m_HoldState = !binding.m_HoldState;
+                if (binding.m_PressCommand)
+                    m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
 
-                    if (binding.m_HoldState)
-                    {
-                        if (binding.m_PressCommand)
-                            m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
-
-                        binding.m_Func(binding.m_Handle);
-                    }
-                    else if (binding.m_ReleaseCommand)
-                        m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
-                }
+                binding.m_Func(binding.m_Handle);
             }
-            else
-            {
-                if (Pressed)
-                {
-                    if (binding.m_PressCommand)
-                        m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
 
-                    binding.m_Func(binding.m_Handle);
-                }
-                if (Released && binding.m_ReleaseCommand)
-                    m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
-            }
+            if (Released && binding.m_ReleaseCommand)
+                m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
 
             binding.m_LastButtonState = ButtonState;
         }
@@ -1052,41 +1066,92 @@ void VR::ProcessInput()
             continue;
         }
 
-        else if (binding.m_BindingType == VRBindingType_Input)
+        if (binding.m_BindingType == VRBindingType_Input)
         {
             bool ButtonState = PressedDigitalAction(binding.m_Handle, false);
 
             bool Pressed = ButtonState && !binding.m_LastButtonState;
             bool Released = !ButtonState && binding.m_LastButtonState;
 
-            if (binding.m_HoldPress)
+            if (m_Game->m_VRDebuglvl > 1 && (Pressed || Released))
             {
-                if (Pressed)
-                {
-                    binding.m_HoldState = !binding.m_HoldState;
+                m_Game->logMsg(LOGTYPE_DEBUG,
+                    "Bind Name: %s, Type: %d, Mode: %d, State: %s",
+                    binding.m_Name.c_str(),
+                    binding.m_BindingType,
+                    binding.m_BindingMode,
+                    ButtonState ? "Pressed" : "Released");
+            }
 
-                    if (binding.m_HoldState)
+            switch (binding.m_BindingMode)
+            {
+                case VRBindingMode_Button:
+                {
+                    if (Pressed)
                     {
                         if (binding.m_PressCommand)
                             m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
 
                         binding.m_Func(binding.m_Handle);
                     }
-                    else if (binding.m_ReleaseCommand)
-                        m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
-                }
-            }
-            else
-            {
-                if (Pressed)
-                {
-                    if (binding.m_PressCommand)
-                        m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
 
-                    binding.m_Func(binding.m_Handle);
+                    if (Released && binding.m_ReleaseCommand)
+                        m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
+
+                    break;
                 }
-                if (Released && binding.m_ReleaseCommand)
-                    m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
+                case VRBindingMode_Toggle:
+                {
+                    if (Pressed)
+                    {
+                        binding.m_ToggleState = !binding.m_ToggleState;
+
+                        if (binding.m_ToggleState)
+                        {
+                            if (binding.m_PressCommand)
+                                m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+
+                            binding.m_Func(binding.m_Handle);
+                        }
+                        else
+                        {
+                            if (binding.m_ReleaseCommand)
+                                m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
+                        }
+                    }
+
+                    break;
+                }
+                case VRBindingMode_Hold:
+                {
+                    if (Pressed)
+                    {
+                        if (binding.m_PressCommand)
+                            m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+
+                        binding.m_Func(binding.m_Handle);
+                    }
+
+                    if (Released && binding.m_ReleaseCommand)
+                        m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
+
+                    break;
+                }
+                case VRBindingMode_Repeat:
+                {
+                    if (ButtonState)
+                    {
+                        if (binding.m_PressCommand)
+                            m_Game->ClientCmd_Unrestricted(binding.m_PressCommand);
+
+                        binding.m_Func(binding.m_Handle);
+                    }
+
+                    if (Released && binding.m_ReleaseCommand)
+                        m_Game->ClientCmd_Unrestricted(binding.m_ReleaseCommand);
+
+                    break;
+                }
             }
 
             binding.m_LastButtonState = ButtonState;
@@ -2093,10 +2158,10 @@ void VR::ModifyPanelSettings(std::string PanelName, std::function<bool(Panel* pa
     m_PanelSettings[PanelName] = { func };
 }
 
-void VR::SetBinding(const char* pchActionName, VRBindingType bindingType, const char* pressCommand, const char* releaseCommand, bool holdPress, std::function<void(vr::VRActionHandle_t handle)> func)
+void VR::SetBinding(const char* pchActionName, VRBindingType bindingType, StringPair cmds, VRBindingMode mode, std::function<void(vr::VRActionHandle_t handle)> func)
 {
     std::string path = pchActionName;
-    VRBindings Bind = VRBindings(path.substr(path.find_last_of('/') + 1).c_str(), bindingType, pressCommand, releaseCommand, func, holdPress);
+    VRBindings Bind = VRBindings(path.substr(path.find_last_of('/') + 1).c_str(), bindingType, cmds.pressCommand, cmds.releaseCommand, func, mode);
 
     m_Input->GetActionHandle(pchActionName, &Bind.m_Handle);
     m_Bindings.push_back(Bind);

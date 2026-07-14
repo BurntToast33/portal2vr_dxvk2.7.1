@@ -227,31 +227,43 @@ enum VRBindingType
 	VRBindingType_Analog
 };
 
+enum VRBindingMode {
+	VRBindingMode_Button,  // Press once
+	VRBindingMode_Toggle,  // Press toggles on/off
+	VRBindingMode_Hold,    // Press once, release once
+	VRBindingMode_Repeat   // Press repeatedly while held
+};
+
 struct VRBindings
 {
 	vr::VRActionHandle_t m_Handle = vr::k_ulInvalidActionHandle;
-	const char* m_Name = nullptr;
+	std::string m_Name;
+
 	VRBindingType m_BindingType = VRBindingType_None;
+	VRBindingMode m_BindingMode = VRBindingMode_Button;
 
 	const char* m_PressCommand = nullptr;
 	const char* m_ReleaseCommand = nullptr;
 
-	bool m_PressState = false;
-	bool m_HoldPress = false;
 	bool m_LastButtonState = false;
-	bool m_HoldState = false;
+	bool m_ToggleState = false;
 
 	std::function<void(vr::VRActionHandle_t handle)> m_Func;
 
-	VRBindings(const char* name, VRBindingType BindingType, const char* pressCmd, const char* releaseCmd, std::function<void(vr::VRActionHandle_t handle)> func, bool holdPress)
+	VRBindings(std::string name, VRBindingType BindingType, const char* pressCmd, const char* releaseCmd, std::function<void(vr::VRActionHandle_t handle)> func, VRBindingMode mode)
 	{
 		m_Name = name;
 		m_BindingType = BindingType;
 		m_PressCommand = pressCmd;
 		m_ReleaseCommand = releaseCmd;
 		m_Func = func;
-		m_HoldPress = holdPress;
+		m_BindingMode = mode;
 	}
+};
+
+struct StringPair {
+	const char* pressCommand = nullptr;
+	const char* releaseCommand = nullptr;
 };
 
 
@@ -650,6 +662,18 @@ public:
 		SendInput(1, &input, sizeof(INPUT));
 	}
 
+	const char* OverlayRelToString(OverlayRel con)
+	{
+		switch (con)
+		{
+			case OverlayRel_WorldSpace: return "WorldSpace";
+			case OverlayRel_DeviceSpace: return "DeviceSpace";
+			case OverlayRel_DeviceSpaceForward: return "DeviceSpaceForward";
+			case OverlayRel_Attached: return "Attached";
+			default: return "Unknown";
+		}
+	}
+
 	//====================
 	// Functions
 	//====================
@@ -706,7 +730,7 @@ public:
 	void ModifyPanelSettings(std::string PanelName, std::function<bool(Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& SettingRuntimeData)> func);
 
 	//Attach mode ignores RotFlags and inherits position and rotation from reference.
-	void RepositionOverlay(vr::VROverlayHandle_t overlay, vr::TrackedDeviceIndex_t referenceDevice, OverlayRel con, Vector offset, OverlayRotation rot = {});
+	void RepositionOverlay(Overlay& overlay, vr::TrackedDeviceIndex_t referenceDevice, OverlayRel con, Vector offset, OverlayRotation rot = {});
 
 
 	//===== Config/File Parser's =====
@@ -717,7 +741,7 @@ public:
 	std::string GetNewestPortal2SavePath(const std::string& baseDir);
 
 	//Used to set binds
-	void SetBinding(const char* pchActionName, VRBindingType bindingType, const char* pressCommand, const char* releaseCommand = nullptr, bool holdPress = false, std::function<void(vr::VRActionHandle_t handle)> func = [](vr::VRActionHandle_t) {});
+	void SetBinding(const char* pchActionName, VRBindingType bindingType, StringPair cmds, VRBindingMode mode = VRBindingMode_Button, std::function<void(vr::VRActionHandle_t handle)> func = [](vr::VRActionHandle_t) {});
 	void GetPoses();
 	void UpdatePosesAndActions();
 	void GetViewParameters();
