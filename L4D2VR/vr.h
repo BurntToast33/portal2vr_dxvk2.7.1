@@ -99,6 +99,7 @@ struct Overlay
 	const char* m_Name = nullptr;
 	vr::VROverlayInputMethod m_InputMethod = vr::VROverlayInputMethod_None;
 	vr::VROverlayInputMethod m_SaveStateMethod = vr::VROverlayInputMethod_None;
+	float m_WidthInMeters = 0;
 
 	void ShowOverlay() 
 	{
@@ -129,6 +130,15 @@ struct Overlay
 				m_SaveStateMethod = m_InputMethod;
 
 			m_InputMethod = method;
+		}
+	}
+
+	void SetOverlayWidthInMeters(float fWidthInMeters)
+	{
+		if (fWidthInMeters != m_WidthInMeters) 
+		{
+			vr::VROverlay()->SetOverlayWidthInMeters(m_Handle, fWidthInMeters);
+			m_WidthInMeters = fWidthInMeters;
 		}
 	}
 };
@@ -420,8 +430,6 @@ public:
 	bool m_RenderWindow = false;
 	int m_ExperimentalOptimizations = 0;
 	uint32_t m_AntiAliasing = 0;
-
-	uint64_t m_SteamID = 0; //Used to know the exact directory to find the save files
 
 	//===============
 	//	Helpers

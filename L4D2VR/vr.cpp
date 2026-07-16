@@ -49,7 +49,7 @@ VR::VR(Game *game)
 
     m_System->GetRecommendedRenderTargetSize(&m_RenderWidth, &m_RenderHeight);
 
-    if (m_Game->m_VRDebuglvl) 
+    if (m_Game->m_VRDebuglvl > 1) 
         m_Game->logMsg(LOGTYPE_DEBUG, "Height: %d, Width: %d", m_Game->m_WindowHeight, m_Game->m_WindowWidth);
 
     m_WScaleDownRatio = (float)m_Game->m_WindowWidth / m_RenderWidth;
@@ -104,11 +104,10 @@ VR::VR(Game *game)
     vr::VRTextureBounds_t bounds{ 0, 0, 1, 1 };
     m_Overlay->SetOverlayTextureBounds(m_MainOverlay.m_Handle, &bounds);
     m_Overlay->SetOverlayTexelAspect(m_MainOverlay.m_Handle, 1.0f);
-    m_Overlay->SetOverlayWidthInMeters(m_MainOverlay.m_Handle, 1.5f * (1.0f / m_HScaleDownRatio));
+    m_MainOverlay.SetOverlayWidthInMeters(1.5f * (1.0f / m_HScaleDownRatio));
 
     UpdatePosesAndActions();
 
-    if (m_Game->m_GameType == GAMETYPE_PORTAL2) m_SteamID = GetSteamID64();
     m_IsInitialized = true;
     m_IsVREnabled = true;
 }
@@ -272,7 +271,7 @@ void VR::CreateHashMaps()
     });
     RegisterPanelCommandListener({ "VRExperimentalOptimizations0", "VRExperimentalOptimizations1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
     {
-        int con = (strcmp(cmd, "VR3DBackground1") == 0);
+        int con = (strcmp(cmd, "VRExperimentalOptimizations1") == 0);
         m_Game->logMsg(LOGTYPE_DEBUG, "Experimental optimizations set to ",
             con ? "'1'" : "'0'", " via in game menu.");
 
@@ -547,7 +546,8 @@ void VR::PostUpdate()
         m_Game->m_CachedArmsModel = false;
 
         if (m_3DMenu && !m_3DMenuLoading && !m_IsLevelBackground && m_CreatedVRTextures && 
-            !m_Game->m_EngineClient->IsDrawingLoadingImage() && !m_Game->m_EngineClient->IsInGame())
+            !m_Game->m_EngineClient->IsDrawingLoadingImage() && !m_Game->m_EngineClient->IsInGame()
+            && m_Game->m_GameType != GAMETYPE_UNKNOWN)
         {
             std::thread([this]()
             {
@@ -616,7 +616,15 @@ void VR::FirstFrameUpdate()
 //Creates the target textures on the engine side to get picked up on dxvk side
 void VR::CreateVRTextures()
 {
-    m_Game->logMsg(LOGTYPE_DEBUG, "RenderTexture - Width: %d, Height: %d", m_RenderWidth, m_RenderHeight);
+    m_Game->logMsg(LOGTYPE_DEBUG, "VR Texture - Width: %d, Height: %d", m_RenderWidth, m_RenderHeight);
+
+    //Need to recalculate if screen size changes
+    m_Game->m_VguiSurface->GetScreenSize(m_Game->m_WindowWidth, m_Game->m_WindowHeight);
+    m_WScaleDownRatio = (float)m_Game->m_WindowWidth / m_RenderWidth;
+    m_HScaleDownRatio = (float)m_Game->m_WindowHeight / m_RenderHeight;
+    m_WScaleUpRatio = (float)m_RenderWidth / m_Game->m_WindowWidth;
+    m_HScaleUpRatio = (float)m_RenderHeight / m_Game->m_WindowHeight;
+    m_MainOverlay.SetOverlayWidthInMeters(1.5f * (1.0f / m_HScaleDownRatio));
 
     m_Game->m_MaterialSystem->isGameRunning = false;
     m_Game->m_MaterialSystem->BeginRenderTargetAllocation();
@@ -656,7 +664,7 @@ void VR::SubmitVRTextures()
             RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
             m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
             m_MainOverlay.m_StateFlag = 1;
-            if (m_Game->m_VRDebuglvl) m_Game->logMsg(LOGTYPE_DEBUG, "2D mode");
+            if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "2D mode");
         }
         
         m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_BackBuffer.m_VRTexture);
@@ -665,7 +673,7 @@ void VR::SubmitVRTextures()
         leftEye = vr::VRCompositor()->Submit(vr::Eye_Left, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
         rightEye = vr::VRCompositor()->Submit(vr::Eye_Right, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
 
-        if (m_Game->m_VRDebuglvl > 1)
+        if (m_Game->m_VRDebuglvl > 2)
         {
             if (leftEye != vr::VRCompositorError_None && leftEye != m_LastLeftEyeError)
             {
@@ -696,7 +704,7 @@ void VR::SubmitVRTextures()
 
             m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
             m_MainOverlay.m_StateFlag = 2;
-            if (m_Game->m_VRDebuglvl) m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Menu state");
+            if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Menu state");
         }
 
         m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_MenuTexture.m_VRTexture);
@@ -710,7 +718,7 @@ void VR::SubmitVRTextures()
             RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_Attached, { 0.0f, -0.2f, 2.0f });
             m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_None);
             m_MainOverlay.m_StateFlag = 3;
-            if (m_Game->m_VRDebuglvl) m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Hud state");
+            if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Hud state");
         }
 
         m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_MenuTexture.m_VRTexture);
@@ -721,7 +729,7 @@ void VR::SubmitVRTextures()
     leftEye = vr::VRCompositor()->Submit(vr::Eye_Left, &m_LeftEye.m_VRTexture, &(m_TextureBounds)[0], vr::Submit_Default);
     rightEye = vr::VRCompositor()->Submit(vr::Eye_Right, &m_RightEye.m_VRTexture, &(m_TextureBounds)[1], vr::Submit_Default);
 
-    if (m_Game->m_VRDebuglvl > 1)
+    if (m_Game->m_VRDebuglvl > 2)
     {
         if (leftEye != vr::VRCompositorError_None && leftEye != m_LastLeftEyeError)
         {
@@ -890,7 +898,7 @@ void VR::RepositionOverlay(Overlay& overlay, vr::TrackedDeviceIndex_t referenceD
         m_Overlay->SetOverlayTransformAbsolute(overlay.m_Handle, trackingOrigin, &transform);
 
 
-    if (m_Game->m_VRDebuglvl > 1) 
+    if (m_Game->m_VRDebuglvl > 2) 
     {
         m_Game->logMsg(LOGTYPE_DEBUG, "Overlay transform: %s", overlay.m_Name);
         m_Game->logMsg(LOGTYPE_DEBUG, "Overlay tracking condition: %s", OverlayRelToString(con));
@@ -1073,7 +1081,7 @@ void VR::ProcessInput()
             bool Pressed = ButtonState && !binding.m_LastButtonState;
             bool Released = !ButtonState && binding.m_LastButtonState;
 
-            if (m_Game->m_VRDebuglvl > 1 && (Pressed || Released))
+            if (m_Game->m_VRDebuglvl > 2 && (Pressed || Released))
             {
                 m_Game->logMsg(LOGTYPE_DEBUG,
                     "Bind Name: %s, Type: %d, Mode: %d, State: %s",
@@ -1913,7 +1921,7 @@ void VR::ParseConfigFile()
     parseOrDefault("AimMode", m_AimMode, 2);
     parseOrDefault("AntiAliasing", m_AntiAliasing, 0);
     parseOrDefault("RenderWindow", m_RenderWindow, false);
-    if (m_Game->m_GameType == GAMETYPE_PORTAL2) parseOrDefault("Enable3DBackground", m_3DMenu, false);
+    if (m_Game->m_ISteamUser) parseOrDefault("Enable3DBackground", m_3DMenu, false);
     parseOrDefault("ExperimentalOptimizations", m_ExperimentalOptimizations, 0);
     parseOrDefault("PortallingDetectionDistanceThreshold", m_PortallingDetectionDistanceThreshold, 35);
     parseOrDefault("CameraUprightRecoverySpeed", m_CameraUprightRecoverySpeed, 0.2f);
@@ -1992,7 +2000,22 @@ std::string VR::GetNewestPortal2SavePath(const std::string& baseDir)
     namespace fs = std::filesystem;
 
     std::error_code ec;
-    fs::path saveRoot = fs::path(baseDir) / "portal2" / "SAVE" / std::to_string(m_SteamID);
+    fs::path saveRoot;
+
+    switch (m_Game->m_GameType) 
+    {
+        case GAMETYPE_PORTAL2: 
+        {
+            saveRoot = fs::path(baseDir) / "portal2" / "SAVE" / std::to_string(m_Game->m_ISteamUser->GetSteamID());
+            break;
+        }
+        case GAMETYPE_PORTAl_RELOADED:
+        {
+            saveRoot = fs::path(baseDir) / "portalreloaded" / "SAVE" / std::to_string(m_Game->m_ISteamUser->GetSteamID());
+            break;
+        }
+    }
+
     if (!fs::exists(saveRoot, ec) || !fs::is_directory(saveRoot, ec))
     {
         g_Game->logMsg(LOGTYPE_WARNING, "Failed to find save directory: %s", ec.message());
@@ -2098,7 +2121,7 @@ void VR::BuildCaptureMap()
 
 void VR::CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth, UINT textureFlags)
 {
-    if (m_Game->m_VRDebuglvl) m_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s, W: %d, H: %d", name, w, h);
+    if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s, W: %d, H: %d", name, w, h);
     target->Release();
 
     PushTexture(target, false);
@@ -2110,7 +2133,7 @@ void VR::CreateRT(SharedTextureHolder* target, const char* name, int w, int h, R
         TextureSetup Setup = (hasOverride) ? *target->m_OverrideMSAASurface : TextureSetup(w, h);
         int Override = (hasOverride) ? -1 : target->m_UseMSAA;
 
-        if (m_Game->m_VRDebuglvl) m_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s_MSAA, W: %d, H: %d", name, w, h);
+        if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s_MSAA, W: %d, H: %d", name, w, h);
         PushTexture(target, Override);
         target->m_MSAAITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(std::string(name).append("_MSAA").c_str(), Setup.w, Setup.h, sizeMode, format, depth, textureFlags);
     }
@@ -2169,7 +2192,7 @@ void VR::SetBinding(const char* pchActionName, VRBindingType bindingType, String
 
 void VR::DeviceReset() 
 {
-    if (m_Game->m_VRDebuglvl > 0) m_Game->logMsg(LOGTYPE_DEBUG, "D3D device reset");
+    if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "D3D device reset");
     m_CreatedVRTextures = false;
     m_BackBuffer.Release();
     m_BlankTexture.Release();

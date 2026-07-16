@@ -12,7 +12,8 @@ struct Offset
     std::string signature;
     int sigOffset = 0;
 
-    Offset(std::string hookName,std::string moduleName, int currentOffset, std::string signature, int sigOffset = 0)
+    Offset(std::string hookName = "", std::string moduleName = "", int currentOffset = 0, 
+        std::string signature = "", int sigOffset = 0)
     {
         if (hookName.empty() && moduleName.empty() && currentOffset == 0 && signature.empty() && sigOffset == 0)
             return;
@@ -41,12 +42,6 @@ struct Offset
         this->address = base + this->offset;
     }
 };
-
-constexpr auto DLL_CLIENT = "client.dll";
-constexpr auto DLL_SERVER = "server.dll";
-constexpr auto DLL_VGUI2 = "vgui2.dll";
-constexpr auto DLL_ENGINE = "engine.dll";
-constexpr auto DLL_STEAMAPI = "steam_api.dll";
 
 class Offsets
 {
@@ -81,7 +76,7 @@ public:
     Offset PaintTraverse;
     Offset PrepareCredits = { "PrepareCredits", DLL_CLIENT, 0x292D20, "55 8B EC 56 57 8B F9 E8 04 F6 ? ? 6A 24" };
     Offset PostActionSignal = { "PostActionSignal", DLL_CLIENT, 0x646F70, "55 8B EC 83 EC 08 53 56 8B F1 F6 86 B4 00 00 00 04" }; //Panel
-    Offset LoadControlSettings; //Panel
+    Offset LoadControlSettings; //BuildGroup
     Offset ApplySettings = { "ApplySettings", DLL_CLIENT, 0x6508A0, "55 8B EC 83 EC 4C 56 ? F1 F6 86 B4 00 00 00 01" }; //Panel
     Offset UpdateProgressBar = { "UpdateProgressBar", DLL_CLIENT, 0x36FD50, "55 8B EC 83 EC 08 56 8B F1 80 BE B4 01 00 00 00" }; //SlideControl
    
@@ -114,18 +109,14 @@ public:
     //Map related
     Offset LevelInit; //CServerGameDLL
 
-    //SteamApi (Needed to know what save folder to look in for backgrounds)
-    Offset GetSteamID = { "GetSteamID", DLL_STEAMAPI, 0x54C0, "55 8B EC 8B 4D 08 8D 55 F8" };
-    Offset SteamUser;
 
     Offsets(GAMETYPE GameType) :
-        GetName("", "", 0, ""),
-        ComputeShadowDepthTextures("", "", 0, ""),
-        PrecacheParticleSystem("", "", 0, ""),
-        LevelInit("", "", 0, ""),
-        SteamUser("", "", 0, ""),
-        PaintTraverse("", "", 0, ""),
-        LoadControlSettings("", "", 0, "")
+        GetName(),
+        ComputeShadowDepthTextures(),
+        PrecacheParticleSystem(),
+        LevelInit(),
+        PaintTraverse(),
+        LoadControlSettings()
     {
         switch (GameType)
         {
@@ -135,9 +126,8 @@ public:
                 ComputeShadowDepthTextures = { "ComputeShadowDepthTextures", DLL_CLIENT, 0xF1C10, "55 8B EC 81 EC 78 09 00 00 A1 9C EE ? ?" };
                 PrecacheParticleSystem = { "PrecacheParticleSystem", DLL_CLIENT, 0xD1530, "55 8B EC 8B 0D AC A2 ? ? 8B 01 8B 50 20 56 57" };
                 LevelInit = { "LevelInit", DLL_SERVER, 0x1720B0, "55 8B EC 53 56 57 8B F9 E8 03 62 FD FF 8B 5D 08 53" };
-                SteamUser = { "SteamUser", DLL_STEAMAPI, 0x6210, "68 00 C0 ? ? E8 F6 40 00 00" };
                 PaintTraverse = { "PaintTraverse", DLL_VGUI2, 0x197D0, "55 8B EC 8B 01 8B 55 08 8B 80 04 01" };
-                LoadControlSettings = { "LoadControlSettings", DLL_CLIENT, 0x659DD0, "55 8B EC 8B 45 14 8B 55 0C 56 50 8B 45 08 8B F1 8B 4D 10" };
+                LoadControlSettings = { "LoadControlSettings", DLL_CLIENT, 0x6A62A0, "55 8B EC 8B 45 0C 83 EC 08 53 56 57 8B 7D 08" };
                 break;
             }
             case GAMETYPE_PORTAl_RELOADED:
@@ -147,7 +137,7 @@ public:
                 PrecacheParticleSystem = { "PrecacheParticleSystem", DLL_CLIENT, 0xD0890, "55 8B EC 8B 0D 94 5F ? ? 8B 01 8B 50 20 56 57" };
                 LevelInit = { "LevelInit", DLL_SERVER, 0x16FD10, "55 8B EC 53 56 57 8B F9 E8 D3 68 FD FF 8b 5d 08 53" };
                 PaintTraverse = { "PaintTraverse", DLL_VGUI2, 0x196A0, "55 8B EC 8B 01 8B 55 08 8B 80 04 01" };
-                LoadControlSettings = { "LoadControlSettings", DLL_CLIENT, 0x652130, "55 8B EC 8B 45 14 8B 55 0C 56 50 8B 45 08 8B F1 8B 4D 10" };
+                LoadControlSettings = { "LoadControlSettings", DLL_CLIENT, 0x6A0F50, "55 8B EC 8B 45 0C 83 EC 08 53 56 57 8B 7D 08" };
                 break;
             }
         }

@@ -14,9 +14,7 @@ Todo:
 
 
 Todo:
-- Add support for Portal Reloaded
-	- Custom menu buttons need to be added
-	- Add 3D background support
+- Background03 and 04 and 08 needs map rotation
 
 
 V0.2.1
@@ -27,7 +25,8 @@ Done:
 - Disabled msaa due to being broken right now.
 - Added levels to debug command `-vrdebug`, `-vrdebug 1` opens console and logs more detail, `-vrdebug 2`  adds compositer error logging.
 - Added smooth rotation through portals by vittorioromeo.
-- Added Portal: Reloaded support (WIP).
+- Added Portal: Reloaded support.
+- Added built cubemaps to background maps.
 - Overhalled how backgrounds file is parsed to make way for mapping cube maps to loading zones in the future.
 - Overhalled input binding system to make adding and modifying binds easier to code.
 

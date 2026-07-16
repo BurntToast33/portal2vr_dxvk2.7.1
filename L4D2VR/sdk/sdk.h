@@ -42,19 +42,26 @@
 #define MAX_LINEAR_SPEED 175
 
 
-static inline uint64_t GetSteamID64()
+struct CSteamID
 {
-	using tSteamUser = void* (__cdecl*)();
-	using tGetSteamID = uint64_t(__cdecl*)(void* steamUser);
-	static tSteamUser oSteamUser = (tSteamUser)(g_Game->m_Offsets->SteamUser.address);
-	static tGetSteamID oGetSteamID = (tGetSteamID)(g_Game->m_Offsets->GetSteamID.address);
-		
-	void* steamUser = oSteamUser();
-	if (!steamUser)
-		return 0;
+	uint64_t value;
+};
 
-	return oGetSteamID(steamUser);
-}
+class ISteamUser
+{
+public:
+	inline uint64_t GetSteamID()
+	{
+		using tGetSteamID = CSteamID*(__thiscall*)(ISteamUser*, CSteamID*);
+		uintptr_t* vtable = *(uintptr_t**)this;
+		static tGetSteamID oGetSteamID = (tGetSteamID)vtable[2];
+
+		CSteamID id{};
+		oGetSteamID(this, &id);
+
+		return id.value;
+	}
+};
 
 class C_BaseCombatWeapon;
 class C_WeaponCSBase;
@@ -358,6 +365,18 @@ public:
 	virtual void *sub_1005CBB0_1() = 0;
 	virtual void *sub_1005CBB0_2() = 0;
 	virtual void *ClientCmd_Unrestricted(const char *szCmdString) = 0; //108
+	virtual void* sub_109() = 0;
+	virtual void* sub_110() = 0;
+	virtual void* sub_111() = 0;
+	virtual void* sub_112() = 0;
+	virtual void* sub_113() = 0;
+	virtual void* sub_114() = 0;
+	virtual void* sub_115() = 0;
+	virtual void* sub_116() = 0;
+	virtual void* sub_117() = 0;
+	virtual void* sub_118() = 0;
+	virtual void* sub_119() = 0;
+	virtual const char* GetMostRecentSaveGame(void) = 0;
 };
 
 class IModelInfo
@@ -3044,3 +3063,16 @@ public:
 };
 
 class CStudioHdr;
+
+enum
+{
+	FRUSTUM_RIGHT = 0,
+	FRUSTUM_LEFT = 1,
+	FRUSTUM_TOP = 2,
+	FRUSTUM_BOTTOM = 3,
+	FRUSTUM_NEARZ = 4,
+	FRUSTUM_FARZ = 5,
+	FRUSTUM_NUMPLANES = 6
+};
+
+typedef VPlane Frustum[FRUSTUM_NUMPLANES];

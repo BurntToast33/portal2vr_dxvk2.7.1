@@ -17,6 +17,14 @@
 #define ANSI_YELLOW "\x1b[33m"
 #define ANSI_GRAY  "\x1b[90m"
 
+constexpr auto DLL_CLIENT = "client.dll";
+constexpr auto DLL_SERVER = "server.dll";
+constexpr auto DLL_VGUI2 = "vgui2.dll";
+constexpr auto DLL_VGUIMATSURFACE = "vguimatsurface.dll";
+constexpr auto DLL_ENGINE = "engine.dll";
+constexpr auto DLL_MATERIALSYSTEM = "materialsystem.dll";
+constexpr auto DLL_STEAMAPI = "steam_api.dll";
+
 class IClientEntityList;
 class IEngineVGui;
 class IEngineTrace;
@@ -32,6 +40,7 @@ class IPanel;
 class CBaseEntity;
 class C_BasePlayer;
 class C_Portal_Player;
+class ISteamUser;
 struct model_t;
 
 
@@ -89,6 +98,8 @@ std::string ToLower(std::string str);
 
 std::string ToLower(const char* input);
 
+static std::vector<std::pair<std::string, HMODULE>> dllList;
+
 class Game
 {
 public:
@@ -104,16 +115,7 @@ public:
     IInput* m_VguiInput = nullptr;
     ISurface* m_VguiSurface = nullptr;
     IPanel* m_VguiIPanel = nullptr;
-
-
-    // === Module Base Addresses ===
-    uintptr_t m_BaseEngine = 0;
-    uintptr_t m_BaseClient = 0;
-    uintptr_t m_BaseServer = 0;
-    uintptr_t m_BaseMaterialSystem = 0;
-    uintptr_t m_BaseVguiMatSurface = 0;
-    uintptr_t m_BaseVgui2 = 0;
-
+    ISteamUser* m_ISteamUser = nullptr;
 
     // === Internal Systems ===
     Offsets *m_Offsets = nullptr;
@@ -176,10 +178,15 @@ public:
     void SetVRDlcDisabled();
 };
 
-using tCreateInterface = void* (__cdecl*)(const char* name, int* returnCode);
-
 static HMODULE GetModuleWithTimeout(const char* dllname, int timeoutMs = 20000, int pollMs = 50)
 {
+    std::string name(dllname);
+    for (const auto& [cachedName, handle] : dllList)
+    {
+        if (cachedName == name)
+            return handle;
+    }
+
     using namespace std::chrono;
     auto start = steady_clock::now();
 
@@ -189,6 +196,7 @@ static HMODULE GetModuleWithTimeout(const char* dllname, int timeoutMs = 20000, 
         if (handle)
         {
             Game::logMsg(LOGTYPE_DEBUG, "%s took %d ms to load", dllname, (long long)duration_cast<milliseconds>(steady_clock::now() - start).count());
+            dllList.push_back(std::pair(name, handle));
             return handle;
         }
 
@@ -205,14 +213,29 @@ static HMODULE GetModuleWithTimeout(const char* dllname, int timeoutMs = 20000, 
 
 static void* GetInterfaceSafe(const char* dllname, const char* interfacename)
 {
+    using tCreateInterface = void* (__cdecl*)(const char* name, int* returnCode);
     static std::unordered_map<std::string, void*> cache;
 
-    std::string key = std::string(dllname) + "::" + interfacename;
+    std::string strDllName = std::string(dllname);
+    std::string key = strDllName + "::" + interfacename;
     auto it = cache.find(key);
     if (it != cache.end())
         return it->second;
 
-    HMODULE mod = GetModuleWithTimeout(dllname);
+    
+    HMODULE mod = nullptr;
+    for (const auto& [name, module] : dllList)
+    {
+        if (name == strDllName)
+        {
+            mod = module;
+            break;
+        }
+    }
+
+    if (!mod)
+        mod = GetModuleWithTimeout(dllname);
+
     if (!mod)
         return nullptr;
 
@@ -233,6 +256,95 @@ static void* GetInterfaceSafe(const char* dllname, const char* interfacename)
 
     cache[key] = iface;
     return iface;
+}
+
+static ISteamUser* GetSteamUserInterface(HMODULE steamAPI)
+{
+    //Path 1: SteamAPI_SteamUser_vXXX exports
+    {
+        using tSteamUser = ISteamUser * (__cdecl*)();
+        const char* versions[] =
+        {
+            "SteamAPI_SteamUser_v023",
+            "SteamAPI_SteamUser_v022",
+            "SteamAPI_SteamUser_v021",
+            "SteamAPI_SteamUser_v020",
+            "SteamAPI_SteamUser_v019"
+        };
+
+        for (const char* version : versions)
+        {
+            auto oSteamUser = reinterpret_cast<tSteamUser>(GetProcAddress(steamAPI, version));
+
+            if (!oSteamUser)
+                continue;
+
+            ISteamUser* steamUser = oSteamUser();
+            if (steamUser)
+                return steamUser;
+        }
+    }
+
+    //Path 2: SteamInternal_CreateInterface -> ISteamClient -> GetISteamUser
+    {
+        using tSteamInternal_CreateInterface = void* (__cdecl*)(const char*);
+        auto SteamInternal_CreateInterface =
+            reinterpret_cast<tSteamInternal_CreateInterface>(GetProcAddress(steamAPI, "SteamInternal_CreateInterface"));
+
+        auto GetHSteamUser =
+            reinterpret_cast<int(__cdecl*)()>(GetProcAddress(steamAPI, "SteamAPI_GetHSteamUser"));
+
+        auto GetHSteamPipe =
+            reinterpret_cast<int(__cdecl*)()>(
+                GetProcAddress(steamAPI,"SteamAPI_GetHSteamPipe"));
+
+        if (SteamInternal_CreateInterface && GetHSteamUser && GetHSteamPipe)
+        {
+            void* steamClient = nullptr;
+            const char* clientVersions[] =
+            {
+                "SteamClient020",
+                "SteamClient019",
+                "SteamClient018",
+                "SteamClient017"
+            };
+
+            for (const char* version : clientVersions)
+            {
+                steamClient = SteamInternal_CreateInterface(version);
+                if (steamClient)
+                    break;
+            }
+
+            if (steamClient)
+            {
+                using tGetISteamUser = ISteamUser * (__thiscall*)(void*, int, int, const char*);
+                uintptr_t* vtable = *reinterpret_cast<uintptr_t**>(steamClient);
+                auto GetISteamUser = reinterpret_cast<tGetISteamUser>(vtable[5]);
+
+                int hUser = GetHSteamUser();
+                int hPipe = GetHSteamPipe();
+
+                const char* userVersions[] =
+                {
+                    "SteamUser023",
+                    "SteamUser022",
+                    "SteamUser021",
+                    "SteamUser020",
+                    "SteamUser019"
+                };
+
+                for (const char* version : userVersions)
+                {
+                    ISteamUser* steamUser = GetISteamUser(steamClient, hUser, hPipe, version);
+                    if (steamUser) return steamUser;
+                }
+            }
+        }
+    }
+
+    Game::logMsg(LOGTYPE_WARNING, "Failed to find SteamUser interface, disabling 3D backgrounds.");
+    return nullptr;
 }
 
 

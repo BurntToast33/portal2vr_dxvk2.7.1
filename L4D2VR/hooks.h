@@ -3,6 +3,7 @@
 #include "MinHook.h"
 #include "bitbuf.h"
 
+
 class Game;
 class VR;
 class ITexture;

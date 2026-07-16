@@ -8,7 +8,6 @@
 #include "sigscanner.h"
 #include "util.h"
 
-
 static std::mutex logMutex;
 
 
@@ -54,27 +53,30 @@ void Game::Initialize()
     logMsg(LOGTYPE_DEBUG, "Debug level: %d", m_VRDebuglvl);
 
     //Waiting for dll's to be loaded
-    m_BaseClient = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("client.dll"));
-    m_BaseEngine = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("engine.dll"));
-    m_BaseMaterialSystem = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("MaterialSystem.dll"));
-    m_BaseServer = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("server.dll"));
-    m_BaseVgui2 = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("vgui2.dll"));
-    m_BaseVguiMatSurface = reinterpret_cast<uintptr_t>(GetModuleWithTimeout("vguimatsurface.dll"));
+    GetModuleWithTimeout(DLL_CLIENT);
+    GetModuleWithTimeout(DLL_ENGINE);
+    GetModuleWithTimeout(DLL_MATERIALSYSTEM);
+    GetModuleWithTimeout(DLL_SERVER);
+    GetModuleWithTimeout(DLL_VGUI2);
+    GetModuleWithTimeout(DLL_VGUIMATSURFACE);
+    HMODULE steamAPI = GetModuleWithTimeout(DLL_STEAMAPI);
 
     //Getting interfaces
-    m_ClientEntityList = static_cast<IClientEntityList*>(GetInterfaceSafe("client.dll", "VClientEntityList003"));
-    m_EnginePanel = static_cast<IEngineVGui*>(GetInterfaceSafe("engine.dll", "VEngineVGui001"));
-    m_EngineTrace = static_cast<IEngineTrace*>(GetInterfaceSafe("engine.dll", "EngineTraceClient004"));
-    m_EngineClient = static_cast<IEngineClient*>(GetInterfaceSafe("engine.dll", "VEngineClient015"));
-    m_MaterialSystem = static_cast<IMaterialSystem*>(GetInterfaceSafe("MaterialSystem.dll", "VMaterialSystem080"));
-    m_ModelInfo = static_cast<IModelInfo*>(GetInterfaceSafe("engine.dll", "VModelInfoClient004"));
-    m_ModelRender = static_cast<IModelRender*>(GetInterfaceSafe("engine.dll", "VEngineModel016"));
-    m_VguiInput = static_cast<IInput*>(GetInterfaceSafe("vgui2.dll", "VGUI_InputInternal001"));
-    m_VguiSurface = static_cast<ISurface*>(GetInterfaceSafe("vguimatsurface.dll", "VGUI_Surface031"));
-    m_VguiIPanel = static_cast<IPanel*>(GetInterfaceSafe("vgui2.dll", "VGUI_Panel009"));
+    m_ClientEntityList = static_cast<IClientEntityList*>(GetInterfaceSafe(DLL_CLIENT, "VClientEntityList003"));
+    m_EnginePanel = static_cast<IEngineVGui*>(GetInterfaceSafe(DLL_ENGINE, "VEngineVGui001"));
+    m_EngineTrace = static_cast<IEngineTrace*>(GetInterfaceSafe(DLL_ENGINE, "EngineTraceClient004"));
+    m_EngineClient = static_cast<IEngineClient*>(GetInterfaceSafe(DLL_ENGINE, "VEngineClient015"));
+    m_MaterialSystem = static_cast<IMaterialSystem*>(GetInterfaceSafe(DLL_MATERIALSYSTEM, "VMaterialSystem080"));
+    m_ModelInfo = static_cast<IModelInfo*>(GetInterfaceSafe(DLL_ENGINE, "VModelInfoClient004"));
+    m_ModelRender = static_cast<IModelRender*>(GetInterfaceSafe(DLL_ENGINE, "VEngineModel016"));
+    m_VguiInput = static_cast<IInput*>(GetInterfaceSafe(DLL_VGUI2, "VGUI_InputInternal001"));
+    m_VguiSurface = static_cast<ISurface*>(GetInterfaceSafe(DLL_VGUIMATSURFACE, "VGUI_Surface031"));
+    m_VguiIPanel = static_cast<IPanel*>(GetInterfaceSafe(DLL_VGUI2, "VGUI_Panel009"));
+    m_ISteamUser = GetSteamUserInterface(steamAPI);
 
     m_Offsets = new Offsets(m_GameType);
     LoadCommands();
+
 
 #ifndef OVERRIDEVRMODE
     m_VR = new VR(this);

@@ -106,6 +106,9 @@
     <Filter Include="dxvk\include\native\windows">
       <UniqueIdentifier>{406128ce-f962-4f98-9113-0619b17082e8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Util">
+      <UniqueIdentifier>{a27cbe3d-4f39-4ee3-b3a9-b822a1b0711f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game.h">
@@ -164,9 +167,6 @@
     </ClInclude>
     <ClInclude Include="sdk\common_defs.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="util.h">
-      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\dxvk\src\d3d9\d3d9_vr.h">
       <Filter>dxvk\d3d9</Filter>
@@ -1077,6 +1077,9 @@
     <ClInclude Include="..\dxvk\src\wsi\wsi_window.h">
       <Filter>dxvk\wsi</Filter>
     </ClInclude>
+    <ClInclude Include="util.h">
+      <Filter>Source Files\Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -1560,7 +1563,10 @@
       <Filter>dxvk\libdisplay-info</Filter>
     </ClCompile>
     <ClCompile Include="util.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\zydis\Zydis.c">
+      <Filter>Source Files\Util</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
