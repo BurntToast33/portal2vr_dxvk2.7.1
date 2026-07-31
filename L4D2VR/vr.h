@@ -289,6 +289,7 @@ public:
 	vr::IVRSystem *m_System = nullptr;
 	vr::IVRInput *m_Input = nullptr;
 	vr::IVROverlay *m_Overlay = nullptr;
+	vr::IVRCompositor* m_Compositor = nullptr;
 
 	Overlay m_MainOverlay;
 	//vr::VROverlayHandle_t m_HUDHandle;
@@ -353,10 +354,6 @@ public:
 
 	Vector m_ViewmodelPosCustomOffset; // Custom (from config) viewmodel position offset applied on top of hardcoded ones
     QAngle m_ViewmodelAngCustomOffset; // Custom (from config) viewmodel angle offset applied on top of hardcoded ones
-
-	float m_PortallingDetectionDistanceThreshold; // The distance threshold used to detect portalling
-	bool m_SmoothRotation; // If `true`, the camera pitch/roll follows the exit portal's orientation when portalling
-	float m_CameraUprightRecoverySpeed; // If the above is `true`, this controls how quickly the camera turns back upright after portalling
 
 	float m_Ipd = 0;															
 	float m_EyeZ = 0;
@@ -429,6 +426,9 @@ public:
 	bool m_3DMenu = false;
 	bool m_RenderWindow = false;
 	int m_ExperimentalOptimizations = 0;
+	float m_PortallingDetectionDistanceThreshold;
+	bool m_SmoothRotation;
+	float m_CameraUprightRecoverySpeed;
 	uint32_t m_AntiAliasing = 0;
 
 	//===============
@@ -491,7 +491,6 @@ public:
 		outFile.close();
 	}
 
-	//Due to valve jank the slider controls percentage needs to be inversed to work correctly
 	float MinMaxInverse(float val, float min, float max)
 	{
 		return max - (val - min);

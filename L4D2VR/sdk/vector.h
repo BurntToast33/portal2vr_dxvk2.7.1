@@ -1,6 +1,10 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
 #pragma once
 #include <cmath>
+#include <xmmintrin.h>
+#include <cstring>
+
+typedef unsigned int uint32;
 
 #define  FORCEINLINE			__forceinline
 
@@ -17,10 +21,42 @@ constexpr float PRECALC_DEG_TO_RAD = M_PI_F / 180.0f;
 constexpr float PRECALC_RAD_TO_DEG = 180.0f / M_PI_F;
 
 #define CHECK_VALID( _v)
+#define ALIGN16_POST
+const ALIGN16 uint32 g_SIMD_ComponentMask[4][4] ALIGN16_POST = 
+{
+	{ 0xFFFFFFFF, 0, 0, 0 }, { 0, 0xFFFFFFFF, 0, 0 }, { 0, 0, 0xFFFFFFFF, 0 }, { 0, 0, 0, 0xFFFFFFFF }
+};;
+
+#define FLOAT32_NAN_BITS     (unsigned long)0x7FC00000	// not a number!
+#define FLOAT32_NAN          BitsToFloat( FLOAT32_NAN_BITS )
+
+#define RESTRICT __restrict
+
+#define VEC_T_NAN FLOAT32_NAN
+
+/*******************************************************/
+/* MACRO for shuffle parameter for _mm_shuffle_ps().   */
+/* Argument fp3 is a digit[0123] that represents the fp*/
+/* from argument "b" of mm_shuffle_ps that will be     */
+/* placed in fp3 of result. fp2 is the same for fp2 in */
+/* result. fp1 is a digit[0123] that represents the fp */
+/* from argument "a" of mm_shuffle_ps that will be     */
+/* places in fp1 of result. fp0 is the same for fp0 of */
+/* result                                              */
+/*******************************************************/
+#define _MM_SHUFFLE(fp3,fp2,fp1,fp0) (((fp3) << 6) | ((fp2) << 4) | \
+                                     ((fp1) << 2) | ((fp0)))
+
+#define MM_SHUFFLE_REV(a,b,c,d) _MM_SHUFFLE(d,c,b,a)
 
 
 typedef float vec_t;
+typedef __m128 fltx4;
 
+inline vec_t BitsToFloat(unsigned int i)
+{
+	return *reinterpret_cast<vec_t*>(&i);
+}
 
 class Vector2D
 {
@@ -412,60 +448,54 @@ typedef Vector vec3_t;
 struct matrix3x4_t
 {
 	matrix3x4_t() = default;
+
 	matrix3x4_t(
 		float m00, float m01, float m02, float m03,
 		float m10, float m11, float m12, float m13,
 		float m20, float m21, float m22, float m23)
 	{
-		m_matrix[0][0] = m00;
-		m_matrix[0][1] = m01;
-		m_matrix[0][2] = m02;
-		m_matrix[0][3] = m03;
-		m_matrix[1][0] = m10;
-		m_matrix[1][1] = m11;
-		m_matrix[1][2] = m12;
-		m_matrix[1][3] = m13;
-		m_matrix[2][0] = m20;
-		m_matrix[2][1] = m21;
-		m_matrix[2][2] = m22;
-		m_matrix[2][3] = m23;
+		m_flMatVal[0][0] = m00;	m_flMatVal[0][1] = m01; m_flMatVal[0][2] = m02; m_flMatVal[0][3] = m03;
+		m_flMatVal[1][0] = m10;	m_flMatVal[1][1] = m11; m_flMatVal[1][2] = m12; m_flMatVal[1][3] = m13;
+		m_flMatVal[2][0] = m20;	m_flMatVal[2][1] = m21; m_flMatVal[2][2] = m22; m_flMatVal[2][3] = m23;
 	}
-	matrix3x4_t(const vec3_t& x_axis, const vec3_t& y_axis, const vec3_t& z_axis, const vec3_t& vec_origin)
+
+	//-----------------------------------------------------------------------------
+	// Creates a matrix where the X axis = forward
+	// the Y axis = left, and the Z axis = up
+	//-----------------------------------------------------------------------------
+	void Init(const Vector& xAxis, const Vector& yAxis, const Vector& zAxis, const Vector& vecOrigin)
 	{
-		init(x_axis, y_axis, z_axis, vec_origin);
+		m_flMatVal[0][0] = xAxis.x; m_flMatVal[0][1] = yAxis.x; m_flMatVal[0][2] = zAxis.x; m_flMatVal[0][3] = vecOrigin.x;
+		m_flMatVal[1][0] = xAxis.y; m_flMatVal[1][1] = yAxis.y; m_flMatVal[1][2] = zAxis.y; m_flMatVal[1][3] = vecOrigin.y;
+		m_flMatVal[2][0] = xAxis.z; m_flMatVal[2][1] = yAxis.z; m_flMatVal[2][2] = zAxis.z; m_flMatVal[2][3] = vecOrigin.z;
 	}
 
-	void init(const vec3_t& x_axis, const vec3_t& y_axis, const vec3_t& z_axis, const vec3_t& vec_origin)
+	//-----------------------------------------------------------------------------
+	// Creates a matrix where the X axis = forward
+	// the Y axis = left, and the Z axis = up
+	//-----------------------------------------------------------------------------
+	matrix3x4_t(const Vector& xAxis, const Vector& yAxis, const Vector& zAxis, const Vector& vecOrigin)
 	{
-		m_matrix[0][0] = x_axis.x;
-		m_matrix[0][1] = y_axis.x;
-		m_matrix[0][2] = z_axis.x;
-		m_matrix[0][3] = vec_origin.x;
-		m_matrix[1][0] = x_axis.y;
-		m_matrix[1][1] = y_axis.y;
-		m_matrix[1][2] = z_axis.y;
-		m_matrix[1][3] = vec_origin.y;
-		m_matrix[2][0] = x_axis.z;
-		m_matrix[2][1] = y_axis.z;
-		m_matrix[2][2] = z_axis.z;
-		m_matrix[2][3] = vec_origin.z;
+		Init(xAxis, yAxis, zAxis, vecOrigin);
 	}
 
-	float* operator[](int i)
+	inline void Invalidate(void)
 	{
-		return m_matrix[i];
+		for (int i = 0; i < 3; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				m_flMatVal[i][j] = VEC_T_NAN;
+			}
+		}
 	}
 
-	const float* operator[](int i) const
-	{
-		return m_matrix[i];
-	}
+	float* operator[](int i) { return m_flMatVal[i]; }
+	const float* operator[](int i) const { return m_flMatVal[i]; }
+	float* Base() { return &m_flMatVal[0][0]; }
+	const float* Base() const { return &m_flMatVal[0][0]; }
 
-	float m_matrix[3][4];
-
-	float* Base() { return &m_matrix[0][0]; }
-	const float* Base() const { return &m_matrix[0][0]; }
-
+	float m_flMatVal[3][4];
 };
 
 class Vector4D
@@ -1373,3 +1403,59 @@ inline Vector Vector::Cross(const Vector& vOther) const
 	CrossProduct(*this, vOther, res);
 	return res;
 }
+
+void MatrixAngles(const matrix3x4_t& matrix, float* angles);
+
+inline void MatrixAngles(const matrix3x4_t& matrix, QAngle& angles)
+{
+	MatrixAngles(matrix, &angles.x);
+}
+
+FORCEINLINE fltx4 LoadUnalignedSIMD(const void* pSIMD)
+{
+	return _mm_loadu_ps(reinterpret_cast<const float*>(pSIMD));
+}
+
+FORCEINLINE fltx4 SplatXSIMD(fltx4 const& a)
+{
+	return _mm_shuffle_ps(a, a, MM_SHUFFLE_REV(0, 0, 0, 0));
+}
+
+FORCEINLINE fltx4 SplatYSIMD(fltx4 const& a)
+{
+	return _mm_shuffle_ps(a, a, MM_SHUFFLE_REV(1, 1, 1, 1));
+}
+
+FORCEINLINE fltx4 SplatZSIMD(fltx4 const& a)
+{
+	return _mm_shuffle_ps(a, a, MM_SHUFFLE_REV(2, 2, 2, 2));
+}
+
+FORCEINLINE fltx4 MulSIMD(const fltx4& a, const fltx4& b)				// a*b
+{
+	return _mm_mul_ps(a, b);
+};
+
+FORCEINLINE fltx4 AddSIMD(const fltx4& a, const fltx4& b)				// a+b
+{
+	return _mm_add_ps(a, b);
+};
+
+FORCEINLINE fltx4 AndSIMD(const fltx4& a, const fltx4& b)				// a & b
+{
+	return _mm_and_ps(a, b);
+}
+
+FORCEINLINE void StoreUnalignedSIMD(float* RESTRICT pSIMD, const fltx4& a)
+{
+	_mm_storeu_ps(pSIMD, a);
+}
+
+void ConcatTransforms(const matrix3x4_t& in1, const matrix3x4_t& in2, matrix3x4_t& out);
+
+void MatrixCopy(const matrix3x4_t& in, matrix3x4_t& out);
+
+void AngleMatrix(const QAngle& angles, matrix3x4_t& matrix);
+
+// transform a set of angles in the input space of parentMatrix to the output space
+QAngle TransformAnglesToWorldSpace(const QAngle& angles, const matrix3x4_t& parentMatrix);

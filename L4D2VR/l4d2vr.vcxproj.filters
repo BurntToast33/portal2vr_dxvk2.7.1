@@ -109,6 +109,9 @@
     <Filter Include="Source Files\Util">
       <UniqueIdentifier>{a27cbe3d-4f39-4ee3-b3a9-b822a1b0711f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\SDK">
+      <UniqueIdentifier>{3b31a935-be96-4870-ab61-2b9dcc8b8eb1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game.h">
@@ -123,34 +126,7 @@
     <ClInclude Include="offsets.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="sdk\usercmd.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sdk\material.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sdk\sdk.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sdk\texture.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sdk\trace.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sdk\vector.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sdk\checksum_crc.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="sigscanner.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sdk\sdk_server.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sdk\worldsize.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="sdk\cnewparticleeffect.h">
@@ -1080,6 +1056,33 @@
     <ClInclude Include="util.h">
       <Filter>Source Files\Util</Filter>
     </ClInclude>
+    <ClInclude Include="sdk\sdk.h">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\sdk_server.h">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\material.h">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\vector.h">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\worldsize.h">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\trace.h">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\usercmd.h">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\texture.h">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\checksum_crc.h">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -1092,15 +1095,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="game.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sdk\checksum_crc.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sdk\bitbuf.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sdk\newbitbuf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\dxvk\src\d3d9\d3d9_vr.cpp">
@@ -1567,6 +1561,18 @@
     </ClCompile>
     <ClCompile Include="..\thirdparty\zydis\Zydis.c">
       <Filter>Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="sdk\newbitbuf.cpp">
+      <Filter>Source Files\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="sdk\bitbuf.cpp">
+      <Filter>Source Files\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="sdk\checksum_crc.cpp">
+      <Filter>Source Files\SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="sdk\Vector.cpp">
+      <Filter>Source Files\SDK</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

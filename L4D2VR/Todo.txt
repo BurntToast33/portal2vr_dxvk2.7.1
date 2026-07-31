@@ -10,25 +10,28 @@ Todo:
 - Finish Overlay based aiming
 - Fix MSAA (I don't know how, everything is transparent so run without msaa for now)
 - Add cube map transisions between levels to stay in the aptiure envrionment while loading
-- ask about adding Spencer0187's roomscale code (see about adding the ability to walk through portals)
-
-
-Todo:
-- Background03 and 04 and 08 needs map rotation
+- Add room scale movment
+- Look into if preventing view cache flush at the end of RenderView causes views to be reused for the next eye.
 
 
 V0.2.1
 Done:
-- Fixed some maps setting a invalid render state when compositing hud onto spectator cam causing a black screen.
-- Fixed bug where VR loses textures on device reset.
-- Fixed viewmodel's fov.
-- Disabled msaa due to being broken right now.
-- Added levels to debug command `-vrdebug`, `-vrdebug 1` opens console and logs more detail, `-vrdebug 2`  adds compositer error logging.
-- Added smooth rotation through portals by vittorioromeo.
+- Fixed some maps setting an invalid render state when compositing the HUD onto the spectator camera, causing a black screen.
+- Fixed a bug where VR loses textures after a device reset.
+- Fixed the viewmodel FOV.
+- Disabled MSAA due to it currently being broken.
+
+- Added levels to the debug command `-vrdebug`. `-vrdebug 1` opens the console, while `-vrdebug 2/3/4` adds more detail about what is happening.
+- Added smooth rotation through portals by VittorioRomeo.
 - Added Portal: Reloaded support.
 - Added built cubemaps to background maps.
-- Overhalled how backgrounds file is parsed to make way for mapping cube maps to loading zones in the future.
-- Overhalled input binding system to make adding and modifying binds easier to code.
+- Added a roll bump to smooth rotation to handle 180-degree upside-down cases.
+
+- Added a utility tool to hook anywhere in a function and dump CPU registers.
+- Overhauled how background files are parsed to prepare for mapping cubemaps to loading zones in the future.
+- Overhauled the input binding system to make adding and modifying binds easier.
+- Changed the upright rotation model for smooth rotation from SLERP to NLERP. 
+  The difference is a slight speed difference and angle drift, which is not noticeable at default settings, while improving performance.
 
 
 V0.2.1-preview

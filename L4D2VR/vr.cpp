@@ -44,6 +44,7 @@ VR::VR(Game *game)
         return;
     }
 
+    m_Compositor = vr::VRCompositor();
     m_Input = vr::VRInput();
     m_System = vr::OpenVRInternal_ModuleContext().VRSystem();
 
@@ -408,7 +409,6 @@ int VR::SetActionManifest(const char *fileName)
     if (m_Input->SetActionManifestPath(path) != vr::VRInputError_None) 
         Game::errorMsg("SetActionManifestPath failed");
 
-    //SetBinding("/actions/main/in/ActivateVR", );
     SetBinding("/actions/main/in/Jump", VRBindingType_Input, { "+jump", "-jump" });
     SetBinding("/actions/main/in/PrimaryAttack", VRBindingType_Input, { "+attack", "-attack" }, VRBindingMode_Hold);
     SetBinding("/actions/main/in/Reload", VRBindingType_Input, { "+reload", "-reload" });
@@ -445,43 +445,40 @@ int VR::SetActionManifest(const char *fileName)
         {
             if (m_SnapTurning)
             {
-                if (!m_PressedTurn && analogActionData.x > 0.5)
+                if (!m_PressedTurn)
                 {
-                    m_RotationOffset.y -= m_SnapTurnAngle;
-                    m_PressedTurn = true;
+                    if (analogActionData.x > 0.5f)
+                    {
+                        m_RotationOffset.y -= m_SnapTurnAngle;
+                        m_PressedTurn = true;
+                    }
+                    else if (analogActionData.x < -0.5f)
+                    {
+                        m_RotationOffset.y += m_SnapTurnAngle;
+                        m_PressedTurn = true;
+                    }
                 }
-                else if (!m_PressedTurn && analogActionData.x < -0.5)
-                {
-                    m_RotationOffset.y += m_SnapTurnAngle;
-                    m_PressedTurn = true;
-                }
-                else if (analogActionData.x < 0.3 && analogActionData.x > -0.3)
-                    m_PressedTurn = false;
+
+                if (fabsf(analogActionData.x) < 0.3f) m_PressedTurn = false;
             }
-            // Smooth turning
             else
             {
-                typedef std::chrono::duration<float, std::milli> duration;
                 auto currentTime = std::chrono::steady_clock::now();
-                duration elapsed = currentTime - m_PrevFrameTime;
-                float deltaTime = elapsed.count();
+                float deltaTime = std::chrono::duration<float, std::milli>(currentTime - m_PrevFrameTime).count();
                 m_PrevFrameTime = currentTime;
+                constexpr float deadzone = 0.2f;
+                float x = analogActionData.x;
+                float magnitude = fabsf(x);
 
-                float deadzone = 0.2;
-                // smoother turning
-                float xNormalized = (abs(analogActionData.x) - deadzone) / (1 - deadzone);
-                if (analogActionData.x > deadzone)
+                if (magnitude > deadzone)
                 {
-                    m_RotationOffset.y -= m_TurnSpeed * deltaTime * xNormalized;
-                }
-                if (analogActionData.x < -deadzone)
-                {
-                    m_RotationOffset.y += m_TurnSpeed * deltaTime * xNormalized;
+                    float normalized = (magnitude - deadzone) / (1.0f - deadzone);
+                    float direction = (x > 0.0f) ? -1.0f : 1.0f;
+                    m_RotationOffset.y += direction * m_TurnSpeed * deltaTime * normalized;
                 }
             }
 
-            // Wrap from 0 to 360
-            m_RotationOffset.y -= 360 * std::floor(m_RotationOffset.y / 360);
+            m_RotationOffset.y -= 360.0f * floorf(m_RotationOffset.y / 360.0f);
         }
     });
     m_Input->GetActionHandle("/actions/main/in/Walk", &m_ActionWalk); //Due to being in a hook I can't use SetBinding
@@ -533,20 +530,19 @@ void VR::PreUpdate()
 
 void VR::PostUpdate()
 {
-    if (!m_IsInitialized || !m_Game->m_Initialized)
+    if (!m_IsInitialized || !m_Game->m_Initialized || !m_IsVREnabled || !g_D3DVR9)
         return;
 
-    if (!m_IsVREnabled && !g_D3DVR9)
-        return;
-
+    
     // Prevents crashing at menu
-    if (!m_Game->m_EngineClient->IsInGame())
+    const bool inGame = m_Game->m_EngineClient->IsInGame();
+    if (!inGame)
     {
         m_IsCredits = false; //Reset once out of level
         m_Game->m_CachedArmsModel = false;
 
         if (m_3DMenu && !m_3DMenuLoading && !m_IsLevelBackground && m_CreatedVRTextures && 
-            !m_Game->m_EngineClient->IsDrawingLoadingImage() && !m_Game->m_EngineClient->IsInGame()
+            !m_Game->m_EngineClient->IsDrawingLoadingImage() && !inGame
             && m_Game->m_GameType != GAMETYPE_UNKNOWN)
         {
             std::thread([this]()
@@ -601,9 +597,6 @@ void VR::PostUpdate()
 
 void VR::FirstFrameUpdate()
 {
-    //Crashes in debug mode for some reason
-    //m_CreatedVRTextures = false; //Apparently need to recreate textures or workshop maps don't render properly
-    
     m_Game->ClientCmd_Unrestricted("mat_motion_blur_enabled 0");
      
     if (m_Game->m_EngineClient->IsPaused())
@@ -670,8 +663,8 @@ void VR::SubmitVRTextures()
         m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_BackBuffer.m_VRTexture);
         m_MainOverlay.ShowOverlay();
 
-        leftEye = vr::VRCompositor()->Submit(vr::Eye_Left, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
-        rightEye = vr::VRCompositor()->Submit(vr::Eye_Right, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
+        leftEye = m_Compositor->Submit(vr::Eye_Left, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
+        rightEye = m_Compositor->Submit(vr::Eye_Right, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
 
         if (m_Game->m_VRDebuglvl > 2)
         {
@@ -726,8 +719,8 @@ void VR::SubmitVRTextures()
     }
     else m_MainOverlay.HideOverlay();
     
-    leftEye = vr::VRCompositor()->Submit(vr::Eye_Left, &m_LeftEye.m_VRTexture, &(m_TextureBounds)[0], vr::Submit_Default);
-    rightEye = vr::VRCompositor()->Submit(vr::Eye_Right, &m_RightEye.m_VRTexture, &(m_TextureBounds)[1], vr::Submit_Default);
+    leftEye = m_Compositor->Submit(vr::Eye_Left, &m_LeftEye.m_VRTexture, &(m_TextureBounds)[0], vr::Submit_Default);
+    rightEye = m_Compositor->Submit(vr::Eye_Right, &m_RightEye.m_VRTexture, &(m_TextureBounds)[1], vr::Submit_Default);
 
     if (m_Game->m_VRDebuglvl > 2)
     {
@@ -769,7 +762,7 @@ void VR::GetPoseData(const vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseDa
 
 void VR::RepositionOverlay(Overlay& overlay, vr::TrackedDeviceIndex_t referenceDevice, OverlayRel con, Vector offset, OverlayRotation rot)
 {
-    vr::ETrackingUniverseOrigin trackingOrigin = vr::VRCompositor()->GetTrackingSpace();
+    vr::ETrackingUniverseOrigin trackingOrigin = m_Compositor->GetTrackingSpace();
     vr::HmdMatrix34_t device = m_Poses[referenceDevice].mDeviceToAbsoluteTracking;
 
     Vector deviceRight = { device.m[0][0], device.m[1][0], device.m[2][0] };
@@ -942,7 +935,7 @@ void VR::GetPoses()
 void VR::UpdatePosesAndActions() 
 {
     m_Input->UpdateActionState(&m_ActiveActionSet, sizeof(vr::VRActiveActionSet_t), 1);
-    vr::VRCompositor()->WaitGetPoses(m_Poses, vr::k_unMaxTrackedDeviceCount, NULL, 0);
+    m_Compositor->WaitGetPoses(m_Poses, vr::k_unMaxTrackedDeviceCount, NULL, 0);
 }
 
 void VR::GetViewParameters() 
@@ -1169,55 +1162,34 @@ void VR::ProcessInput()
     // Re-align camera upright after portalling
     if (m_RotationOffset.x != 0.f || m_RotationOffset.z != 0.f)
     {
-        // Last valid yaw angle, in case we need to revert to it.
         const float lastYaw = m_RotationOffset.y;
 
-        // Get normalized forward direction vector from current rotation offset:
-        Vector fwdSrc;
-        QAngle::AngleVectors(m_RotationOffset, &fwdSrc, nullptr, nullptr);
-        VectorNormalize(fwdSrc);
+        Vector currentForward;
+        QAngle::AngleVectors(m_RotationOffset, &currentForward, nullptr, nullptr);
 
-        // Get normalized forward direction vector from target rotation offset:
-        const QAngle targetRotation(0, lastYaw, 0);
-        Vector fwdTarget;
-        QAngle::AngleVectors(targetRotation, &fwdTarget, nullptr, nullptr);
-        VectorNormalize(fwdTarget);
+        // Target is straight forward with current yaw
+        Vector targetForward;
+        Vector currentRight;
+        QAngle targetAngles(0.f, lastYaw, 0.f);
+        QAngle::AngleVectors(targetAngles, &targetForward, &currentRight, nullptr);
 
-        // Slerp taken from `glm/rotate_vector.inl`:
-        const auto slerp = [](const Vector& x, const Vector& y, float a) -> Vector {
-            // get cosine of angle between vectors (-1 -> 1)
-            auto CosAlpha = DotProduct(x, y);
-            // get angle (0 -> pi)
-            auto Alpha = std::acos(CosAlpha);
-            // get sine of angle between vectors (0 -> 1)
-            auto SinAlpha = std::sin(Alpha);
-            // this breaks down when SinAlpha = 0, i.e. Alpha = 0 or pi
-
-            if (SinAlpha == 0.f) {
-                return y;
-            }
-
-            auto t1 = std::sin((1.f - a) * Alpha) / SinAlpha;
-            auto t2 = std::sin(a * Alpha) / SinAlpha;
-
-            // interpolate src vectors
-            return x * t1 + y * t2;
-            };
-
-        // Calculate slerp between source and target direction vectors:
-        Vector slerped = slerp(fwdSrc, fwdTarget, m_CameraUprightRecoverySpeed);
-        VectorNormalize(slerped);
-
-        // Turn the final direction vector into Euler angles and apply it:
-        QAngle finalAngles;
-        QAngle::VectorAngles(slerped, finalAngles);
-        m_RotationOffset = finalAngles;
-
-        // Just in case any calculation went awry, revert to an upright vector:
-        if (std::isnan(m_RotationOffset.x) || std::isnan(m_RotationOffset.y) || std::isnan(m_RotationOffset.z))
+        if (DotProduct(currentForward, targetForward) < -0.9999f)
         {
-            m_RotationOffset = QAngle(0.f, lastYaw, 0.f);
+            currentForward += currentRight * 0.01f;
+            VectorNormalize(currentForward);
         }
+
+        // Normalized lerp
+        Vector result =
+            currentForward * (1.0f - m_CameraUprightRecoverySpeed) +
+            targetForward * m_CameraUprightRecoverySpeed;
+
+        VectorNormalize(result);
+
+        QAngle finalAngles;
+        QAngle::VectorAngles(result, finalAngles);
+
+        m_RotationOffset = finalAngles;
     }
 }
 
@@ -1322,7 +1294,7 @@ bool VR::CheckOverlayIntersectionForController(vr::VROverlayHandle_t overlayHand
     vr::VROverlayIntersectionParams_t  params  = {0};
     vr::VROverlayIntersectionResults_t results = {0};
 
-    params.eOrigin    = vr::VRCompositor()->GetTrackingSpace();
+    params.eOrigin    = m_Compositor->GetTrackingSpace();
     params.vSource    = { controllerVMatrix.m[3][0],  controllerVMatrix.m[3][1],  controllerVMatrix.m[3][2]};
     params.vDirection = {-controllerVMatrix.m[2][0], -controllerVMatrix.m[2][1], -controllerVMatrix.m[2][2]};
 
@@ -1612,150 +1584,6 @@ Vector VR::Trace(uint32_t* localPlayer) {
 
     return trace.endpos;
 }
-
-void AngleMatrix(const QAngle& angles, matrix3x4_t& matrix)
-{
-    float sr, sp, sy, cr, cp, cy;
-
-    SinCos(angles[YAW] * PRECALC_DEG_TO_RAD, &sy, &cy);
-    SinCos(angles[PITCH] * PRECALC_DEG_TO_RAD, &sp, &cp);
-    SinCos(angles[ROLL] * PRECALC_DEG_TO_RAD, &sr, &cr);
-
-    // matrix = (YAW * PITCH) * ROLL
-    matrix[0][0] = cp * cy;
-    matrix[1][0] = cp * sy;
-    matrix[2][0] = -sp;
-
-    // NOTE: Do not optimize this to reduce multiplies! optimizer bug will screw this up.
-    matrix[0][1] = sr * sp * cy + cr * -sy;
-    matrix[1][1] = sr * sp * sy + cr * cy;
-    matrix[2][1] = sr * cp;
-    matrix[0][2] = (cr * sp * cy + -sr * -sy);
-    matrix[1][2] = (cr * sp * sy + -sr * cy);
-    matrix[2][2] = cr * cp;
-
-    matrix[0][3] = 0.0f;
-    matrix[1][3] = 0.0f;
-    matrix[2][3] = 0.0f;
-}
-
-void MatrixCopy(const matrix3x4_t& in, matrix3x4_t& out)
-{
-    memcpy(out.Base(), in.Base(), sizeof(float) * 3 * 4);
-}
-
-
-/*
-================
-R_ConcatTransforms
-================
-*/
-
-void ConcatTransforms(const matrix3x4_t& in1, const matrix3x4_t& in2, matrix3x4_t& out)
-{
-    if (&in1 == &out)
-    {
-        matrix3x4_t in1b;
-        MatrixCopy(in1, in1b);
-        ConcatTransforms(in1b, in2, out);
-        return;
-    }
-    if (&in2 == &out)
-    {
-        matrix3x4_t in2b;
-        MatrixCopy(in2, in2b);
-        ConcatTransforms(in1, in2b, out);
-        return;
-    }
-    out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] +
-        in1[0][2] * in2[2][0];
-    out[0][1] = in1[0][0] * in2[0][1] + in1[0][1] * in2[1][1] +
-        in1[0][2] * in2[2][1];
-    out[0][2] = in1[0][0] * in2[0][2] + in1[0][1] * in2[1][2] +
-        in1[0][2] * in2[2][2];
-    out[0][3] = in1[0][0] * in2[0][3] + in1[0][1] * in2[1][3] +
-        in1[0][2] * in2[2][3] + in1[0][3];
-    out[1][0] = in1[1][0] * in2[0][0] + in1[1][1] * in2[1][0] +
-        in1[1][2] * in2[2][0];
-    out[1][1] = in1[1][0] * in2[0][1] + in1[1][1] * in2[1][1] +
-        in1[1][2] * in2[2][1];
-    out[1][2] = in1[1][0] * in2[0][2] + in1[1][1] * in2[1][2] +
-        in1[1][2] * in2[2][2];
-    out[1][3] = in1[1][0] * in2[0][3] + in1[1][1] * in2[1][3] +
-        in1[1][2] * in2[2][3] + in1[1][3];
-    out[2][0] = in1[2][0] * in2[0][0] + in1[2][1] * in2[1][0] +
-        in1[2][2] * in2[2][0];
-    out[2][1] = in1[2][0] * in2[0][1] + in1[2][1] * in2[1][1] +
-        in1[2][2] * in2[2][1];
-    out[2][2] = in1[2][0] * in2[0][2] + in1[2][1] * in2[1][2] +
-        in1[2][2] * in2[2][2];
-    out[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] +
-        in1[2][2] * in2[2][3] + in1[2][3];
-}
-
-void MatrixAngles(const matrix3x4_t& matrix, float* angles)
-{
-    float forward[3];
-    float left[3];
-    float up[3];
-
-    //
-    // Extract the basis vectors from the matrix. Since we only need the Z
-    // component of the up vector, we don't get X and Y.
-    //
-    forward[0] = matrix[0][0];
-    forward[1] = matrix[1][0];
-    forward[2] = matrix[2][0];
-    left[0] = matrix[0][1];
-    left[1] = matrix[1][1];
-    left[2] = matrix[2][1];
-    up[2] = matrix[2][2];
-
-    float xyDist = sqrtf(forward[0] * forward[0] + forward[1] * forward[1]);
-
-    // enough here to get angles?
-    if (xyDist > 0.001f)
-    {
-        // (yaw)	y = ATAN( forward.y, forward.x );		-- in our space, forward is the X axis
-        angles[1] = atan2f(forward[1], forward[0]) * PRECALC_RAD_TO_DEG;
-
-        // (pitch)	x = ATAN( -forward.z, sqrt(forward.x*forward.x+forward.y*forward.y) );
-        angles[0] = atan2f(-forward[2], xyDist) * PRECALC_RAD_TO_DEG;
-
-        // (roll)	z = ATAN( left.z, up.z );
-        angles[2] = atan2f(left[2], up[2]) * PRECALC_RAD_TO_DEG;
-    }
-    else	// forward is mostly Z, gimbal lock-
-    {
-        // (yaw)	y = ATAN( -left.x, left.y );			-- forward is mostly z, so use right for yaw
-        angles[1] = atan2f(-left[0], left[1]) * PRECALC_RAD_TO_DEG;
-
-        // (pitch)	x = ATAN( -forward.z, sqrt(forward.x*forward.x+forward.y*forward.y) );
-        angles[0] = atan2f(-forward[2], xyDist) * PRECALC_RAD_TO_DEG;
-
-        // Assume no roll in this case as one degree of freedom has been lost (i.e. yaw == roll)
-        angles[2] = 0;
-    }
-}
-
-inline void MatrixAngles(const matrix3x4_t& matrix, QAngle& angles)
-{
-    MatrixAngles(matrix, &angles.x);
-}
-
-
-
-// transform a set of angles in the input space of parentMatrix to the output space
-QAngle TransformAnglesToWorldSpace(const QAngle& angles, const matrix3x4_t& parentMatrix)
-{
-    matrix3x4_t angToParent, angToWorld;
-    AngleMatrix(angles, angToParent);
-    ConcatTransforms(parentMatrix, angToParent, angToWorld);
-    QAngle out;
-    MatrixAngles(angToWorld, out);
-    return out;
-}
-
 
 Vector VR::TraceEye(uint32_t* localPlayer, Vector cameraPos, Vector eyePos, QAngle& eyeAngle) {
     CGameTrace trTestObstructionsNearPortals;
