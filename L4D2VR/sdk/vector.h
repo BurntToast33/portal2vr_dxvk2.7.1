@@ -3,6 +3,7 @@
 #include <cmath>
 #include <xmmintrin.h>
 #include <cstring>
+#include "json.hpp"
 
 typedef unsigned int uint32;
 
@@ -318,6 +319,16 @@ private:
 	Vector(const Vector &vOther);
 #endif
 };
+
+inline void from_json(const nlohmann::json& j, Vector& v)
+{
+	if (!j.is_array() || j.size() != 3)
+		throw std::runtime_error("Expected a Vector as [x, y, z]");
+
+	v.x = j[0].get<float>();
+	v.y = j[1].get<float>();
+	v.z = j[2].get<float>();
+}
 
 inline void Vector::Init(vec_t ix, vec_t iy, vec_t iz)
 {

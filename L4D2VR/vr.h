@@ -20,6 +20,7 @@
 class Game;
 class ITexture;
 
+#pragma region DataTypes
 struct TrackedDevicePoseData 
 {
 	std::string TrackedDeviceName;
@@ -275,7 +276,13 @@ struct StringPair {
 	const char* pressCommand = nullptr;
 	const char* releaseCommand = nullptr;
 };
+#pragma endregion
 
+void CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth = MATERIAL_RT_DEPTH_SEPARATE, UINT textureFlags = TEXTUREFLAGS_NOMIP);
+
+//Push/Pop texture is used to account for any delay between the game calling to create texture and dxvk creating it
+void PushTexture(SharedTextureHolder* holder, int isMSAA);
+std::pair<int, SharedTextureHolder*> PopNextTexture();
 
 class VR
 {
@@ -284,7 +291,7 @@ public:
 	// Variables
 	//====================
 
-	Game *m_Game = nullptr;
+	Game* m_Game = nullptr;
 
 	vr::IVRSystem *m_System = nullptr;
 	vr::IVRInput *m_Input = nullptr;
@@ -374,9 +381,6 @@ public:
 	bool m_IsRightEye = false;
 	bool m_ParticleCreated = false;
 
-	std::queue<std::pair<int, SharedTextureHolder*>> m_TextureQueue; //Deals with any differences between call and action
-	std::mutex m_QueueMutex;
-
 	float m_WScaleDownRatio, m_HScaleDownRatio, m_WScaleUpRatio, m_HScaleUpRatio;
 
 	std::unordered_map<std::string, std::string> m_BackgroundMapping{}; //Map map names to background names
@@ -426,9 +430,10 @@ public:
 	bool m_3DMenu = false;
 	bool m_RenderWindow = false;
 	int m_ExperimentalOptimizations = 0;
-	float m_PortallingDetectionDistanceThreshold;
-	bool m_SmoothRotation;
-	float m_CameraUprightRecoverySpeed;
+	float m_PortallingDetectionDistanceThreshold = 35;
+	bool m_SmoothRotation = false;
+	float m_CameraUprightRecoverySpeed = 0.2f;
+	bool m_UsePCCM = false;
 	uint32_t m_AntiAliasing = 0;
 
 	//===============
@@ -704,14 +709,9 @@ public:
 	void CreateVRTextures();
 	void SubmitVRTextures();
 	void DeviceReset(); //When D3D reset's this is called
-	void CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth = MATERIAL_RT_DEPTH_SEPARATE, UINT textureFlags = TEXTUREFLAGS_NOMIP);
 	void BuildCaptureMap();
 	int Load3DMenu();
 	bool ShouldCapture(CaptureConditions con);
-
-	//Push/Pop texture is used to account for any delay between the game calling to create texture and dxvk creating it
-	void PushTexture(SharedTextureHolder* holder, int isMSAA);
-	std::pair<int, SharedTextureHolder*> PopNextTexture();
 
 
 	//===== UI =====
@@ -775,6 +775,7 @@ public:
 	void GetPoseData(const vr::TrackedDevicePose_t &poseRaw, TrackedDevicePoseData &poseOut);
 	Vector Trace(uint32_t* localPlayer);
 	Vector TraceEye(uint32_t* localPlayer, Vector cameraPos, Vector eyePos, QAngle& eyeAngle);
+	void OnMapLoading(const char* mapName, bool isBackground);
 };
 
 //Ques up textures that use msaa to be resolved before compositing

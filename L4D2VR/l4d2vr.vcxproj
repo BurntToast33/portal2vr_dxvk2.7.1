@@ -109,9 +109,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <TargetName>d3d9</TargetName>
-    <IncludePath>$(DXSDK_DIR)Include;$(SolutionDir)thirdparty\minhook\include;$(SolutionDir)thirdparty\openvr\include;$(ProjectDir)sdk;$(SolutionDir)dxvk\include;$(SolutionDir)dxvk\src\d3d9\shaders;$(SolutionDir)dxvk\include\shaders;$(ProjectDir);$(SolutionDir);$(SolutionDir)dxvk\src\d3d9;$(SolutionDir)thirdparty\nlohmann_json\include;$(SolutionDir)thirdparty\zydis;$(IncludePath)</IncludePath>
+    <IncludePath>$(DXSDK_DIR)Include;$(SolutionDir)thirdparty\minhook\include;$(SolutionDir)thirdparty\openvr\include;$(ProjectDir)sdk;$(SolutionDir)dxvk\include;$(SolutionDir)dxvk\src\d3d9\shaders;$(SolutionDir)dxvk\include\shaders;$(ProjectDir);$(SolutionDir);$(SolutionDir)dxvk\src\d3d9;$(SolutionDir)thirdparty\nlohmann_json\include;$(SolutionDir)thirdparty\zydis;$(SolutionDir)thirdparty\directxtex\include;$(IncludePath)</IncludePath>
     <ExecutablePath>$(ProjectDir)include;$(ExecutablePath)</ExecutablePath>
-    <LibraryPath>$(SolutionDir)thirdparty\openvr\lib\win32;$(SolutionDir)thirdparty\minhook\lib\$(Configuration);$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)thirdparty\directxtex\lib;$(SolutionDir)thirdparty\openvr\lib\win32;$(SolutionDir)thirdparty\minhook\lib\$(Configuration);$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Portal_Reloaded_Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -184,11 +184,11 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>$(SolutionDir)dxvk\src\d3d9\d3d9.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>openvr_api.lib;libMinHook.x86.lib;Version.lib;$(SolutionDir)dxvk\lib32\vulkan-1.lib;SetupAPI.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>openvr_api.lib;libMinHook.x86.lib;Version.lib;$(SolutionDir)dxvk\lib32\vulkan-1.lib;SetupAPI.lib;DirectXTex.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(TargetPath)" "D:\Steam\steamapps\common\Portal 2\bin\"</Command>
+      <Command>copy /Y "$(TargetPath)" "Z:\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Portal_Reloaded_Release|Win32'">
@@ -593,6 +593,7 @@
     <ClInclude Include="game.h" />
     <ClInclude Include="hooks.h" />
     <ClInclude Include="offsets.h" />
+    <ClInclude Include="PCCM.h" />
     <ClInclude Include="sdk\bitbuf.h" />
     <ClInclude Include="sdk\checksum_crc.h" />
     <ClInclude Include="sdk\cnewparticleeffect.h" />
@@ -769,10 +770,12 @@
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="hooks.cpp" />
+    <ClCompile Include="PCCM.cpp" />
     <ClCompile Include="sdk\bitbuf.cpp" />
     <ClCompile Include="sdk\checksum_crc.cpp" />
     <ClCompile Include="sdk\newbitbuf.cpp" />
-    <ClCompile Include="sdk\Vector.cpp" />
+    <ClCompile Include="sdk\sdk.cpp" />
+    <ClCompile Include="sdk\vector.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="vr.cpp" />
   </ItemGroup>

@@ -254,6 +254,7 @@ public:
 
 	//Rendering
 	static void __fastcall dRenderView(void *ecx, void *edx, CViewSetup &setup, CViewSetup &hudViewSetup, int nClearFlags, int whatToDraw);
+	static void __fastcall dDevRenderView(void* ecx, void* edx, CViewSetup& setup, CViewSetup& hudViewSetup, int nClearFlags, int whatToDraw);
 	static void __fastcall dCalcViewModelView(void* ecx, void* edx, const Vector& eyePosition, const QAngle& eyeAngles);
 	static void dAdjustEngineViewport(int& x, int& y, int& width, int& height);
 	static void __fastcall dGetViewport(void* ecx, void* edx, int& x, int& y, int& width, int& height);

@@ -15,11 +15,14 @@ DWORD WINAPI InitL4D2VR(HMODULE hModule)
     bool insecureEnabled = false; //Change to false to enable -insecure check 
     bool vrEnabled = false;
     int vrDebuglvl = 0;
+    bool overrideVRAssets = false; //This will override vr asset loading to load assets in 2D mode
+    bool vrDevMode = false;
 
     for (int i = 0; i < nArgs; ++i)
     {
         if (!wcscmp(szArglist[i], L"-insecure")) insecureEnabled = true;
         else if (!wcscmp(szArglist[i], L"-vr")) vrEnabled = true;
+        else if (!wcscmp(szArglist[i], L"-overrideVRAssets")) overrideVRAssets = true;
         else if (!wcscmp(szArglist[i], L"-vrdebug"))
         {
             if (i + 1 < nArgs)
@@ -33,6 +36,11 @@ DWORD WINAPI InitL4D2VR(HMODULE hModule)
                     ++i;
                 }
             }
+        }
+        else if (!wcscmp(szArglist[i], L"-vrDevMode"))
+        {
+            vrDevMode = true;
+            if (!vrDebuglvl) vrDebuglvl = 1;
         }
     }
     LocalFree(szArglist);
@@ -60,6 +68,8 @@ DWORD WINAPI InitL4D2VR(HMODULE hModule)
         g_Game = new Game();
         g_Game->m_VrEnabled = vrEnabled;
         g_Game->m_VRDebuglvl = vrDebuglvl;
+        g_Game->m_OverrideVRAssets = overrideVRAssets;
+        g_Game->m_VRDevMode = vrDevMode;
     }
     g_GameCondVar.notify_all();
     g_Game->Initialize();

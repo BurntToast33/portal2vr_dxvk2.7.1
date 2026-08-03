@@ -6,10 +6,9 @@
 #include "hooks.h"
 #include "offsets.h"
 #include "sigscanner.h"
-#include "util.h"
+#include "PCCM.h"
 
 static std::mutex logMutex;
-
 
 std::string ToLower(std::string str)
 {
@@ -42,13 +41,11 @@ void Game::Initialize()
 
     SetVRDlcDisabled(); //Enable / Disable vr assets
 
-#ifndef OVERRIDEVRMODE
-    if (!m_VrEnabled)
+    if (!m_VrEnabled && !m_VRDevMode)
     {
         logMsg(LOGTYPE_DEBUG, "Game: VR mode disabled.");
         return;
     }
-#endif
 
     logMsg(LOGTYPE_DEBUG, "Debug level: %d", m_VRDebuglvl);
 
@@ -72,21 +69,23 @@ void Game::Initialize()
     m_VguiInput = static_cast<IInput*>(GetInterfaceSafe(DLL_VGUI2, "VGUI_InputInternal001"));
     m_VguiSurface = static_cast<ISurface*>(GetInterfaceSafe(DLL_VGUIMATSURFACE, "VGUI_Surface031"));
     m_VguiIPanel = static_cast<IPanel*>(GetInterfaceSafe(DLL_VGUI2, "VGUI_Panel009"));
+    m_ICvar = static_cast<ICvar*>(GetInterfaceSafe(DLL_VSTDLIB, "VEngineCvar007"));
     m_ISteamUser = GetSteamUserInterface(steamAPI);
 
     m_Offsets = new Offsets(m_GameType);
     LoadCommands();
 
-
-#ifndef OVERRIDEVRMODE
-    m_VR = new VR(this);
-    m_VR->CreateHashMaps(); //Need to build hash maps after m_VR is created
-#endif
+    if (!m_VRDevMode)
+    {
+        m_VR = new VR(this);
+        m_VR->CreateHashMaps(); //Need to build hash maps after m_VR is created
+    }
 
     m_Hooks = new Hooks(this);
+    m_PCCM = new PCCM(this);
 
     m_Initialized = true;
-    logMsg(LOGTYPE_DEBUG, "Game: VR mode initialized successfully.");
+    logMsg(LOGTYPE_DEBUG, (m_VRDevMode) ? "Game: 2D mode intilized with dev tools." : "Game: VR mode initialized successfully.");
 }
 
 
@@ -117,6 +116,7 @@ void Game::logMsg(LOGTYPE logtype, const char* fmt, ...)
         case LOGTYPE_DEBUG:   typeStr = "DEBUG";   break;
         case LOGTYPE_WARNING: typeStr = "WARNING"; break;
         case LOGTYPE_ERROR:   typeStr = "ERROR";   break;
+        case LOGTYPE_INFO:    typeStr = "INFO";   break;
     }
 
     char buffer[1024];
@@ -139,6 +139,7 @@ void Game::logMsg(LOGTYPE logtype, const char* fmt, ...)
         case LOGTYPE_DEBUG:   color = ANSI_RESET;  break;
         case LOGTYPE_WARNING: color = ANSI_YELLOW; break;
         case LOGTYPE_ERROR:   color = ANSI_RED;    break;
+        case LOGTYPE_INFO:    color = ANSI_GREEN;  break;
     }
 
     printf("%s[%s][%s] %s%s\n",
@@ -168,7 +169,7 @@ void Game::clearLog()
 void Game::errorMsg(const char *msg)
 {
     logMsg(LOGTYPE_ERROR, "%s", msg);
-    MessageBoxA(nullptr, msg, "Portal 2 Error", MB_ICONERROR | MB_OK);
+    MessageBoxA(nullptr, msg, "Portal2 VR Error", MB_ICONERROR | MB_OK);
 }
 
 
@@ -268,21 +269,23 @@ void Game::SetVRDlcDisabled()
 {
     std::filesystem::path path = std::string(m_GameDir) + "/portal2_dlc3/dlc_disabled.txt";
 
-#ifdef OVERRIDEVRMODE_ASSETS
-    std::error_code ec;
-    if (std::filesystem::exists(path))
+    if (m_OverrideVRAssets) 
     {
-        std::filesystem::remove(path, ec);
-        if (ec)
-            logMsg(LOGTYPE_WARNING, "Failed to delete dlc_disabled.txt: %s", ec.message().c_str());
+        std::error_code ec;
+        if (std::filesystem::exists(path))
+        {
+            std::filesystem::remove(path, ec);
+            if (ec)
+                logMsg(LOGTYPE_WARNING, "Failed to delete dlc_disabled.txt: %s", ec.message().c_str());
+            else
+                logMsg(LOGTYPE_DEBUG, "Deleted dlc_disabled.txt");
+        }
         else
-            logMsg(LOGTYPE_DEBUG, "Deleted dlc_disabled.txt");
-    }
-    else
-        logMsg(LOGTYPE_DEBUG, "dlc_disabled.txt doesn't exist skipping");
-#endif
+            logMsg(LOGTYPE_DEBUG, "dlc_disabled.txt doesn't exist skipping");
 
-#ifndef OVERRIDEVRMODE_ASSETS
+        return;
+    }
+    
     if (m_VrEnabled)
     {
         std::error_code ec;
@@ -313,7 +316,6 @@ void Game::SetVRDlcDisabled()
         else
             logMsg(LOGTYPE_DEBUG, "dlc_disabled.txt exists skipping");
     }
-#endif
 }
 
 

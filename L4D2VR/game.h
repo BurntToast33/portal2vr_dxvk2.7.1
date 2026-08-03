@@ -7,8 +7,6 @@
 #include "d3d9_device.h"
 
 #define MAX_STR_LEN 256
-//#define OVERRIDEVRMODE //For testing hooks
-//#define OVERRIDEVRMODE_ASSETS //For testing assets
 
 
 #define ANSI_RESET  "\x1b[0m"
@@ -23,6 +21,7 @@ constexpr auto DLL_VGUI2 = "vgui2.dll";
 constexpr auto DLL_VGUIMATSURFACE = "vguimatsurface.dll";
 constexpr auto DLL_ENGINE = "engine.dll";
 constexpr auto DLL_MATERIALSYSTEM = "materialsystem.dll";
+constexpr auto DLL_VSTDLIB = "vstdlib.dll";
 constexpr auto DLL_STEAMAPI = "steam_api.dll";
 
 class IClientEntityList;
@@ -41,6 +40,8 @@ class CBaseEntity;
 class C_BasePlayer;
 class C_Portal_Player;
 class ISteamUser;
+class ICvar;
+class PCCM;
 struct model_t;
 
 
@@ -82,9 +83,10 @@ struct Player
 // === Log Types ===
 enum LOGTYPE
 {
-    LOGTYPE_DEBUG = 0,
-    LOGTYPE_WARNING = 1,
-    LOGTYPE_ERROR = 2
+    LOGTYPE_DEBUG,
+    LOGTYPE_WARNING,
+    LOGTYPE_ERROR,
+    LOGTYPE_INFO
 };
 
 enum GAMETYPE
@@ -116,11 +118,13 @@ public:
     ISurface* m_VguiSurface = nullptr;
     IPanel* m_VguiIPanel = nullptr;
     ISteamUser* m_ISteamUser = nullptr;
+    ICvar* m_ICvar = nullptr;
 
     // === Internal Systems ===
     Offsets *m_Offsets = nullptr;
     VR *m_VR = nullptr;
     Hooks *m_Hooks = nullptr;
+    PCCM* m_PCCM = nullptr;
 
 
     // === DirectX Device ===
@@ -131,6 +135,8 @@ public:
     bool m_Initialized = false;
     bool m_VrEnabled = false;
     int m_VRDebuglvl = 0;
+    bool m_OverrideVRAssets = false;
+    bool m_VRDevMode = false;
     GAMETYPE m_GameType = GAMETYPE_UNKNOWN;
 
     std::array<Player, 24> m_PlayersVRInfo;
@@ -251,6 +257,12 @@ static void* GetInterfaceSafe(const char* dllname, const char* interfacename)
     if (!iface)
     {
         Game::errorMsg(("Interface not found: " + std::string(interfacename)).c_str());
+        return nullptr;
+    }
+
+    if (returnCode) 
+    {
+        Game::errorMsg(("Interface: " + std::string(interfacename) + " returned with code: " + std::to_string(static_cast<int>(returnCode))).c_str());
         return nullptr;
     }
 

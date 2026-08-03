@@ -9,9 +9,22 @@ Todo:
 - Update to dxvk 3.0
 - Finish Overlay based aiming
 - Fix MSAA (I don't know how, everything is transparent so run without msaa for now)
-- Add cube map transisions between levels to stay in the aptiure envrionment while loading
+-- Add cube map transisions between levels to stay in the aptiure envrionment while loading
+	- Need to GetPlayer Pos to calculate capture height when saving json entrie
+	- ConCommand needs to be registered with the engine to build PCCMCubemaps with a specified resolution and name
+		- Need windows PC to debug registration.
+
+	- Possibly need to resize the back buffer when rendering cube map
+	- Make Render function to render both eyes
+
 - Add room scale movment
 - Look into if preventing view cache flush at the end of RenderView causes views to be reused for the next eye.
+- Look into changing compositing to use engine material system
+
+
+Done:
+- Added new launch arg `-overrideVRAssets` which will force the asset loading system to load the vr assets even in 2D mode. 
+- Added new launch arg `-vrDevMode` which will force 2D mode and enable vr asset devolpment tools.
 
 
 V0.2.1

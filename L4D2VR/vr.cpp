@@ -1,9 +1,10 @@
 #include "vr.h"
-#include <Windows.h>
 #include "sdk.h"
 #include "game.h"
 #include "hooks.h"
 #include "trace.h"
+#include "PCCM.h"
+#include <Windows.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -16,6 +17,49 @@
 
 //Toggles
 //#define GetControllerTipMatrix_HeapBuffer //Enable this for cpu's with 32kb or less of L1 cache
+
+
+static std::queue<std::pair<int, SharedTextureHolder*>> g_TextureQueue;
+static std::mutex g_TextureQueueMutex;
+
+void PushTexture(SharedTextureHolder* holder, int isMSAA)
+{
+    std::lock_guard<std::mutex> lock(g_TextureQueueMutex);
+    g_TextureQueue.push({ isMSAA, holder });
+}
+
+std::pair<int, SharedTextureHolder*> PopNextTexture()
+{
+    std::lock_guard<std::mutex> lock(g_TextureQueueMutex);
+
+    if (g_TextureQueue.empty())
+        return { 0, nullptr };
+
+
+    auto entry = g_TextureQueue.front();
+    g_TextureQueue.pop();
+    return entry;
+}
+
+void CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth, UINT textureFlags)
+{
+    if (g_Game->m_VRDebuglvl > 1) g_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s, W: %d, H: %d", name, w, h);
+    target->Release();
+
+    PushTexture(target, false);
+    target->m_ITex = g_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(name, w, h, sizeMode, format, depth, textureFlags);
+
+    bool hasOverride = target->m_OverrideMSAASurface.has_value();
+    if (target->m_UseMSAA || hasOverride)
+    {
+        TextureSetup Setup = (hasOverride) ? *target->m_OverrideMSAASurface : TextureSetup(w, h);
+        int Override = (hasOverride) ? -1 : target->m_UseMSAA;
+
+        if (g_Game->m_VRDebuglvl > 1) g_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s_MSAA, W: %d, H: %d", name, w, h);
+        PushTexture(target, Override);
+        target->m_MSAAITex = g_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(std::string(name).append("_MSAA").c_str(), Setup.w, Setup.h, sizeMode, format, depth, textureFlags);
+    }
+}
 
 
 VR::VR(Game *game) 
@@ -136,11 +180,27 @@ void VR::CreateHashMaps()
     char path[MAX_STR_LEN]{};
     sprintf_s(path, MAX_STR_LEN, "%s\\VR\\backgrounds.json", m_Game->m_GameDir);
 
-    if (!LoadStringMap(path, "backgroundMappings", m_BackgroundMapping))
-        m_Game->logMsg(LOGTYPE_WARNING, "Failed to parse: %s%s", path, "\nDisabling 3D backgrounds");
+    if (!LoadStringMap(path, "BackgroundMappings", m_BackgroundMapping))
+        m_Game->logMsg(LOGTYPE_WARNING, "Failed to parse: %s - BackgroundMappings.\nDisabling 3D backgrounds", path);
     
     m_Game->logMsg(static_cast<LOGTYPE>(!m_BackgroundMapping.size()), "Loaded %zu background mappings.", m_BackgroundMapping.size());
 
+
+    //PCCM mappings
+    std::unordered_map<std::string, ParalaxMapInfo> ParalaxInfo;
+    if (!LoadStringMap(path, "PCCM_Mappings", ParalaxInfo))
+        m_Game->logMsg(LOGTYPE_WARNING, "Failed to parse: %s - PCCM_Mappings.\nDisabling PCCM loading screens", path);
+
+    else
+    {
+        for (auto& [mapName, info] : ParalaxInfo)
+        {
+            info.m_ImagePath = std::string(m_Game->m_GameDir).append("/" + info.m_ImagePath);
+        }
+
+        m_Game->m_PCCM->UploadPCCMMap(ParalaxInfo);
+    }
+        
 
     //UI stuff from here
     OverridePanelLayout("options.res", { "resource/ui/vr_options.res" });
@@ -1754,6 +1814,7 @@ void VR::ParseConfigFile()
     parseOrDefault("PortallingDetectionDistanceThreshold", m_PortallingDetectionDistanceThreshold, 35);
     parseOrDefault("CameraUprightRecoverySpeed", m_CameraUprightRecoverySpeed, 0.2f);
     parseOrDefault("SmoothRotation", m_SmoothRotation, false);
+    parseOrDefault("UsePCCMs", m_UsePCCM, false);
     parseVectorOrDefaultZero("ViewmodelPosCustomOffset", m_ViewmodelPosCustomOffset);
     parseVectorOrDefaultZero("ViewmodelAngCustomOffset", m_ViewmodelAngCustomOffset);
 }
@@ -1947,45 +2008,6 @@ void VR::BuildCaptureMap()
     m_BuiltCaptureMap = true;
 }
 
-void VR::CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth, UINT textureFlags)
-{
-    if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s, W: %d, H: %d", name, w, h);
-    target->Release();
-
-    PushTexture(target, false);
-    target->m_ITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(name, w, h, sizeMode, format, depth, textureFlags);
-
-    bool hasOverride = target->m_OverrideMSAASurface.has_value();
-    if (target->m_UseMSAA || hasOverride)
-    {
-        TextureSetup Setup = (hasOverride) ? *target->m_OverrideMSAASurface : TextureSetup(w, h);
-        int Override = (hasOverride) ? -1 : target->m_UseMSAA;
-
-        if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s_MSAA, W: %d, H: %d", name, w, h);
-        PushTexture(target, Override);
-        target->m_MSAAITex = m_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(std::string(name).append("_MSAA").c_str(), Setup.w, Setup.h, sizeMode, format, depth, textureFlags);
-    }
-}
-
-void VR::PushTexture(SharedTextureHolder* holder, int isMSAA)
-{
-    std::lock_guard<std::mutex> lock(m_QueueMutex);
-    m_TextureQueue.push({ isMSAA, holder });
-}
-
-std::pair<int, SharedTextureHolder*> VR::PopNextTexture()
-{
-    std::lock_guard<std::mutex> lock(m_QueueMutex);
-
-    if (m_TextureQueue.empty())
-        return { 0, nullptr };
-
-
-    auto entry = m_TextureQueue.front();
-    m_TextureQueue.pop();
-    return entry;
-}
-
 void VR::RegisterPanelCaptureRoot(VPANEL panel, ITexture* dest, std::function<bool()> func, std::vector<std::pair<const char*, ITexture*>> ExcludeList)
 {
     m_PanelCaptureMap[panel] = { dest, ExcludeList, func};
@@ -2028,4 +2050,16 @@ void VR::DeviceReset()
     m_RightEye.Release();
     m_MenuTexture.Release();
     m_HudTexture.Release();
+}
+
+void VR::OnMapLoading(const char* mapName, bool isBackground)
+{
+    m_IsLevelBackground = isBackground;
+    m_ParticleCreated = false; //Need to recache particle
+
+    if (m_Game->m_VRDebuglvl > 1)
+        m_Game->logMsg(LOGTYPE_DEBUG, "Loading level: %s, Background: %s", mapName, (m_IsLevelBackground) ? "True" : "False");
+
+    if (m_UsePCCM)
+        m_Game->m_PCCM->LoadCubeMap(mapName);
 }

@@ -5,6 +5,7 @@
 #include "sdk_server.h"
 #include "vr.h"
 #include "offsets.h"
+#include "PCCM.h"
 #include <iostream>
 
 
@@ -26,9 +27,13 @@ Hooks::Hooks(Game *game)
 
 	Offsets* O = m_Game->m_Offsets;
 
-#ifdef OVERRIDEVRMODE
-	return;
-#endif
+	//These are for development tools to still be active in 2D mode
+	//This can also be used to test hooks
+	if (!m_Game->m_VrEnabled && m_Game->m_VRDevMode) 
+	{
+		BuildHook(hkRenderView, O->RenderView, dDevRenderView);
+		return;
+	}
 
 	BuildHook(hkPlayerPortalled, O->PlayerPortalled, dPlayerPortalled);
 	
@@ -178,6 +183,44 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 	m_VR->m_IsRightEye = false;
 	rndrContext->SetRenderTarget(NULL);
 	rndrContext->Release();
+}
+
+void __fastcall Hooks::dDevRenderView(void* ecx, void* edx, CViewSetup& setup, CViewSetup& hudViewSetup, int nClearFlags, int whatToDraw)
+{
+	//PCCM generation
+	if (m_Game->m_PCCM->m_GeneratingCubeMapState > PCCM_GENERATION_STATE_DISABLED) 
+	{
+		PCCM* PCCM = m_Game->m_PCCM;
+		IMatRenderContext* rndr = m_Game->m_MaterialSystem->GetRenderContext();
+
+		m_Game->ClientCmd_Unrestricted("mat_motion_blur_enabled 0");
+		if (m_Game->m_EngineClient->IsPaused())
+			m_Game->ClientCmd_Unrestricted("pause");
+
+		if (!PCCM->m_GenerationTexture.m_ITex)
+		{
+			ImageFormat format = m_Game->m_MaterialSystem->GetBackBufferFormat();
+			CreateRT(&PCCM->m_GenerationTexture, "PCCMGenTex", PCCM->m_GenerationResolution, PCCM->m_GenerationResolution, RT_SIZE_NO_CHANGE, format);
+		}
+
+		rndr->SetRenderTarget(PCCM->m_GenerationTexture.m_ITex);
+		for (int I = 0; I < 6; I++) 
+		{
+			CViewSetup pccmView = setup;
+			PCCM->SetupCubemapView(pccmView, I);
+
+			hkRenderView.fOriginal(ecx, pccmView, hudViewSetup, nClearFlags, RENDERVIEW_UNSPECIFIED);
+
+			PCCM->WriteImageToCubeMap(I);
+		}
+		rndr->SetRenderTarget(NULL);
+		rndr->Release();
+
+		PCCM->SaveImageToDSS(setup);
+		PCCM->m_GeneratingCubeMapState = PCCM_GENERATION_STATE_DISABLED;
+	}
+
+	hkRenderView.fOriginal(ecx, setup, hudViewSetup, nClearFlags, whatToDraw);
 }
 
 //Movement controls
@@ -576,15 +619,9 @@ void __fastcall Hooks::dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bo
 }
 
 bool __fastcall Hooks::dLevelInit(void* ecx, void* edx, const char* pMapName, char const* pMapEntities, char const* pOldLevel, char const* pLandmarkName, bool loadGame, bool background)
-{
-	if (m_Game->m_VRDebuglvl > 1) 
-		m_Game->logMsg(LOGTYPE_DEBUG, "Loading level: %s, Background: %s", pMapName, (background) ? "True" : "False");
-
-	if (m_VR->m_3DMenu)
-		m_VR->m_IsLevelBackground = background;
-	
+{	
 	m_FirstFrame = true;
-	m_VR->m_ParticleCreated = false; //Need to recache particle
+	m_VR->OnMapLoading(pMapName, background);
 	return hkLevelInit.fOriginal(ecx, pMapName, pMapEntities, pOldLevel, pLandmarkName, loadGame, background);
 }
 

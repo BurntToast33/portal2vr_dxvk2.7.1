@@ -13,5 +13,6 @@ ExperimentalOptimizations=0 # Enables shareing of data between eyes, 1 = Shadow 
 PortallingDetectionDistanceThreshold=35
 CameraUprightRecoverySpeed=0.2
 SmoothRotation=false # The camera pitch/roll follows the exit portal's orientation when portalling
+UsePCCMs=false; # Enables parallax corrected cube maps in loading zones
 ViewmodelPosCustomOffset={ 0.0, 0.0, 0.0 } # Position offset (x, y, z)
 ViewmodelAngCustomOffset={ 0.0, 0.0, 0.0 } # Rotation offset (x, y, z)
