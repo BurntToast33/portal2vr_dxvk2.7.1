@@ -28,16 +28,17 @@ Game::Game()
 }
 
 // === Class Initializer === 
-void Game::Initialize() 
+void Game::Initialize(bool IECheck) 
 {
+    logMsg(LOGTYPE_DEBUG, "IECheck: %d", IECheck);
     GetCurrentDirectory(MAX_STR_LEN, m_GameDir);
 
     std::string gameDir = m_GameDir;
     std::string GameType = ToLower(gameDir.erase(0, gameDir.find_last_of("\\/") + 1));
     
-    if (!strcmp("portal 2", GameType.c_str())) m_GameType = GAMETYPE_PORTAL2;
-    else if (!strcmp("portal reloaded", GameType.c_str())) m_GameType = GAMETYPE_PORTAl_RELOADED;
-    logMsg(LOGTYPE_DEBUG, "Game: %s, Game type set to %d", GameType.c_str(), m_GameType);
+    if (!strcmp("portal 2", GameType.c_str())) m_GameType = { GameType, GAMETYPE_PORTAL2 };
+    else if (!strcmp("portal reloaded", GameType.c_str())) m_GameType = { GameType, GAMETYPE_PORTAl_RELOADED };
+    logMsg(LOGTYPE_DEBUG, "Game: %s, Game type set to %d", m_GameType.first.c_str(), m_GameType.second);
 
     SetVRDlcDisabled(); //Enable / Disable vr assets
 
@@ -72,17 +73,18 @@ void Game::Initialize()
     m_ICvar = static_cast<ICvar*>(GetInterfaceSafe(DLL_VSTDLIB, "VEngineCvar007"));
     m_ISteamUser = GetSteamUserInterface(steamAPI);
 
-    m_Offsets = new Offsets(m_GameType);
+    m_Offsets = new Offsets(m_GameType.second);
     LoadCommands();
+
+    m_PCCM = new PCCM(this);
 
     if (!m_VRDevMode)
     {
         m_VR = new VR(this);
-        m_VR->CreateHashMaps(); //Need to build hash maps after m_VR is created
+        m_VR->CreateHashMaps(); //Need to build hash maps after m_VR and m_PCCM is created
     }
 
     m_Hooks = new Hooks(this);
-    m_PCCM = new PCCM(this);
 
     m_Initialized = true;
     logMsg(LOGTYPE_DEBUG, (m_VRDevMode) ? "Game: 2D mode intilized with dev tools." : "Game: VR mode initialized successfully.");
@@ -184,16 +186,6 @@ CBaseEntity *Game::GetClientEntity(int entityIndex)
 C_BasePlayer* Game::GetPlayer()
 {
     return (C_BasePlayer*)GetClientEntity(m_EngineClient->GetLocalPlayer());
-}
-
-C_Portal_Player* Game::GetPortalPlayer()
-{
-    return (C_Portal_Player*)GetClientEntity(m_EngineClient->GetLocalPlayer());
-}
-
-C_Portal_Player* Game::GetPortalPlayer(C_BasePlayer* playerEntity)
-{
-    return (C_Portal_Player*)playerEntity;
 }
 
 

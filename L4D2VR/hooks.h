@@ -98,6 +98,7 @@ using tGetViewport = void(__thiscall*)(void* thisptr, int& x, int& y, int& width
 using tDrawModelExecute = void(__thiscall*)(void* thisptr, void* state, const ModelRenderInfo_t& info, void* pCustomBoneToWorld);
 using tSetDrawOnlyForSplitScreenUser = void(__thiscall*)(void* thisptr, int nSlot);
 using tFormatViewModelAttachment = void(__cdecl*)(void* param_1, Vector& vOrgin, bool bInverse);
+using tCWLC_Flush = void(__thiscall*)(void* thisptr);
 
 //In game UI
 using tPrepareCredits = void(__thiscall*)(void* thisptr, const char* pKeyName);
@@ -120,8 +121,9 @@ using tGetFOV = double(__cdecl*)(void*& thisptr);
 using tGetViewModelFOV = double(__cdecl*)(void*& thisptr);
 
 //Direct calls
-using tCreatePingPointer = void(__thiscall*)(void* thisptr, VectorByValue vecDestintaion);
 using tPrecacheParticleSystem = int(__cdecl*)(const char* pParticleSystemName);
+using tPushAllowBoneAccess = void(__cdecl*)(bool bAllowForNormalModels, bool bAllowForViewModels, char const* tagPush);
+using tPopBoneAccess = void(__cdecl*)(char const* tagPop);
 using tUTIL_Portal_FirstAlongRay = void* (__cdecl*)(const Ray_t& ray, float& fMustBeCloserThan);
 using tUTIL_IntersectRayWithPortal = float(__cdecl*)(const Ray_t& ray, const void* pPortal);
 using tUTIL_Portal_AngleTransform = void(__cdecl*)(const VMatrix& matThisToLinked, const QAngle& qSource, QAngle& qTransformed);
@@ -162,6 +164,7 @@ public:
 	static inline Hook<tComputeShadowDepthTextures> hkComputeShadowDepthTextures;
 	static inline Hook<tUnlockAllShadowDepthTextures> hkUnlockAllShadowDepthTextures;
 	static inline Hook<tFormatViewModelAttachment> hkFormatViewModelAttachment;
+	static inline Hook<tCWLC_Flush> hkCWLC_Flush;
 
 	//In game UI
 	static inline Hook<tPaintTraverse> hkPaintTraverse;
@@ -187,8 +190,9 @@ public:
 
 
 	//Direct calls
-	static inline tCreatePingPointer CreatePingPointer;
 	static inline tPrecacheParticleSystem PrecacheParticleSystem;
+	static inline tPushAllowBoneAccess PushAllowBoneAccess;
+	static inline tPopBoneAccess PopBoneAccess;
 	static inline tUTIL_Portal_FirstAlongRay UTIL_Portal_FirstAlongRay;
 	static inline tUTIL_IntersectRayWithPortal UTIL_IntersectRayWithPortal;
 	static inline tUTIL_Portal_AngleTransform UTIL_Portal_AngleTransform;
@@ -263,6 +267,7 @@ public:
 	static void __fastcall dComputeShadowDepthTextures(void* ecx, void* edx, const CViewSetup& pView);
 	static void __fastcall dUnlockAllShadowDepthTextures(void* ecx, void* edx);
 	static void dFormatViewModelAttachment(void* param_1, Vector& vOrigin, bool bInverse);
+	static void dCWLC_Flush(void* ecx, void* edx);
 
 	//In game UI
 	static void __fastcall dPaintTraverse(void* ecx, void* edx, VPANEL vguiPanel, bool forceRepaint, bool allowForce);

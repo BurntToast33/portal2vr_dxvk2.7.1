@@ -781,12 +781,13 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="backgrounds.json" />
-    <Text Include="config.txt" />
+    <Text Include="config.json" />
     <Text Include="Todo.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\dxvk\src\d3d9\d3d9.def" />
     <None Include="..\dxvk\src\d3d9\d3d9.sym" />
+    <None Include="viewmodel_config.json" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\dxvk\lib32\vulkan-1.lib" />

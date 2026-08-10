@@ -19,26 +19,45 @@ enum ParticleAttachment_t
 	MAX_PATTACH_TYPES,
 };
 
+template<typename Fn, typename... Args>
+decltype(auto) CallVFunc(void* instance, std::size_t index, Args&&... args)
+{
+	auto** vtable = *reinterpret_cast<void***>(instance);
+	Fn fn = reinterpret_cast<Fn>(vtable[index]);
+
+	if constexpr (sizeof...(Args) == 0)
+		return fn(instance);
+	else
+		return fn(instance, std::forward<Args>(args)...);
+}
+
+template<typename Fn, typename... Args>
+decltype(auto) CallFunction(std::uintptr_t address, Args&&... args)
+{
+	return reinterpret_cast<Fn>(address)(std::forward<Args>(args)...);
+}
 
 class Game;
 class CParticleSystemDefinition;
 class C_BaseEntity;
+
+#define DestroyParticle(x) \
+    if (x) {            \
+        x->StopEmission(false, true);   \
+        x = nullptr;    \
+    }
 
 class CNewParticleEffect
 {
 public:
 	inline void SetControlPoint(int nWhichPoint, const Vector& v) {
 		using tSetControlPoint = int(__thiscall*)(void* thisptr, int nWhichPoint, const Vector& v);
-		static tSetControlPoint oSetControlPoint = (tSetControlPoint)(g_Game->m_Offsets->SetControlPoint.address);
-
-		oSetControlPoint(this, nWhichPoint, v);
+		CallFunction<tSetControlPoint>(g_Game->m_Offsets->SetControlPoint.address, this, nWhichPoint, v);
 	};
 
 	inline void StopEmission(bool bInfiniteOnly = false, bool bRemoveAllParticles = false, bool bWakeOnStop = false, bool bPlayEndCap = false) {
 		using tStopEmission = void(__thiscall*)(void* thisptr, bool bInfiniteOnly, bool bRemoveAllParticles, bool bWakeOnStop, bool bPlayEndCap);
-		static tStopEmission oStopEmission = (tStopEmission)(g_Game->m_Offsets->StopEmission.address);
-
-		oStopEmission(this, bInfiniteOnly, bRemoveAllParticles, bWakeOnStop, bPlayEndCap);
+		CallFunction<tStopEmission>(g_Game->m_Offsets->StopEmission.address, this, bInfiniteOnly, bRemoveAllParticles, bWakeOnStop, bPlayEndCap);
 	};
 };
 

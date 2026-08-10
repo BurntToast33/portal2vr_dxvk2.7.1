@@ -66,8 +66,17 @@ PCCM::PCCM(Game* game) : m_Game(game), m_DxDevice(game->m_DxDevice)
 {
     if (m_Game->m_VRDevMode) 
     {
+        m_Game->m_MaterialSystem->isGameRunning = false;
+        m_Game->m_MaterialSystem->BeginRenderTargetAllocation();
+        m_Game->m_MaterialSystem->isGameRunning = true;
+
+        CreateRT(&m_GenerationTexture, "PCCMGenTex", m_GenerationResolution, m_GenerationResolution, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
+        m_Game->m_MaterialSystem->EndRenderTargetAllocation();
+
         //m_Game->m_ICvar->RegisterConCommand(&con_BuildPCCM);
     }
+
+    m_Game->logMsg(LOGTYPE_DEBUG, "PCCM Initilized");
 }
 
 PCCM::PCCM(Game* game, std::unordered_map<std::string, ParalaxMapInfo>& mappings) : PCCM(game)
@@ -78,6 +87,8 @@ PCCM::PCCM(Game* game, std::unordered_map<std::string, ParalaxMapInfo>& mappings
     {
         ParseDDSCubemap(info);
     }
+
+    m_Intilized = true;
 }
 
 PCCM::~PCCM()
@@ -94,6 +105,8 @@ void PCCM::UploadPCCMMap(std::unordered_map<std::string, ParalaxMapInfo>& mappin
     {
         ParseDDSCubemap(info);
     }
+
+    m_Intilized = true;
 }
 
 void PCCM::LoadCubeMap(const char* mapName)
@@ -107,7 +120,7 @@ void PCCM::LoadCubeMap(const char* mapName)
 	auto it = m_Mappings.find(mapName);
     if (it == m_Mappings.end())
     {
-        m_Game->logMsg(LOGTYPE_ERROR, "%s is not mapped to any PCCM.", mapName);
+        m_Game->logMsg(LOGTYPE_WARNING, "%s is not mapped to any PCCM.", mapName);
         return;
     }
         

@@ -52,12 +52,10 @@ class ISteamUser
 public:
 	inline uint64_t GetSteamID()
 	{
-		using tGetSteamID = CSteamID*(__thiscall*)(ISteamUser*, CSteamID*);
-		uintptr_t* vtable = *(uintptr_t**)this;
-		static tGetSteamID oGetSteamID = (tGetSteamID)vtable[2];
+		using tGetSteamID = CSteamID*(__thiscall*)(void* thisptr, CSteamID* id);
 
 		CSteamID id{};
-		oGetSteamID(this, &id);
+		CallVFunc<tGetSteamID>(this, 2, &id);
 
 		return id.value;
 	}
@@ -377,6 +375,12 @@ public:
 	virtual void* sub_118() = 0;
 	virtual void* sub_119() = 0;
 	virtual const char* GetMostRecentSaveGame(void) = 0;
+
+	inline int GetActiveSplitScreenSlot() 
+	{
+		using tGetActiveSplitScreenSlot = int(__thiscall*)(void* thisptr);
+		return CallVFunc<tGetActiveSplitScreenSlot>(this, 127); //index 127 / this + 508 bytes
+	};
 };
 
 class IModelInfo
@@ -443,7 +447,7 @@ class CViewSetup
 public:
 	inline char* STR() {
 		char errorString[512];
-		sprintf_s(errorString, 512, "X: %i (%i), Y: %i (%i)", x, m_nUnscaledX, y, m_nUnscaledY, width, m_nUnscaledWidth, height, m_nUnscaledHeight, fov, fovViewmodel);
+		sprintf_s(errorString, 512, "X: %i (%f), Y: %i (%f)", x, m_nUnscaledX, y, m_nUnscaledY);
 		return errorString;
 	}
 
@@ -958,33 +962,25 @@ public:
 	inline const char* GetName()
 	{
 		using tGetName = const char* (__thiscall*)(void* thisptr);
-		static tGetName oGetName = (tGetName)(g_Game->m_Offsets->GetName.address);
-
-		return oGetName(this);
+		return CallFunction<tGetName>(g_Game->m_Offsets->GetName.address, this);
 	}
 
 	inline const char* GetString(const char* keyName, const char* defaultValue)
 	{
 		using tGetString = const char* (__thiscall*)(void* thisptr, const char* keyName, const char* defaultValue);
-		static tGetString oGetString = (tGetString)(g_Game->m_Offsets->GetString.address);
-
-		return oGetString(this, keyName, defaultValue);
+		return CallFunction<tGetString>(g_Game->m_Offsets->GetString.address, this, keyName, defaultValue);
 	}
 
 	inline void SetString(const char* keyName, const char* value)
 	{
-		using tSetString = const char* (__thiscall*)(void* thisptr, const char* keyName, const char* value);
-		static tSetString oSetString = (tSetString)(g_Game->m_Offsets->SetString.address);
-
-		oSetString(this, keyName, value);
+		using tSetString = void (__thiscall*)(void* thisptr, const char* keyName, const char* value);
+		CallFunction<tSetString>(g_Game->m_Offsets->SetString.address, this, keyName, value);
 	}
 
 	inline float GetFloat(const char* keyName, float defaultValue)
 	{
 		using tGetFloat = float(__thiscall*)(void* thisptr, const char* keyName, float defaultValue);
-		static tGetFloat oGetFloat = (tGetFloat)(g_Game->m_Offsets->GetFloat.address);
-
-		return oGetFloat(this, keyName, defaultValue);
+		return CallFunction<tGetFloat>(g_Game->m_Offsets->GetFloat.address, this, keyName, defaultValue);
 	}
 };
 
@@ -1845,6 +1841,19 @@ public:
 	virtual void *sub_1002B9B0() = 0;
 	virtual void *ComputeStencilState() = 0;
 	virtual void *LastBoneChangedTime() = 0;
+
+	inline int LookupAttachment(const char* pAttachmentName) 
+	{
+		using tLookupAttachment = int(__thiscall*)(void* thisptr, const char* pAttachmentName);
+		return CallVFunc<tLookupAttachment>(this, 33, pAttachmentName);  //index 33 / this + 132 bytes
+	};
+
+	inline bool GetAttachment(int number, Vector& origin) 
+	{
+		using tGetAttachment = int(__thiscall*)(void* thisptr, int number, Vector& origin);
+		return CallVFunc<tGetAttachment>(this, 81, number, origin); //index 81 / this + 324 bytes
+	};
+	
 };
 
 class C_BaseAnimatingOverlay : public C_BaseAnimating
@@ -1887,10 +1896,9 @@ public:
 	virtual void* Weapon_GetSlot(int i) = 0;
 	virtual void *sub_1001E0A0() = 0;
 	virtual void *sub_10040B90() = 0;
-	virtual C_BaseCombatWeapon *GetActiveWeapon() = 0;
 };
 
-
+typedef unsigned short WEAPON_FILE_INFO_HANDLE;
 
 class C_BaseCombatWeapon : public C_BaseAnimating
 {
@@ -2048,6 +2056,108 @@ public:
 	virtual void HideThink() = 0;
 	virtual void *nullsub_203() = 0;
 	virtual void *nullsub_204() = 0;
+
+	inline const char* GetWeaponClassName()
+	{
+		using tGetWeaponClassName = const char* (__thiscall*)(void* thisptr);
+		return CallVFunc<tGetWeaponClassName>(this, 136); //index 136 / this + 544 bytes
+	}
+
+	byte pad[907];
+	WEAPON_FILE_INFO_HANDLE	m_hWeaponFileInfo;
+};
+
+#define MAX_WEAPON_STRING	80
+#define MAX_WEAPON_PREFIX	16
+#define MAX_WEAPON_AMMO_NAME		32
+
+typedef enum {
+	EMPTY,
+	SINGLE,
+	SINGLE_NPC,
+	WPN_DOUBLE, // Can't be "DOUBLE" because windows.h uses it.
+	DOUBLE_NPC,
+	BURST,
+	RELOAD,
+	RELOAD_NPC,
+	MELEE_MISS,
+	MELEE_HIT,
+	MELEE_HIT_WORLD,
+	SPECIAL1,
+	SPECIAL2,
+	SPECIAL3,
+	TAUNT,
+	DEPLOY,
+
+	// Add new shoot sound types here
+
+	NUM_SHOOT_SOUND_TYPES,
+} WeaponSound_t;
+
+class CHudTexture;
+
+class FileWeaponInfo_t
+{
+public:
+	FileWeaponInfo_t();
+
+
+public:
+	bool					bParsedScript;
+	bool					bLoadedHudElements;
+
+	// SHARED
+	char					szClassName[MAX_WEAPON_STRING];
+	char					szPrintName[MAX_WEAPON_STRING];			// Name for showing in HUD, etc.
+
+	char					szViewModel[MAX_WEAPON_STRING];			// View model of this weapon
+	char					szWorldModel[MAX_WEAPON_STRING];		// Model of this weapon seen carried by the player
+	char					szAnimationPrefix[MAX_WEAPON_PREFIX];	// Prefix of the animations that should be used by the player carrying this weapon
+	int						iSlot;									// inventory slot.
+	int						iPosition;								// position in the inventory slot.
+	int						iMaxClip1;								// max primary clip size (-1 if no clip)
+	int						iMaxClip2;								// max secondary clip size (-1 if no clip)
+	int						iDefaultClip1;							// amount of primary ammo in the gun when it's created
+	int						iDefaultClip2;							// amount of secondary ammo in the gun when it's created
+	int						iWeight;								// this value used to determine this weapon's importance in autoselection.
+	int						iRumbleEffect;							// Which rumble effect to use when fired? (xbox)
+	bool					bAutoSwitchTo;							// whether this weapon should be considered for autoswitching to
+	bool					bAutoSwitchFrom;						// whether this weapon can be autoswitched away from when picking up another weapon or ammo
+	int						iFlags;									// miscellaneous weapon flags
+	char					szAmmo1[MAX_WEAPON_AMMO_NAME];			// "primary" ammo type
+	char					szAmmo2[MAX_WEAPON_AMMO_NAME];			// "secondary" ammo type
+
+	// Sound blocks
+	char					aShootSounds[NUM_SHOOT_SOUND_TYPES][MAX_WEAPON_STRING];
+
+	int						iAmmoType;
+	int						iAmmo2Type;
+	bool					m_bMeleeWeapon;		// Melee weapons can always "fire" regardless of ammo.
+
+	// This tells if the weapon was built right-handed (defaults to true).
+	// This helps cl_righthand make the decision about whether to flip the model or not.
+	bool					m_bBuiltRightHanded;
+	bool					m_bAllowFlipping;	// False to disallow flipping the model, regardless of whether
+	// it is built left or right handed.
+
+// CLIENT DLL
+	// Sprite data, read from the data file
+	int						iSpriteCount;
+	CHudTexture* iconActive;
+	CHudTexture* iconInactive;
+	CHudTexture* iconAmmo;
+	CHudTexture* iconAmmo2;
+	CHudTexture* iconCrosshair;
+	CHudTexture* iconAutoaim;
+	CHudTexture* iconZoomedCrosshair;
+	CHudTexture* iconZoomedAutoaim;
+	CHudTexture* iconSmall;
+
+	// TF2 specific
+	bool					bShowUsageHint;							// if true, then when you receive the weapon, show a hint about it
+
+	// SERVER DLL
+
 };
 
 class C_WeaponCSBase : public C_BaseCombatWeapon
@@ -2155,6 +2265,16 @@ public:
 	int m_MapBasedMeleeID;
 };
 
+class CParticleProperty
+{
+public:
+	inline CNewParticleEffect* CreateParticle(const char* pszParticleName, ParticleAttachment_t iAttachType, const char* pszAttachmentName)
+	{
+		using tCreateParticle = CNewParticleEffect * (__thiscall*)(void* thisptr, const char* pszParticleName, ParticleAttachment_t iAttachType, const char* pszAttachmentName);
+		return CallFunction<tCreateParticle>(g_Game->m_Offsets->CreateParticle.address, this, pszParticleName, iAttachType, pszAttachmentName);
+	}
+};
+
 class C_BaseViewModel
 {
 public:
@@ -2162,7 +2282,23 @@ public:
 	{
 		return (Vector*)((uintptr_t)this + 0xA8); //Reference SetLocalOrigin function in Ghidra for address
 	}
+
+	inline int LookupAttachment(const char* pAttachmentName)
+	{
+		using tLookupAttachment = int(__thiscall*)(void* thisptr, const char* pAttachmentName);
+		return CallVFunc<tLookupAttachment>(this, 33, pAttachmentName);  //index 33 / this + 132 bytes
+	};
+
+	inline bool GetAttachment(int number, Vector& origin)
+	{
+		using tGetAttachment = int(__thiscall*)(void* thisptr, int number, Vector& origin);
+		return CallVFunc<tGetAttachment>(this, 81, number, origin); //index 81 / this + 324 bytes
+	};
+
+	char pad_0000[1132];
+	CParticleProperty m_Particles; //0x46c
 };
+static_assert(offsetof(C_BaseViewModel, m_Particles) == 0x46C);
 
 class C_BasePlayer : public C_BaseCombatCharacter
 {
@@ -2261,6 +2397,18 @@ public:
 	virtual void *sub_10069A10() = 0;
 	virtual void *sub_10069A20() = 0;
 	virtual void *sub_10069A30() = 0;
+
+	inline C_BaseViewModel* GetViewModel(int viewmodelindex = 0)
+	{
+		using tGetViewModel = C_BaseViewModel* (__thiscall*)(void* thisptr, int viewmodelindex);
+		return CallFunction<tGetViewModel>(g_Game->m_Offsets->GetViewModel.address, this, viewmodelindex);
+	}
+
+	inline C_BaseCombatWeapon* GetActiveWeapon() 
+	{
+		using tGetActiveWeapon = C_BaseCombatWeapon* (__thiscall*)(void* thisptr);
+		return CallVFunc<tGetActiveWeapon>(this, 242); //index 242 / this + 968 bytes
+	};
 };
 
 class CBaseEdict
@@ -2649,32 +2797,6 @@ public:
 	int m_iLastFiredPortal; //0xE9C
 }; static_assert(sizeof(CWeaponPortalBase) == 0xEA0);
 
-class CBaseCombatWeapon
-{
-public:
-	inline int LookupAttachment(const char* szName) {
-		using tLookupAttachment = int(__fastcall*)(CBaseCombatWeapon* thisptr, void* edx, const char* szName);
-		uintptr_t table = *(uintptr_t*)((uintptr_t)this + 4);
-		auto oLookupAttachment = (tLookupAttachment)(table + 0x84);
-
-		return oLookupAttachment(this, nullptr, szName);
-	}
-};
-
-class C_Portal_Player
-{
-public:
-	inline CWeaponPortalBase* GetActivePortalWeapon() {
-		uintptr_t* vtable = *(uintptr_t**)this;
-		auto oGetActivePortalWeapon = (CWeaponPortalBase * (__thiscall*)(void*))vtable[242]; // index 242 / this + 968 bytes
-
-		return oGetActivePortalWeapon(this);
-	};
-
-	char pad_0000[9152]; //0000
-	CNewParticleEffect* m_PointLaser; //0x23C0
-};
-
 class VPanel
 {
 public:
@@ -2778,63 +2900,49 @@ public:
 	inline void PostActionSignal(KeyValues* message)
 	{
 		using tPostActionSignal = void(__thiscall*)(void* thisptr, KeyValues* message);
-		static tPostActionSignal oPostActionSignal = (tPostActionSignal)g_Game->m_Offsets->PostActionSignal.address;
-
-		oPostActionSignal(this, message);
+		CallFunction<tPostActionSignal>(g_Game->m_Offsets->PostActionSignal.address, this, message);
 	};
 
 	inline void LoadControlSettings(const char* dialogResourceName, const char* pathID, KeyValues* pPreloadedKeyValues, KeyValues* pConditions)
 	{
 		using tLoadControlSettings = void(__thiscall*)(void* thisptr, const char* dialogResourceName, const char* pathID, KeyValues* pPreloadedKeyValues, KeyValues* pConditions);
-		static tLoadControlSettings oLoadControlSettings = (tLoadControlSettings)g_Game->m_Offsets->LoadControlSettings.address;
-
-		oLoadControlSettings(this, dialogResourceName, pathID, pPreloadedKeyValues, pConditions);
+		CallFunction<tLoadControlSettings>(g_Game->m_Offsets->LoadControlSettings.address, this, dialogResourceName, pathID, pPreloadedKeyValues, pConditions);
 	};
 
 	inline void ApplySettings(KeyValues* inResourceData)
 	{
 		using tApplySettings = void(__thiscall*)(void* thisptr, KeyValues* inResourceData);
-		static tApplySettings oApplySettings = (tApplySettings)g_Game->m_Offsets->ApplySettings.address;
-
-		oApplySettings(this, inResourceData);
+		CallFunction<tApplySettings>(g_Game->m_Offsets->ApplySettings.address, this, inResourceData);
 	};
 
 	inline void SetVisible(bool state)
 	{
-		uintptr_t* vtable = *(uintptr_t**)this;
-		auto oSetVisible = (void(__thiscall*)(void*, bool))vtable[5]; // index 108 / this + 20 bytes
-
-		oSetVisible(this, state);
+		using tSetVisible = void(__thiscall*)(void* thisptr, bool state);
+		CallVFunc<tSetVisible>(this, 5, state); //index 5 / this + 20 bytes
 	};
 
-	inline void SetKeyBoardInputEnabled(bool state) {
-		uintptr_t* vtable = *(uintptr_t**)this;
-		auto oSetKeyBoardInputEnabled = (void(__thiscall*)(void*, bool))vtable[108]; // index 108 / this + 432 bytes
-
-		oSetKeyBoardInputEnabled(this, state);
+	inline void SetKeyBoardInputEnabled(bool state) 
+	{
+		using tSetKeyBoardInputEnabled = void(__thiscall*)(void* thisptr, bool state);
+		CallVFunc<tSetKeyBoardInputEnabled>(this, 108, state); //index 108 / this + 432 bytes
 	};
 
-	inline void SetMouseInputEnabled(bool state) {
-		uintptr_t* vtable = *(uintptr_t**)this;
-		auto oSetMouseInputEnabled = (void(__thiscall*)(void*, bool))vtable[107]; // index 107 / this + 428 bytes
-
-		oSetMouseInputEnabled(this, state);
+	inline void SetMouseInputEnabled(bool state) 
+	{
+		using tSetMouseInputEnabled = void(__thiscall*)(void* thisptr, bool state);
+		CallVFunc<tSetMouseInputEnabled>(this, 107, state); //index 107 / this + 428 bytes
 	};
 
 	inline Color GetSchemeColor(const char* keyName, Color defaultColor, IScheme* pScheme)
 	{
-		uintptr_t* vtable = *(uintptr_t**)this;
-		auto oGetSchemeColor = (Color(__thiscall*)(void*, const char*, Color, IScheme*))vtable[58]; // index 58 / this + 232 bytes
-
-		return oGetSchemeColor(this, keyName, defaultColor, pScheme);
+		using tGetSchemeColor = Color(__thiscall*)(void* thisptr, const char* keyName, Color defaultColor, IScheme* pScheme);
+		return CallVFunc<tGetSchemeColor>(this, 58, keyName, defaultColor, pScheme); //index 58 / this + 232 bytes
 	};
 
 	inline void SetBgColor(Color color)
 	{
-		uintptr_t* vtable = *(uintptr_t**)this;
-		auto oSetBgColor = (void(__thiscall*)(void*, Color))vtable[31]; // index 31 / this + 124 bytes
-
-		oSetBgColor(this, color);
+		using tSetBgColor = void(__thiscall*)(void* thisptr, Color color);
+		CallVFunc<tSetBgColor>(this, 31, color); //index 31 / this + 124 bytes
 	};
 
 	char pad[0x53];

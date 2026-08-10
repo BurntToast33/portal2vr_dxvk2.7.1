@@ -1,7 +1,8 @@
 V0.2.3
 - Test co-op
 - Add splitscreen support
-- Add gesture support
+- Add gesture menu support
+- Add lua support for the hud system to be able to make a per game ui condition map
 
 
 V0.2.2
@@ -9,7 +10,7 @@ Todo:
 - Update to dxvk 3.0
 - Finish Overlay based aiming
 - Fix MSAA (I don't know how, everything is transparent so run without msaa for now)
--- Add cube map transisions between levels to stay in the aptiure envrionment while loading
+- Add cube map transisions between levels to stay in the aptiure envrionment while loading
 	- Need to GetPlayer Pos to calculate capture height when saving json entrie
 	- ConCommand needs to be registered with the engine to build PCCMCubemaps with a specified resolution and name
 		- Need windows PC to debug registration.
@@ -17,14 +18,25 @@ Todo:
 	- Possibly need to resize the back buffer when rendering cube map
 	- Make Render function to render both eyes
 
+- Add grab point system
+	- Define action, posistion, bounding box, what it's attached to and it's activation parameters. Then it will call a callback function 
+
 - Add room scale movment
+	- Disconnect camera from player
+	- Player needs to follow camera but vertical movement is linked.
+	- Intercept movement applied to the player and instead apply to camera
+		- Need to get server player entity
+
 - Look into if preventing view cache flush at the end of RenderView causes views to be reused for the next eye.
 - Look into changing compositing to use engine material system
 
 
 Done:
+- Changed config file to use json format.
+
 - Added new launch arg `-overrideVRAssets` which will force the asset loading system to load the vr assets even in 2D mode. 
 - Added new launch arg `-vrDevMode` which will force 2D mode and enable vr asset devolpment tools.
+- Added new config file `viewmodel_config.json` which will handle vr viewmodel settings for weapons removing hardcoded paramters.
 
 
 V0.2.1

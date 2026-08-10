@@ -86,10 +86,10 @@
   "PCCM_Mappings": {
     //Chapter 1
     "sp_a1_intro1": {
-      "imagePath": "vr/sp_a1_intro1.dds",
-      "captureHeight": 64,
-      "boxMin": [ -512, -512, 0 ],
-      "boxMax": [ 512, 512, 512 ]
+      "ImagePath": "vr/sp_a1_intro1.dds",
+      "CaptureHeight": 64,
+      "BoxMin": [ -512, -512, 0 ],
+      "BoxMax": [ 512, 512, 512 ]
     }
   }
 }

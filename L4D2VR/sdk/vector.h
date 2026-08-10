@@ -1195,7 +1195,16 @@ private:
 	static void VectorAngles(const Vector &forward, const Vector &pseudoup, QAngle &angles);
 };
 
+inline void from_json(const nlohmann::json& j, QAngle& v)
+{
 
+	if (!j.is_array() || j.size() != 3)
+		throw std::runtime_error("Expected a QAngle as [x, y, z]");
+
+	v.x = j[0].get<float>();
+	v.y = j[1].get<float>();
+	v.z = j[2].get<float>();
+}
 
 inline QAngle::QAngle()
 {
@@ -1263,14 +1272,14 @@ inline bool QAngle::operator!=(const QAngle& src) const
 	return (src.x != this->x) || (src.y != this->y) || (src.z != this->z);
 }
 
-/*inline QAngle& QAngle::operator+=(const QAngle& v)
+inline QAngle& QAngle::operator+=(const QAngle& v)
 {
 	QAngle res;
 	res.x = x + v.x;
 	res.y = y + v.y;
 	res.z = z + v.z;
 	return res;
-}*/
+}
 
 inline float AngleNormalize(float angle) {
 	//return 360 * std::floor((angle + 180) / 360)
@@ -1470,3 +1479,8 @@ void AngleMatrix(const QAngle& angles, matrix3x4_t& matrix);
 
 // transform a set of angles in the input space of parentMatrix to the output space
 QAngle TransformAnglesToWorldSpace(const QAngle& angles, const matrix3x4_t& parentMatrix);
+
+inline float DotProductXZ(const Vector& a, const Vector& b)
+{
+	return a.x * b.x + a.z * b.z;
+}

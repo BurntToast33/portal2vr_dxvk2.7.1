@@ -112,6 +112,9 @@
     <Filter Include="Source Files\SDK">
       <UniqueIdentifier>{3b31a935-be96-4870-ab61-2b9dcc8b8eb1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Config%27s">
+      <UniqueIdentifier>{fd177cc6-d85d-4917-9c24-e1fe2f10b4fb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game.h">
@@ -128,9 +131,6 @@
     </ClInclude>
     <ClInclude Include="sigscanner.h">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sdk\cnewparticleeffect.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sdk\bitbuf.h">
       <Filter>Header Files</Filter>
@@ -1086,6 +1086,9 @@
     <ClInclude Include="PCCM.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="sdk\cnewparticleeffect.h">
+      <Filter>Source Files\SDK</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -1585,12 +1588,12 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="config.txt">
-      <Filter>Source Files</Filter>
-    </Text>
     <Text Include="Todo.txt" />
     <Text Include="backgrounds.json">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Config%27s</Filter>
+    </Text>
+    <Text Include="config.json">
+      <Filter>Source Files\Config%27s</Filter>
     </Text>
   </ItemGroup>
   <ItemGroup>
@@ -1599,6 +1602,9 @@
     </None>
     <None Include="..\dxvk\src\d3d9\d3d9.sym">
       <Filter>dxvk\d3d9</Filter>
+    </None>
+    <None Include="viewmodel_config.json">
+      <Filter>Source Files\Config%27s</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

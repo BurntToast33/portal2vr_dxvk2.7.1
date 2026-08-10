@@ -32,6 +32,8 @@ Hooks::Hooks(Game *game)
 	if (!m_Game->m_VrEnabled && m_Game->m_VRDevMode) 
 	{
 		BuildHook(hkRenderView, O->RenderView, dDevRenderView);
+
+		m_Game->logMsg(LOGTYPE_DEBUG, "Hooks Initilized");
 		return;
 	}
 
@@ -82,10 +84,13 @@ Hooks::Hooks(Game *game)
 	BuildDirectCall(UTIL_Portal_FirstAlongRay, O->UTIL_Portal_FirstAlongRay);
 	BuildDirectCall(UTIL_IntersectRayWithPortal, O->UTIL_IntersectRayWithPortal);
 	BuildDirectCall(UTIL_Portal_AngleTransform, O->UTIL_Portal_AngleTransform);
-	BuildDirectCall(CreatePingPointer, O->CreatePingPointer);
 	BuildDirectCall(PrecacheParticleSystem, O->PrecacheParticleSystem);
+	BuildDirectCall(PushAllowBoneAccess, O->PushAllowBoneAccess);
+	BuildDirectCall(PopBoneAccess, O->PopBoneAccess);
 	BuildDirectCall(EntityIndex, O->CBaseEntity_entindex);
 	BuildDirectCall(GetOwner, O->GetOwner);
+
+	m_Game->logMsg(LOGTYPE_DEBUG, "Hooks Initilized");
 }
 
 Hooks::~Hooks()
@@ -126,10 +131,10 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 		float distance = sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 
 		// Rudimentary portalling detection
-		if (distance > m_VR->m_PortallingDetectionDistanceThreshold) {
+		if (distance > m_VR->m_Config.m_PortallingDetectionDistanceThreshold) {
 			m_VR->m_RotationOffset.y += m_VR->m_PortalRotationOffset.y;
 			
-			if (m_VR->m_SmoothRotation) {
+			if (m_VR->m_Config.m_SmoothPortalRotation) {
 				m_VR->m_RotationOffset.x += m_VR->m_PortalRotationOffset.x;
 				m_VR->m_RotationOffset.z += m_VR->m_PortalRotationOffset.z;
 			}
@@ -159,7 +164,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 	setup.zNearViewmodel = 2;
 	setup.angles = hmdAngle;
 
-	C_BasePlayer* localPlayer = (C_BasePlayer*)m_Game->GetClientEntity(m_Game->m_EngineClient->GetLocalPlayer());
+	C_BasePlayer* localPlayer = m_Game->GetPlayer();
 	IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
 
 	//Rendering Eyes
@@ -171,7 +176,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 		CViewSetup EyeView = setup;
 		Vector EyePos = (!I) ? m_VR->GetViewOriginLeft(m_VR->m_SetupOrigin) : m_VR->GetViewOriginRight(m_VR->m_SetupOrigin);
 		SharedTextureHolder* TargetTex = (!I) ? &m_VR->m_LeftEye : &m_VR->m_RightEye;
-		ITexture* TargetSur = (m_VR->m_AntiAliasing) ? TargetTex->m_MSAAITex : TargetTex->m_ITex;
+		ITexture* TargetSur = (m_VR->m_Config.m_AntiAliasing) ? TargetTex->m_MSAAITex : TargetTex->m_ITex;
 
 		EyeView.origin = m_VR->TraceEye((uint32_t*)localPlayer, position, EyePos, tempAngle);
 		EyeView.angles.y = tempAngle.y;
@@ -197,12 +202,6 @@ void __fastcall Hooks::dDevRenderView(void* ecx, void* edx, CViewSetup& setup, C
 		if (m_Game->m_EngineClient->IsPaused())
 			m_Game->ClientCmd_Unrestricted("pause");
 
-		if (!PCCM->m_GenerationTexture.m_ITex)
-		{
-			ImageFormat format = m_Game->m_MaterialSystem->GetBackBufferFormat();
-			CreateRT(&PCCM->m_GenerationTexture, "PCCMGenTex", PCCM->m_GenerationResolution, PCCM->m_GenerationResolution, RT_SIZE_NO_CHANGE, format);
-		}
-
 		rndr->SetRenderTarget(PCCM->m_GenerationTexture.m_ITex);
 		for (int I = 0; I < 6; I++) 
 		{
@@ -226,8 +225,7 @@ void __fastcall Hooks::dDevRenderView(void* ecx, void* edx, CViewSetup& setup, C
 //Movement controls
 bool __fastcall Hooks::dCreateMove(void *ecx, void *edx, float flInputSampleTime, CUserCmd *cmd)
 {
-	if (!cmd->command_number)
-		return hkCreateMove.fOriginal(ecx, flInputSampleTime, cmd);
+	if (!cmd->command_number) return hkCreateMove.fOriginal(ecx, flInputSampleTime, cmd);
 
 	if (m_VR->m_IsVREnabled)
 	{
@@ -245,49 +243,17 @@ bool __fastcall Hooks::dCreateMove(void *ecx, void *edx, float flInputSampleTime
 			cmd->upmove = 0.0f;
 
 			if (cmd->forwardmove > 0.0f)
-			{
 				cmd->buttons |= IN_FORWARD;
-			}
+
 			else if (cmd->forwardmove < 0.0f)
-			{
 				cmd->buttons |= IN_BACK;
-			}
+
 
 			if (cmd->sidemove > 0.0f)
-			{
 				cmd->buttons |= IN_MOVELEFT;
-			}
+
 			else if (cmd->sidemove < 0.0f)
-			{
 				cmd->buttons |= IN_MOVERIGHT;
-			}
-
-		}
-
-		if (m_VR->m_RoomscaleActive)
-		{
-			// How much have we moved since last CreateMove?
-			Vector setupOriginToHMD = (m_VR->m_HmdPosRelativeRaw - m_VR->m_HmdPosRelativeRawPrev) * m_VR->m_VRScale; //m_VR->m_HmdPosRelative - m_VR->m_HmdPosRelativePrev;
-			m_VR->m_HmdPosRelativeRawPrev = m_VR->m_HmdPosRelativeRaw;
-
-			setupOriginToHMD.z = 0;
-			float distance = VectorLength(setupOriginToHMD);
-			if (distance > 0.001f)
-			{
-				float forwardSpeed = DotProduct2D(setupOriginToHMD, m_VR->m_HmdForward);
-				float sideSpeed = DotProduct2D(setupOriginToHMD, m_VR->m_HmdRight);
-				cmd->forwardmove += distance * forwardSpeed;
-				cmd->sidemove += distance * sideSpeed;
-
-				// Let's update the position and the previous too
-				/*m_VR->m_HmdPosRelative -= setupOriginToHMD;
-				m_VR->m_HmdPosRelativePrev = m_VR->m_HmdPosRelative;*/
-
-				/*m_VR->m_Center += m_VR->m_HmdPosRelativeRaw - m_VR->m_HmdPosRelativeRawPrev;
-				m_VR->m_HmdPosRelativeRawPrev = m_VR->m_HmdPosRelativeRaw;*/
-
-				//m_VR->ResetPosition();
-			}
 		}
 	}
 
@@ -535,7 +501,7 @@ QAngle& __fastcall Hooks::dEyeAngles(void* ecx, void* edx) {
 		int localIndex = m_Game->m_EngineClient->GetLocalPlayer();
 		int index = EntityIndex(ecx);
 
-		auto vrPlayer = m_Game->m_PlayersVRInfo[index];
+		auto& vrPlayer = m_Game->m_PlayersVRInfo[index];
 
 		if (m_VR->m_IsVREnabled && localIndex == index) {
 			return m_VR->GetRightControllerAbsAngleConst();
@@ -633,7 +599,7 @@ void __fastcall Hooks::dPrepareCredits(void* ecx, void* edx, const char* pKeyNam
 
 void __fastcall Hooks::dComputeShadowDepthTextures(void* ecx, void* edx, const CViewSetup& pView)
 {
-	if (m_VR->m_IsRightEye && m_VR->m_ExperimentalOptimizations)
+	if (m_VR->m_IsRightEye && m_VR->m_Config.m_ExperimentalOptimizations)
 		return;
 		
 	hkComputeShadowDepthTextures.fOriginal(ecx, pView);
@@ -641,7 +607,7 @@ void __fastcall Hooks::dComputeShadowDepthTextures(void* ecx, void* edx, const C
 
 void __fastcall Hooks::dUnlockAllShadowDepthTextures(void* ecx, void* edx)
 {
-	if (!m_VR->m_IsRightEye && m_VR->m_ExperimentalOptimizations)
+	if (!m_VR->m_IsRightEye && m_VR->m_Config.m_ExperimentalOptimizations)
 		return;
 
 	hkUnlockAllShadowDepthTextures.fOriginal(ecx);
@@ -730,4 +696,12 @@ float __fastcall Hooks::dUpdateProgressBar(void* ecx, void* edx)
 void Hooks::dFormatViewModelAttachment(void* param_1, Vector& vOrigin, bool bInverse)
 {
 	//hkFormatViewModelAttachment.fOriginal(param_1, vOrigin, bInverse);
+}
+
+void Hooks::dCWLC_Flush(void* ecx, void* edx)
+{
+	if (!m_VR->m_IsRightEye && m_VR->m_Config.m_ExperimentalOptimizations > 1)
+		return;
+
+	hkCWLC_Flush.fOriginal(ecx);
 }

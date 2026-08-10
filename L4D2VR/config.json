@@ -1,0 +1,26 @@
+{
+	//Controller settings
+	"TurnSpeed": 0.15,
+	"SnapTurning": false,
+	"SnapTurnAngle": 45,
+	"LeftHanded": false,
+	"AimMode": 2, //0 = None, 1 = Crosshair (does not work properly), 2 = Laser sight/beam
+	"6DOF": true,
+
+	//Rendering settings
+	"VRScale": 43.2, //Real world units to source units scale
+	"IPDScale": 1, //Scale of interpupillary distance
+	"AntiAliasing": 0, //0, 2, 4, 8 (Currently broken and disabled)
+	"RenderWindow": false, //Enables spectator view
+	"Enable3DBackground": true, //Overrides main menu background with a 3D replacement map from backgrounds.txt
+	"ExperimentalOptimizations": 0, //Shares visibility data between eyes when rendering, 1 = shadow data
+	"UsePCCMs": true, //Enables Parallax Corrected Cube Maps to act as an environment in loading zones
+
+	//Portaling
+	"PortallingDetectionDistanceThreshold": 35,
+	"CameraUprightRecoverySpeed": 0.2, //Rate of camera recovery to upright
+	"SmoothPortalRotation": false, //Enables player's camera orientation to be affected by portal orientation
+
+	//RoomScale
+	"UseRoomScale": true //Unlocks the camera from the player and bumps the player entity towards the camera posision when they desync
+}

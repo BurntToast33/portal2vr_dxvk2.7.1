@@ -137,7 +137,7 @@ public:
     int m_VRDebuglvl = 0;
     bool m_OverrideVRAssets = false;
     bool m_VRDevMode = false;
-    GAMETYPE m_GameType = GAMETYPE_UNKNOWN;
+    std::pair<std::string, GAMETYPE> m_GameType = { "", GAMETYPE_UNKNOWN };
 
     std::array<Player, 24> m_PlayersVRInfo;
     int m_CurrentUsercmdID = -1;
@@ -155,7 +155,7 @@ public:
 
 
     // === Class Initializer === 
-    void Initialize();
+    void Initialize(bool IECheck);
 
 
     // === Interface Utilities ===

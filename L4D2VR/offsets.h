@@ -71,6 +71,7 @@ public:
     Offset ComputeShadowDepthTextures;
     Offset UnlockAllShadowDepthTextures = { "UnlockAllShadowDepthTextures", DLL_CLIENT, 0xEF110, "33 C0 39 81 6C 01 00 00 7E 19 8D 9B 00 00 00 00" };
     Offset FormatViewModelAttachment = { "FormatViewModelAttachment", DLL_CLIENT, 0x951E0, "55 8B EC 8b 45 08 83 EC 28 53 56 57 33 FF 85 C0" };
+    Offset CWLC_Flush = { "CWLC_Flush", DLL_CLIENT, 0x1EC3E0, "55 8B EC 83 EC 08 53 57 8B F9 89 7D FC E8 CE F6 ? ?" }; //CWorldListCache
 
     //In game UI
     Offset PaintTraverse;
@@ -80,12 +81,14 @@ public:
     Offset ApplySettings = { "ApplySettings", DLL_CLIENT, 0x6508A0, "55 8B EC 83 EC 4C 56 ? F1 F6 86 B4 00 00 00 01" }; //Panel
     Offset UpdateProgressBar = { "UpdateProgressBar", DLL_CLIENT, 0x36FD50, "55 8B EC 83 EC 08 56 8B F1 80 BE B4 01 00 00 00" }; //SlideControl
    
-    //Pointer laser 
-    Offset CreatePingPointer = { "CreatePingPointer", DLL_CLIENT, 0x280800, "55 8B EC 83 EC 14 53 56 8B F1 8B 8E ? ? ? ? 57 85 C9 74 30"};
-    Offset GetPortalPlayer = { "GetPortalPlayer", DLL_CLIENT, 0x8DF20, "55 8B EC 8B 45 08 83 F8 FF 75 10 8B 0D ? ? ? ? 8B 01 8B 90 ? ? ? ? FF D2"};
+    //Assist Laser
     Offset PrecacheParticleSystem;
     Offset SetControlPoint = { "SetControlPoint", DLL_CLIENT, 0x17C230, "55 8B EC 53 56 8B 75 0C 57 8B F9 BB ? ? ? ? 84 9F ? ? ? ?"};
     Offset StopEmission = { "StopEmission", DLL_CLIENT, 0x17BBA0, "55 8B EC 53 8B 5D 08 57 8B F9 F6 87 ? ? ? ? ? 74 7F" };
+    Offset CreateParticle = { "CreateParticle", DLL_CLIENT, 0x1737D0, "55 8B EC 8B 55 10 83 EC 0C 53 56 8B F1 8B 4D 08" };
+    Offset PushAllowBoneAccess = { "PushAllowBoneAccess", DLL_CLIENT, 0x64970, "55 8B EC 83 EC 08 FF 15 A4 A2 ? ? 84 C0 74 3F" }; //C_BaseAnimating
+    Offset PopBoneAccess = { "PopBoneAccess", DLL_CLIENT, 0x60430, "FF 15 A4 A2 ? ? 84 C0 74 4b A1 28 62 ? ? 8D 50 FF" }; //C_BaseAnimating
+    Offset GetViewModel = { "GetViewModel", DLL_CLIENT, 0x91370, "55 8B EC 51 8B 45 08 53 57 8B F9 8B 8C 87 94 16 00 00" };
 
     //VR Eyes
     Offset UTIL_Portal_FirstAlongRay = { "UTIL_Portal_FirstAlongRay", DLL_SERVER, 0x377A30, "55 8B EC 8B 0D ? ? ? ? 85 C9 74 19 A1 ? ? ? ?"};

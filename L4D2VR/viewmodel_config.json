@@ -1,0 +1,14 @@
+//The way that what game is dertimined is by using the base directory folder name ie "Portal 2" from the steam common games folder.
+//You can define a list of view model parameters for weapons.
+
+{
+  "portal 2": {
+    "weapon_portalgun": {
+      "PositionOffset": [ 4.5, 0, 1.5 ], //Foward, Side, Up
+      "AngleOffset": [ 0, 0, 0 ],
+      "CanUseAssistBeam": true,
+      "AssistBeamAttachment": "muzzle",
+      "CanUseLeftHand": true
+    }
+  }
+}

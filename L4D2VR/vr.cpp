@@ -155,6 +155,7 @@ VR::VR(Game *game)
 
     m_IsInitialized = true;
     m_IsVREnabled = true;
+    m_Game->logMsg(LOGTYPE_DEBUG, "VR Initilized");
 }
 
 VR::~VR()
@@ -174,7 +175,6 @@ void VR::CreateHashMaps()
 {
     //Using msaa surface as a lower res render target instead of a msaa surface
     m_MenuTexture.m_OverrideMSAASurface.emplace(m_RenderWidth, m_RenderHeight);
-
 
     //Background mappings
     char path[MAX_STR_LEN]{};
@@ -200,6 +200,7 @@ void VR::CreateHashMaps()
 
         m_Game->m_PCCM->UploadPCCMMap(ParalaxInfo);
     }
+    m_Game->logMsg(static_cast<LOGTYPE>(!ParalaxInfo.size()), "Loaded %zu PCCM mappings.", ParalaxInfo.size());
         
 
     //UI stuff from here
@@ -259,7 +260,7 @@ void VR::CreateHashMaps()
 
         if (ready)
         {
-            reinterpret_cast<SliderControl*>(panel)->m_curValue = MinMaxInverse(m_VRScale, min, max);
+            reinterpret_cast<SliderControl*>(panel)->m_curValue = MinMaxInverse(m_Config.m_VRScale, min, max);
             it->second.m_Data["ready"] = --ready;
             return;
         }
@@ -287,7 +288,7 @@ void VR::CreateHashMaps()
 
         if (ready)
         {
-            reinterpret_cast<SliderControl*>(panel)->m_curValue = MinMaxInverse(m_IpdScale, min, max);
+            reinterpret_cast<SliderControl*>(panel)->m_curValue = MinMaxInverse(m_Config.m_IpdScale, min, max);
             it->second.m_Data["ready"] = --ready;
             return;
         }
@@ -297,7 +298,7 @@ void VR::CreateHashMaps()
 
     ModifyPanelSettings("DrpRenderWindow", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
-        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_RenderWindow;
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_Config.m_RenderWindow;
         return false;
     });
     RegisterPanelCommandListener({ "VRRenderWindow0", "VRRenderWindow1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -312,7 +313,7 @@ void VR::CreateHashMaps()
 
     ModifyPanelSettings("Drp3DBackground", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
-        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_3DMenu;
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_Config.m_3DBackground;
         return false;
     });
     RegisterPanelCommandListener({ "VR3DBackground0", "VR3DBackground1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -327,7 +328,7 @@ void VR::CreateHashMaps()
 
     ModifyPanelSettings("DrpExperimentalOptimizations", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
-        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_ExperimentalOptimizations;
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_Config.m_ExperimentalOptimizations;
         return false;
     });
     RegisterPanelCommandListener({ "VRExperimentalOptimizations0", "VRExperimentalOptimizations1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -342,7 +343,7 @@ void VR::CreateHashMaps()
 
     ModifyPanelSettings("DrpSmoothRotation", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
-        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_SmoothRotation;
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_Config.m_SmoothPortalRotation;
         return false;
     });
     RegisterPanelCommandListener({ "VRSmoothRotation0", "VRSmoothRotation1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -392,7 +393,7 @@ void VR::CreateHashMaps()
 
         if (ready)
         {
-            reinterpret_cast<SliderControl*>(panel)->m_curValue = MinMaxInverse(m_TurnSpeed, min, max);
+            reinterpret_cast<SliderControl*>(panel)->m_curValue = MinMaxInverse(m_Config.m_TurnSpeed, min, max);
             it->second.m_Data["ready"] = --ready;
             return;
         }
@@ -402,7 +403,7 @@ void VR::CreateHashMaps()
 
     ModifyPanelSettings("DrpSnapTurning", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
-        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_SnapTurning;
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_Config.m_SnapTurning;
         return false;
     });
     RegisterPanelCommandListener({ "VRSnapTurning0", "VRSnapTurning1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -417,7 +418,7 @@ void VR::CreateHashMaps()
 
     ModifyPanelSettings("DrpLeftHanded", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
-        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_LeftHanded;
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_Config.m_LeftHanded;
         return false;
     });
     RegisterPanelCommandListener({ "VRLeftHanded0", "VRLeftHanded1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -432,7 +433,7 @@ void VR::CreateHashMaps()
 
     ModifyPanelSettings("Drp6DOF", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
-        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_6DOF;
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_Config.m_6DOF;
         return false;
     });
     RegisterPanelCommandListener({ "VR6DOF0", "VR6DOF1" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -447,7 +448,7 @@ void VR::CreateHashMaps()
 
     ModifyPanelSettings("DrpAimMode", [this](Panel* panel, KeyValues* inResourceData, std::unordered_map<std::string, std::variant<bool, float, int>>& settingData)
     {
-        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_AimMode;
+        reinterpret_cast<HybridButton*>(panel)->m_SetListIndex = m_Config.m_AimMode;
         return false;
     });
     RegisterPanelCommandListener({ "VRAimMode0", "VRAimMode1", "VRAimMode2" }, [this](const char* cmd, Panel* panel, KeyValues* message)
@@ -490,7 +491,7 @@ int VR::SetActionManifest(const char *fileName)
     //SetBinding("/actions/main/in/ShowHUD");
     SetBinding("/actions/main/in/Pause", VRBindingType_Menu, {}, VRBindingMode_Button, [this](vr::VRActionHandle_t handle) { SendButton(VK_ESCAPE); });
 
-    if (g_Game->m_GameType == GAMETYPE_PORTAl_RELOADED) 
+    if (g_Game->m_GameType.second == GAMETYPE_PORTAl_RELOADED) 
         SetBinding("/actions/main/in/ThirdAttack", VRBindingType_Input, { "att3" }, VRBindingMode_Repeat);
 
     SetBinding("/actions/main/in/Pause", VRBindingType_Input, { "gameui_activate" }, VRBindingMode_Button, [this](vr::VRActionHandle_t handle)
@@ -503,18 +504,18 @@ int VR::SetActionManifest(const char *fileName)
         vr::InputAnalogActionData_t analogActionData;
         if (GetAnalogActionData(handle, analogActionData))
         {
-            if (m_SnapTurning)
+            if (m_Config.m_SnapTurning)
             {
                 if (!m_PressedTurn)
                 {
                     if (analogActionData.x > 0.5f)
                     {
-                        m_RotationOffset.y -= m_SnapTurnAngle;
+                        m_RotationOffset.y -= m_Config.m_SnapTurnAngle;
                         m_PressedTurn = true;
                     }
                     else if (analogActionData.x < -0.5f)
                     {
-                        m_RotationOffset.y += m_SnapTurnAngle;
+                        m_RotationOffset.y += m_Config.m_SnapTurnAngle;
                         m_PressedTurn = true;
                     }
                 }
@@ -534,7 +535,7 @@ int VR::SetActionManifest(const char *fileName)
                 {
                     float normalized = (magnitude - deadzone) / (1.0f - deadzone);
                     float direction = (x > 0.0f) ? -1.0f : 1.0f;
-                    m_RotationOffset.y += direction * m_TurnSpeed * deltaTime * normalized;
+                    m_RotationOffset.y += direction * m_Config.m_TurnSpeed * deltaTime * normalized;
                 }
             }
 
@@ -572,7 +573,7 @@ void VR::PreUpdate()
     }
 
     //Compositing the rendered frame to the back buffer
-    if (m_RenderWindow && m_Game->m_EngineClient->IsInGame())
+    if (m_Config.m_RenderWindow && m_Game->m_EngineClient->IsInGame())
     {
         IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
         rndrContext->SetRenderTarget(NULL);
@@ -593,7 +594,6 @@ void VR::PostUpdate()
     if (!m_IsInitialized || !m_Game->m_Initialized || !m_IsVREnabled || !g_D3DVR9)
         return;
 
-    
     // Prevents crashing at menu
     const bool inGame = m_Game->m_EngineClient->IsInGame();
     if (!inGame)
@@ -601,9 +601,9 @@ void VR::PostUpdate()
         m_IsCredits = false; //Reset once out of level
         m_Game->m_CachedArmsModel = false;
 
-        if (m_3DMenu && !m_3DMenuLoading && !m_IsLevelBackground && m_CreatedVRTextures && 
-            !m_Game->m_EngineClient->IsDrawingLoadingImage() && !inGame
-            && m_Game->m_GameType != GAMETYPE_UNKNOWN)
+        if (m_Config.m_3DBackground && !m_3DMenuLoading && !m_IsLevelBackground && m_CreatedVRTextures &&
+            !m_Game->m_EngineClient->IsDrawingLoadingImage() && !inGame && m_Game->m_PCCM->m_Intilized
+            && m_Game->m_GameType.second != GAMETYPE_UNKNOWN)
         {
             std::thread([this]()
             {
@@ -653,6 +653,10 @@ void VR::PostUpdate()
             }
         }
     }
+
+    //Pulling current weapon
+    if (m_Game->m_EngineClient->IsInGame())
+        CheckWeaponType();
 }
 
 void VR::FirstFrameUpdate()
@@ -704,96 +708,101 @@ void VR::CreateVRTextures()
 //Submits vr textures and handles menus
 void VR::SubmitVRTextures()
 {
-    vr::EVRCompositorError leftEye = vr::VRCompositorError_None, rightEye = vr::VRCompositorError_None;
+    vr::EVRCompositorError eyeError[2] = {};
+    vr::Texture_t* eyeTex[2] = { &m_BlankTexture.m_VRTexture, &m_BlankTexture.m_VRTexture };
+    vr::VRTextureBounds_t* eyeBounds[2] = {};
+    static constexpr std::array<CaptureConditions, 3> capturePriority = { Capture_2D, Capture_MenuUI, Capture_HudUI };
 
     if (!m_CreatedVRTextures)
         CreateVRTextures();
 
-    //2D mode
-    if (ShouldCapture(Capture_2D))
+    CaptureConditions result = Capture_None;
+    for (CaptureConditions c : capturePriority)
     {
-        if (!m_MainOverlay.m_Visible || m_MainOverlay.m_StateFlag != 1)
-        {
-            RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
-            m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
-            m_MainOverlay.m_StateFlag = 1;
-            if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "2D mode");
-        }
-        
-        m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_BackBuffer.m_VRTexture);
-        m_MainOverlay.ShowOverlay();
-
-        leftEye = m_Compositor->Submit(vr::Eye_Left, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
-        rightEye = m_Compositor->Submit(vr::Eye_Right, &m_BlankTexture.m_VRTexture, nullptr, vr::Submit_Default);
-
-        if (m_Game->m_VRDebuglvl > 2)
-        {
-            if (leftEye != vr::VRCompositorError_None && leftEye != m_LastLeftEyeError)
-            {
-                m_Game->logMsg(LOGTYPE_ERROR, "2D mode left eye error: %s", CompositorErrorToString(leftEye));
-                m_LastLeftEyeError = leftEye;
-            }
-
-            if (rightEye != vr::VRCompositorError_None && rightEye != m_LastRightEyeError)
-            {
-                m_Game->logMsg(LOGTYPE_ERROR, "2D mode right eye error: %s", CompositorErrorToString(rightEye));
-                m_LastRightEyeError = rightEye;
-            }
-        }
-        return;
+        if ((result = ShouldCapture(c)) != Capture_None)
+            break;
     }
 
-    //3D mode
-    else if (ShouldCapture(Capture_MenuUI))
+
+    //Hud state switch
+    switch (result) 
     {
-        if (!m_MainOverlay.m_Visible || m_MainOverlay.m_StateFlag != 2)
+        case Capture_2D: 
         {
-            //This forces forward spawn on background levels
-            if (!m_IsLevelBackground)
-                RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, { RotFlag_UseYaw });
-            
-            else
+            if (!m_MainOverlay.m_Visible || m_MainOverlay.m_StateFlag != Capture_2D)
+            {
                 RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
+                m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
+                m_MainOverlay.m_StateFlag = Capture_2D;
+                if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "2D mode");
+            }
 
-            m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
-            m_MainOverlay.m_StateFlag = 2;
-            if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Menu state");
+            m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_BackBuffer.m_VRTexture);
+            m_MainOverlay.ShowOverlay();
+            break;
         }
 
-        m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_MenuTexture.m_VRTexture);
-        m_MainOverlay.ShowOverlay();
-    }
-
-    else if (ShouldCapture(Capture_HudUI))
-    {
-        if (!m_MainOverlay.m_Visible || m_MainOverlay.m_StateFlag != 3)
+        case Capture_MenuUI:
         {
-            RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_Attached, { 0.0f, -0.2f, 2.0f });
-            m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_None);
-            m_MainOverlay.m_StateFlag = 3;
-            if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Hud state");
+            if (!m_MainOverlay.m_Visible || m_MainOverlay.m_StateFlag != Capture_MenuUI)
+            {
+                //This forces forward spawn on background levels
+                if (!m_IsLevelBackground)
+                    RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, { RotFlag_UseYaw });
+
+                else
+                    RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
+
+                m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
+                m_MainOverlay.m_StateFlag = Capture_MenuUI;
+                if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Menu state");
+            }
+
+            m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_MenuTexture.m_VRTexture);
+            m_MainOverlay.ShowOverlay();
+            break;
         }
 
-        m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_MenuTexture.m_VRTexture);
-        m_MainOverlay.ShowOverlay();
+        case Capture_HudUI:
+        {
+            if (!m_MainOverlay.m_Visible || m_MainOverlay.m_StateFlag != Capture_HudUI)
+            {
+                RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_Attached, { 0.0f, -0.2f, 2.0f });
+                m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_None);
+                m_MainOverlay.m_StateFlag = Capture_HudUI;
+                if (m_Game->m_VRDebuglvl > 1) m_Game->logMsg(LOGTYPE_DEBUG, "3D mode, Hud state");
+            }
+
+            m_Overlay->SetOverlayTexture(m_MainOverlay.m_Handle, &m_MenuTexture.m_VRTexture);
+            m_MainOverlay.ShowOverlay();
+            break;
+        }
     }
-    else m_MainOverlay.HideOverlay();
+
+    if (result != Capture_2D)
+    {
+        eyeTex[vr::Eye_Left] = &m_LeftEye.m_VRTexture;
+        eyeTex[vr::Eye_Right] = &m_RightEye.m_VRTexture;
+        eyeBounds[vr::Eye_Left] = &m_TextureBounds[vr::Eye_Left];
+        eyeBounds[vr::Eye_Right] = &m_TextureBounds[vr::Eye_Right];
+    }
+
     
-    leftEye = m_Compositor->Submit(vr::Eye_Left, &m_LeftEye.m_VRTexture, &(m_TextureBounds)[0], vr::Submit_Default);
-    rightEye = m_Compositor->Submit(vr::Eye_Right, &m_RightEye.m_VRTexture, &(m_TextureBounds)[1], vr::Submit_Default);
+    eyeError[vr::Eye_Left] = m_Compositor->Submit(vr::Eye_Left, eyeTex[vr::Eye_Left], eyeBounds[vr::Eye_Left], vr::Submit_Default);
+    eyeError[vr::Eye_Right] = m_Compositor->Submit(vr::Eye_Right, eyeTex[vr::Eye_Right], eyeBounds[vr::Eye_Right], vr::Submit_Default);
 
     if (m_Game->m_VRDebuglvl > 2)
     {
-        if (leftEye != vr::VRCompositorError_None && leftEye != m_LastLeftEyeError)
+        if (eyeError[vr::Eye_Left] != vr::VRCompositorError_None && eyeError[vr::Eye_Left] != m_LastLeftEyeError)
         {
-            m_Game->logMsg(LOGTYPE_ERROR, "2D mode left eye error: %s", CompositorErrorToString(leftEye));
-            m_LastLeftEyeError = leftEye;
+            m_Game->logMsg(LOGTYPE_ERROR, "2D mode left eye error: %s", CompositorErrorToString(eyeError[vr::Eye_Left]));
+            m_LastLeftEyeError = eyeError[vr::Eye_Left];
         }
 
-        if (rightEye != vr::VRCompositorError_None && rightEye != m_LastRightEyeError)
+        if (eyeError[vr::Eye_Right] != vr::VRCompositorError_None && eyeError[vr::Eye_Right] != m_LastRightEyeError)
         {
-            m_Game->logMsg(LOGTYPE_ERROR, "2D mode right eye error: %s", CompositorErrorToString(rightEye));
-            m_LastRightEyeError = rightEye;
+            m_Game->logMsg(LOGTYPE_ERROR, "2D mode right eye error: %s", CompositorErrorToString(eyeError[vr::Eye_Right]));
+            m_LastRightEyeError = eyeError[vr::Eye_Right];
         }
     }
 }
@@ -983,7 +992,7 @@ void VR::GetPoses()
     vr::TrackedDeviceIndex_t leftControllerIndex = m_System->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_LeftHand);
     vr::TrackedDeviceIndex_t rightControllerIndex = m_System->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_RightHand);
     
-    if (m_LeftHanded)
+    if (m_Config.m_LeftHanded && (m_CurrentWeapon.second.m_CanUseLeftHand || m_CurrentWeapon.second.UsableEntry()))
         std::swap(leftControllerIndex, rightControllerIndex);
 
     GetPoseData(m_Poses[vr::k_unTrackedDeviceIndex_Hmd], m_HmdPose);
@@ -1241,8 +1250,8 @@ void VR::ProcessInput()
 
         // Normalized lerp
         Vector result =
-            currentForward * (1.0f - m_CameraUprightRecoverySpeed) +
-            targetForward * m_CameraUprightRecoverySpeed;
+            currentForward * (1.0f - m_Config.m_CameraUprightRecoverySpeed) +
+            targetForward * m_Config.m_CameraUprightRecoverySpeed;
 
         VectorNormalize(result);
 
@@ -1388,7 +1397,7 @@ Vector VR::GetRightControllerAbsPos(Vector eyePosition)
 
     Vector position = offset + m_RightControllerPosRel;
 
-    if (m_6DOF)
+    if (m_Config.m_6DOF)
         position += m_HmdPosRelative;
 
     return position;
@@ -1444,63 +1453,35 @@ void VR::UpdateTracking()
     if (!localPlayer)
         return;
 
-    // HMD tracking
+    //HMD tracking
     Vector hmdPosLocal = m_HmdPose.TrackedDevicePos;
     Vector hmdPosCentered = hmdPosLocal - m_Center;
 
     m_HmdPosRelativeRaw = hmdPosCentered;
 
-    //std::cout << "HMD - X: " << hmdWorldPos.x << ", Y: " << hmdWorldPos.y << ", Z: " << hmdWorldPos.z << "\n";
-
     Vector hmdPosCorrected = hmdPosCentered;
     VectorPivotXY(hmdPosCorrected, { 0, 0, 0 }, m_RotationOffset.y);
 
     UpdateHMDAngles();
-
-    m_HmdPosRelative = hmdPosCorrected * m_VRScale;
-
-    // Roomscale setup
-    /*Vector cameraMovingDirection = m_Center - m_SetupOriginPrev;
-    Vector cameraToPlayer = m_HmdPosAbsPrev - m_SetupOriginPrev;
-    cameraMovingDirection.z = 0;
-    cameraToPlayer.z = 0;
-    float cameraFollowing = DotProduct(cameraMovingDirection, cameraToPlayer);
-    float cameraDistance = VectorLength(cameraToPlayer);
-
-    if (localPlayer->m_hGroundEntity != -1 && localPlayer->m_vecVelocity.IsZero())
-        m_RoomscaleActive = true;
-
-    // TODO: Get roomscale to work while using thumbstick
-    if ((cameraFollowing < 0 && cameraDistance > 1) || (m_PushingThumbstick))
-        m_RoomscaleActive = false;*/
-
+    m_HmdPosRelative = hmdPosCorrected * m_Config.m_VRScale;
 
     //Laser pointer thingy
-    if (m_AimMode == 2) {
+    if (m_Config.m_AimMode == 2) {
         m_AimPos = Trace((uint32_t*)localPlayer);
-        C_Portal_Player* portalPlayer = m_Game->GetPortalPlayer(localPlayer);
-        CWeaponPortalBase* activeWeapon = portalPlayer->GetActivePortalWeapon();
 
-        if (activeWeapon) {
-            if (portalPlayer->m_PointLaser) {
-                portalPlayer->m_PointLaser->SetControlPoint(1, m_AimPos);
-                portalPlayer->m_PointLaser->SetControlPoint(2, m_Game->m_singlePlayerPortalColors[activeWeapon->m_iLastFiredPortal] * 0.5f);
+        if (m_CurrentWeapon.second.UsableEntry() && m_CurrentWeapon.second.m_CanUseAssistBeam) {
+            if (m_AssistBeam) {
+                m_AssistBeam->SetControlPoint(1, m_AimPos);
+                m_AssistBeam->SetControlPoint(2, m_Game->m_singlePlayerPortalColors[
+                    reinterpret_cast<CWeaponPortalBase*>(m_Game->GetPlayer()->GetActiveWeapon())->m_iLastFiredPortal] * 0.5f);
             }
-            else {
-                if (!m_ParticleCreated)
-                {
-                    m_Game->m_Hooks->PrecacheParticleSystem("robot_point_beam");
-                    m_ParticleCreated = true;
-                }
-
-                m_Game->logMsg(LOGTYPE_DEBUG, "Creating Point Laser Beam Sight Thingy");
-                m_Game->m_Hooks->CreatePingPointer(localPlayer, m_AimPos);
-            }
+            else
+                CreateAssistBeam(m_AimPos);
         }
-        else if (portalPlayer->m_PointLaser) {
-            m_Game->logMsg(LOGTYPE_DEBUG, "Destroying Point Laser Beam Sight Thingy");
-            portalPlayer->m_PointLaser->StopEmission(false, true);
-            portalPlayer->m_PointLaser = NULL;
+        else if (m_AssistBeam)
+        {
+            DestroyParticle(m_AssistBeam);
+            m_Game->logMsg(LOGTYPE_DEBUG, "Assist beam destroyed");
         }
     }
 
@@ -1541,15 +1522,13 @@ void VR::UpdateTracking()
     Vector rightControllerPosLocal = m_RightControllerPose.TrackedDevicePos;
     QAngle rightControllerAngLocal = m_RightControllerPose.TrackedDeviceAng;
 
-    //std::cout << "Right Controller - X: " << rightControllerPosLocal.x << "Y: " << rightControllerPosLocal.y << "Z: " << rightControllerPosLocal.z << "\n";
-
     Vector hmdToController = rightControllerPosLocal - hmdPosLocal;
     //Vector rightControllerPosCorrected = hmdPosCorrected + hmdToController;
 
     // When using stick turning, pivot the controllers around the HMD
     VectorPivotXY(hmdToController, { 0, 0, 0 }, m_RotationOffset.y);
 
-    m_RightControllerPosRel = hmdToController * m_VRScale;
+    m_RightControllerPosRel = hmdToController * m_Config.m_VRScale;
 
     //rightControllerAngLocal += m_RotationOffset;
     rightControllerAngLocal.x += m_RotationOffset.x;
@@ -1576,11 +1555,11 @@ void VR::UpdateTracking()
     QAngle::VectorAngles(m_RightControllerForward, m_RightControllerUp, m_RightControllerAngAbs);
     m_RightControllerAngAbs.Normalize();
 
-    PositionAngle viewmodelOffset = PositionAngle{ {4.5, -1, 1.5}, {0,0,0} };
-
-    // Apply both hardcoded and custom (from config) viewmodel offsets here:
-    m_ViewmodelPosOffset = viewmodelOffset.position + m_ViewmodelPosCustomOffset;
-    m_ViewmodelAngOffset = viewmodelOffset.angle + m_ViewmodelAngCustomOffset;
+    if (m_CurrentWeapon.second.UsableEntry())
+    {
+        m_ViewmodelPosOffset = m_CurrentWeapon.second.m_PositionOffset;
+        m_ViewmodelAngOffset = m_CurrentWeapon.second.m_AngleOffset;
+    }
 
     m_ViewmodelForward = m_RightControllerForward;
     m_ViewmodelUp = m_RightControllerUp;
@@ -1608,16 +1587,16 @@ Vector VR::GetViewOrigin(Vector setupOrigin)
 {
     Vector center = setupOrigin;
 
-    if (m_6DOF)
+    if (m_Config.m_6DOF)
         center += m_HmdPosRelative;
 
-    return center + (m_HmdForward * -(m_EyeZ * m_VRScale));
+    return center + (m_HmdForward * -(m_EyeZ * m_Config.m_VRScale));
 }
 
 Vector VR::GetViewOriginLeft(Vector setupOrigin)
 {
     Vector viewOriginLeft = GetViewOrigin(setupOrigin);
-    viewOriginLeft -= m_HmdRight * ((m_Ipd * m_IpdScale * m_VRScale) / 2);
+    viewOriginLeft -= m_HmdRight * ((m_Ipd * m_Config.m_IpdScale * m_Config.m_VRScale) / 2);
 
     return viewOriginLeft;
 }
@@ -1625,7 +1604,7 @@ Vector VR::GetViewOriginLeft(Vector setupOrigin)
 Vector VR::GetViewOriginRight(Vector setupOrigin)
 {
     Vector viewOriginRight = GetViewOrigin(setupOrigin);
-    viewOriginRight += m_HmdRight * ((m_Ipd * m_IpdScale * m_VRScale) / 2);
+    viewOriginRight += m_HmdRight * ((m_Ipd * m_Config.m_IpdScale * m_Config.m_VRScale) / 2);
 
     return viewOriginRight;
 }
@@ -1678,186 +1657,102 @@ Vector VR::TraceEye(uint32_t* localPlayer, Vector cameraPos, Vector eyePos, QAng
     return cameraPos;
 }
 
-// [CONFIG PARSING UTILITY FUNCTION]
-// Generates an error message by stringifying and concatenating 'args...'.
-template <typename... Ts>
-static void concatErrorMsg(Game& game, const Ts&... args)
+void VR::ParseConfigFile(const std::filesystem::path& file)
 {
-    std::ostringstream oss;
-    (oss << ... << args);
-    game.errorMsg(oss.str().c_str());
-}
-
-// [CONFIG PARSING UTILITY FUNCTION]
-// Attempts to parse an entry with key 'key' from the provided 'userConfig'. If the key is
-// missing or if the parsing fails, 'defaultValue' is returned and an error message is
-// generated.
-template <typename T>
-static T parseConfigEntry(const std::unordered_map<std::string, std::string>& userConfig, Game& game, const char* key, const T& defaultValue)
-try
-{
-    const auto itr = userConfig.find(key);
-
-    if (itr == userConfig.end())
+    if (file.filename() == "config.json")
     {
-        concatErrorMsg(game, "Config entry with key '", key,
-            "' missing -- reverting to default value of '", defaultValue, "'");
+        std::ifstream input(file);
+        nlohmann::json json = nlohmann::json::parse(input, nullptr, true, true);
+        m_Config = json.get<ConfigSettings>();
 
-        return defaultValue;
+        m_Game->logMsg(LOGTYPE_DEBUG, "Config file loaded");
     }
-
-    const std::string& configValue = itr->second;
-
-    if constexpr (std::is_same_v<T, bool>)
+    else if (file.filename() == "viewmodel_config.json")
     {
-        std::string val = configValue;
-
-        val.erase(std::remove_if(val.begin(), val.end(), ::isspace), val.end());
-        std::transform(val.begin(), val.end(), val.begin(), ::tolower);
-
-        return val == "true";
+        LoadStringMap(file.string().c_str(), m_Game->m_GameType.first.c_str(), m_VMConfig);
+        m_CurrentWeaponSettingsStale = true;
+        m_Game->logMsg(static_cast<LOGTYPE>(!m_VMConfig.size()), "Loaded %zu VMConfig mappings.", m_VMConfig.size());
     }
-    else if constexpr(std::is_floating_point_v<T>)
-    {
-        return std::stof(configValue);
-    }
-    else if constexpr(std::is_integral_v<T>)
-    {
-        return std::stol(configValue);
-    }
-    else
-    {
-        // Just a way of generating a compilation failure in case this branch is taken.
-        struct invalid_type;
-        return invalid_type{};
-    }
-}
-catch (const std::logic_error& e)
-{
-    concatErrorMsg(game, "Error parsing config entry with key '", key,
-        "' -- reverting to default value of '", defaultValue, "' -- error: (", e.what(), ")");
-
-    throw;
-}
-
-void VR::ParseConfigFile()
-{
-    std::ifstream configStream("VR\\config.txt");
-    std::unordered_map<std::string, std::string> userConfig;
-
-    std::string line;
-    while (std::getline(configStream, line))
-    {
-        std::istringstream sLine(line);
-        std::string key;
-        if (std::getline(sLine, key, '='))
-        {
-            std::string value;
-            if (std::getline(sLine, value, '#'))
-                userConfig[key] = value;
-            else if (std::getline(sLine, value))
-                userConfig[key] = value;
-        }
-    }
-
-    if (userConfig.empty())
-        return;
-
-    // Parse a single entry with key 'key' from the config into 'target'.
-    // If the entry does not exist, or if the parsing fails, sets 'target' to
-    // 'defaultValue'.
-    const auto parseOrDefault = [&](const char* key, auto& target, const auto& defaultValue) 
-    { 
-        target = parseConfigEntry(userConfig, *m_Game, key, defaultValue);
-        m_Game->logMsg(LOGTYPE_DEBUG, "Setting %s to %s", key, std::to_string(target).c_str());
-    };
-
-    // Parses a vector or angle from the config into 'target'. The XYZ coordinates
-    // are read from three separate config entries with key 'keyPrefix' + 'X'/'Y'/'Z'.
-    // If any entry does not exist, or if the parsing fails, sets the corresponding
-    // coordinate in 'target' to zero.
-    const auto parseVectorOrDefaultZero = [&](const char* key, auto& target)
-    {
-        auto it = userConfig.find(key);
-
-        target.x = target.y = target.z = 0.0f;
-
-        if (it != userConfig.end())
-        {
-            std::string value = it->second;
-            value.erase(std::remove(value.begin(), value.end(), '{'), value.end());
-            value.erase(std::remove(value.begin(), value.end(), '}'), value.end());
-
-            std::replace(value.begin(), value.end(), ',', ' ');
-
-            std::istringstream stream(value);
-
-            if (!(stream >> target.x >> target.y >> target.z))
-                target.x = target.y = target.z = 0.0f;
-        }
-
-        m_Game->logMsg(LOGTYPE_DEBUG, "Setting %s to { %.3f, %.3f, %.3f }", key, target.x, target.y, target.z);
-    };
-
-    parseOrDefault("SnapTurning", m_SnapTurning, false);
-    parseOrDefault("SnapTurnAngle", m_SnapTurnAngle, 45.0f);
-    parseOrDefault("TurnSpeed", m_TurnSpeed, 0.15f);
-    parseOrDefault("LeftHanded", m_LeftHanded, false);
-    parseOrDefault("VRScale", m_VRScale, 43.2f);
-    parseOrDefault("IPDScale", m_IpdScale, 1.0f);
-    parseOrDefault("6DOF", m_6DOF, true);
-    parseOrDefault("AimMode", m_AimMode, 2);
-    parseOrDefault("AntiAliasing", m_AntiAliasing, 0);
-    parseOrDefault("RenderWindow", m_RenderWindow, false);
-    if (m_Game->m_ISteamUser) parseOrDefault("Enable3DBackground", m_3DMenu, false);
-    parseOrDefault("ExperimentalOptimizations", m_ExperimentalOptimizations, 0);
-    parseOrDefault("PortallingDetectionDistanceThreshold", m_PortallingDetectionDistanceThreshold, 35);
-    parseOrDefault("CameraUprightRecoverySpeed", m_CameraUprightRecoverySpeed, 0.2f);
-    parseOrDefault("SmoothRotation", m_SmoothRotation, false);
-    parseOrDefault("UsePCCMs", m_UsePCCM, false);
-    parseVectorOrDefaultZero("ViewmodelPosCustomOffset", m_ViewmodelPosCustomOffset);
-    parseVectorOrDefaultZero("ViewmodelAngCustomOffset", m_ViewmodelAngCustomOffset);
 }
 
 void VR::WaitForConfigUpdate()
 {
     char configDir[MAX_STR_LEN];
     sprintf_s(configDir, MAX_STR_LEN, "%s\\VR\\", m_Game->m_GameDir);
-    HANDLE fileChangeHandle = FindFirstChangeNotificationA(configDir, false, FILE_NOTIFY_CHANGE_LAST_WRITE);
 
-    std::filesystem::file_time_type configLastModified;
-    while (1)
+    HANDLE fileChangeHandle = FindFirstChangeNotificationA(configDir, FALSE, FILE_NOTIFY_CHANGE_LAST_WRITE);
+
+    if (fileChangeHandle == INVALID_HANDLE_VALUE)
     {
-        try 
+        m_Game->logMsg(LOGTYPE_ERROR, "WaitForConfigUpdate: Failed to watch config directory.");
+        return;
+    }
+
+    std::vector<std::filesystem::path> configFiles =
+    {
+        "VR\\config.json",
+        "VR\\viewmodel_config.json",
+    };
+
+    //first load
+    std::unordered_map<std::filesystem::path, std::filesystem::file_time_type> lastModified;
+    for (const auto& file : configFiles)
+    {
+        try
         {
-            // Windows only notifies of change within a directory, so extra check here for just config.txt
-            auto configModifiedTime = std::filesystem::last_write_time("VR\\config.txt");
-            if (configModifiedTime != configLastModified)
+            lastModified[file] = std::filesystem::last_write_time(file);
+            ParseConfigFile(file);
+
+            m_Game->logMsg(LOGTYPE_DEBUG, "Successfully loaded %s", file.filename().string().c_str());
+        }
+        catch (const std::invalid_argument& e)
+        {
+            m_Game->logMsg(LOGTYPE_ERROR, "WaitForConfigUpdate: Failed to parse %s: %s", file.filename().string().c_str(), e.what());
+        }
+        catch (const std::filesystem::filesystem_error& e)
+        {
+            m_Game->logMsg(LOGTYPE_ERROR, "WaitForConfigUpdate: Failed to load %s: %s", file.filename().string().c_str(), e.what());
+            lastModified[file] = {};
+        }
+    }
+
+    while (true)
+    {
+        WaitForSingleObject(fileChangeHandle, INFINITE);
+        Sleep(100);
+
+        try
+        {
+            for (const auto& file : configFiles)
             {
-                configLastModified = configModifiedTime;
-                ParseConfigFile();
-                
-                m_Game->logMsg(LOGTYPE_DEBUG, "Successfully reloaded config.txt");
+                auto modifiedTime = std::filesystem::last_write_time(file);
+
+                if (modifiedTime != lastModified[file])
+                {
+                    lastModified[file] = modifiedTime;
+                    ParseConfigFile(file);
+
+                    m_Game->logMsg(LOGTYPE_DEBUG, "Successfully reloaded %s", file.filename().string().c_str());
+                }
             }
         }
-        catch (const std::invalid_argument &e)
+        catch (const std::invalid_argument& e)
         {
-            concatErrorMsg(
-                *m_Game, "Failed to parse 'config.txt' (", e.what(), ")");
+            m_Game->logMsg(LOGTYPE_ERROR, "WaitForConfigUpdate: Failed to parse config file: %s", e.what());
         }
-        catch (const std::filesystem::filesystem_error &e)
+        catch (const std::filesystem::filesystem_error& e)
         {
-            concatErrorMsg(
-                *m_Game, "'config.txt' not found. (", e.what(), ")");
-            
+            m_Game->logMsg(LOGTYPE_ERROR, "WaitForConfigUpdate: Config file error: %s", e.what());
+        }
+
+        if (!FindNextChangeNotification(fileChangeHandle))
+        {
+            m_Game->logMsg(LOGTYPE_ERROR, "WaitForConfigUpdate: Failed to continue watching config directory.");
             return;
         }
-        
-        FindNextChangeNotification(fileChangeHandle);
-        WaitForSingleObject(fileChangeHandle, INFINITE);
-        Sleep(100); // Sometimes the thread tries to read config.txt before it's finished writing
     }
 }
+
 
 std::string VR::GetMapFromSave(const char* fileName)
 {
@@ -1891,7 +1786,7 @@ std::string VR::GetNewestPortal2SavePath(const std::string& baseDir)
     std::error_code ec;
     fs::path saveRoot;
 
-    switch (m_Game->m_GameType) 
+    switch (m_Game->m_GameType.second) 
     {
         case GAMETYPE_PORTAL2: 
         {
@@ -1923,8 +1818,7 @@ std::string VR::GetNewestPortal2SavePath(const std::string& baseDir)
 
         if (!entry.is_regular_file(ec))
         {
-            if (ec)
-                g_Game->logMsg(LOGTYPE_WARNING, "Error checking if file is regular: %s", ec.message());
+            if (ec) g_Game->logMsg(LOGTYPE_WARNING, "Error checking if file is regular: %s", ec.message());
             continue;
         }
 
@@ -1975,17 +1869,23 @@ int VR::Load3DMenu()
     return 0;
 }
 
-bool VR::ShouldCapture(CaptureConditions con)
+//This handles the render pipeline state for overlays, what eye textures to use, and what panels to redirect rendering.
+CaptureConditions VR::ShouldCapture(CaptureConditions con)
 {
     switch (con)
     {
-        case Capture_Any: return true;
-        case Capture_2D: return !g_Game->m_EngineClient->IsInGame();
-        case Capture_MenuUI: return m_IsLevelBackground || m_Game->m_EngineClient->IsPaused();
-        case Capture_HudUI: return (m_IsCredits || !m_Game->m_EngineClient->IsPaused()) && m_Game->m_EngineClient->IsInGame() && !m_IsLevelBackground;
+        case Capture_Any: return Capture_Any;
+        case Capture_2D: return (!g_Game->m_EngineClient->IsInGame()) ? 
+            Capture_2D : Capture_None;
+
+        case Capture_MenuUI: return (m_IsLevelBackground || m_Game->m_EngineClient->IsPaused()) ? 
+            Capture_MenuUI : Capture_None;
+
+        case Capture_HudUI: return ((m_IsCredits || !m_Game->m_EngineClient->IsPaused()) && m_Game->m_EngineClient->IsInGame() && !m_IsLevelBackground) ? 
+            Capture_HudUI : Capture_None;
     }
      
-    return false;
+    return Capture_None;
 }
 
 void VR::BuildCaptureMap()
@@ -2055,11 +1955,42 @@ void VR::DeviceReset()
 void VR::OnMapLoading(const char* mapName, bool isBackground)
 {
     m_IsLevelBackground = isBackground;
-    m_ParticleCreated = false; //Need to recache particle
+    m_ParticleCached = false; //Need to recache particle
 
     if (m_Game->m_VRDebuglvl > 1)
         m_Game->logMsg(LOGTYPE_DEBUG, "Loading level: %s, Background: %s", mapName, (m_IsLevelBackground) ? "True" : "False");
 
-    if (m_UsePCCM)
+    if (m_Config.m_UsePCCM)
         m_Game->m_PCCM->LoadCubeMap(mapName);
+}
+
+void VR::CreateAssistBeam(Vector vecDestintaion)
+{
+    DestroyParticle(m_AssistBeam);
+    if (!m_CurrentWeapon.second.UsableEntry()) return;
+
+    C_BasePlayer* pl = m_Game->GetPlayer();
+    if (!pl) return;
+
+    C_BaseViewModel* vm = pl->GetViewModel();
+    if (!vm) return;
+
+    m_Game->m_Hooks->PushAllowBoneAccess(0, 1, "pingpointer");
+    if (!m_ParticleCached)
+    {
+        m_Game->m_Hooks->PrecacheParticleSystem("robot_point_beam");
+        m_ParticleCached = true;
+    }
+
+    m_AssistBeam = vm->m_Particles.CreateParticle("robot_point_beam", PATTACH_WORLDORIGIN, m_CurrentWeapon.second.m_AssistBeamAttachment.c_str());
+
+    if (m_AssistBeam)
+    {
+        m_Game->logMsg(LOGTYPE_DEBUG, "Assist Beam Created");
+        m_AssistBeam->SetControlPoint(1, vecDestintaion);
+    }
+    else
+        m_Game->logMsg(LOGTYPE_DEBUG, "Failed to create Assist Beam");
+
+    m_Game->m_Hooks->PopBoneAccess("pingpointer");
 }

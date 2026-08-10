@@ -12,7 +12,7 @@ DWORD WINAPI InitL4D2VR(HMODULE hModule)
     int nArgs;
     szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
 
-    bool insecureEnabled = false; //Change to false to enable -insecure check 
+    bool insecureEnabled = false;
     bool vrEnabled = false;
     int vrDebuglvl = 0;
     bool overrideVRAssets = false; //This will override vr asset loading to load assets in 2D mode
@@ -40,6 +40,7 @@ DWORD WINAPI InitL4D2VR(HMODULE hModule)
         else if (!wcscmp(szArglist[i], L"-vrDevMode"))
         {
             vrDevMode = true;
+            vrEnabled = false;
             if (!vrDebuglvl) vrDebuglvl = 1;
         }
     }
@@ -72,7 +73,7 @@ DWORD WINAPI InitL4D2VR(HMODULE hModule)
         g_Game->m_VRDevMode = vrDevMode;
     }
     g_GameCondVar.notify_all();
-    g_Game->Initialize();
+    g_Game->Initialize(insecureEnabled);
     return 0;
 }
 

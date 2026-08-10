@@ -24,6 +24,7 @@ class ITexture;
 struct TrackedDevicePoseData 
 {
 	std::string TrackedDeviceName;
+
 	Vector TrackedDevicePos;
 	Vector TrackedDeviceVel;
 	QAngle TrackedDeviceAng;
@@ -213,6 +214,9 @@ enum OverlayRel
 
 enum CaptureConditions
 {
+	//CaptureConditions are used as both a input to say what mode you want as well as the return result.
+
+	Capture_None = 0,
 	Capture_Any,
 	Capture_2D,
 	Capture_MenuUI,
@@ -276,6 +280,102 @@ struct StringPair {
 	const char* pressCommand = nullptr;
 	const char* releaseCommand = nullptr;
 };
+
+struct ConfigSettings 
+{
+	float m_TurnSpeed = 0.15f;
+	bool m_SnapTurning = false;
+	float m_SnapTurnAngle = 45.0f;
+	bool m_LeftHanded = false;
+	int m_AimMode = 2;
+	bool m_6DOF = true;
+
+	float m_VRScale = 43.2f;
+	float m_IpdScale = 1.0f;
+	uint32_t m_AntiAliasing = 0;
+	bool m_3DBackground = false;
+	bool m_RenderWindow = false;
+	int m_ExperimentalOptimizations = 0;
+	bool m_UsePCCM = false;
+
+	float m_PortallingDetectionDistanceThreshold = 35.0f;
+	bool m_SmoothPortalRotation = false;
+	float m_CameraUprightRecoverySpeed = 0.2f;
+	
+	bool m_UseRoomScale = true;
+};
+inline void from_json(const nlohmann::json& j, ConfigSettings& out)
+{
+	auto parse = [&](const char* name, auto& value)
+	{
+		try
+		{
+			if (j.contains(name)) j.at(name).get_to(value);
+		}
+		catch (const std::exception& e)
+		{
+			g_Game->logMsg(LOGTYPE_WARNING, "Failed to parse ConfigSettings.%s: %s. Using default value.", name, e.what());
+		}
+	};
+
+	parse("TurnSpeed", out.m_TurnSpeed);
+	parse("SnapTurning", out.m_SnapTurning);
+	parse("SnapTurnAngle", out.m_SnapTurnAngle);
+	parse("LeftHanded", out.m_LeftHanded);
+	parse("AimMode", out.m_AimMode);
+	parse("6DOF", out.m_6DOF);
+
+	parse("VRScale", out.m_VRScale);
+	parse("IPDScale", out.m_IpdScale);
+	parse("AntiAliasing", out.m_AntiAliasing);
+	parse("RenderWindow", out.m_RenderWindow);
+	parse("Enable3DBackground", out.m_3DBackground);
+	parse("ExperimentalOptimizations", out.m_ExperimentalOptimizations);
+	parse("UsePCCMs", out.m_UsePCCM);
+
+	parse("PortallingDetectionDistanceThreshold", out.m_PortallingDetectionDistanceThreshold);
+
+	parse("CameraUprightRecoverySpeed", out.m_CameraUprightRecoverySpeed);
+
+	parse("SmoothPortalRotation", out.m_SmoothPortalRotation);
+	parse("UseRoomScale", out.m_UseRoomScale);
+}
+
+struct ViewModelConfigSettings {
+	Vector m_PositionOffset = { 0, 0, 0 };
+	QAngle m_AngleOffset = { 0, 0, 0 };
+	bool m_CanUseAssistBeam = false;
+	std::string m_AssistBeamAttachment;
+	bool m_CanUseLeftHand = true;
+
+	bool m_IsValid = false;
+	bool m_Failed = false; //Mark failure to even get the player or weapon
+
+	bool UsableEntry()
+	{
+		return (m_IsValid && !m_Failed);
+	}
+};
+inline void from_json(const nlohmann::json& j, ViewModelConfigSettings& out)
+{
+	auto parse = [&](const char* name, auto& value)
+	{
+		try
+		{
+			if (j.contains(name)) j.at(name).get_to(value);
+		}
+		catch (const std::exception& e)
+		{
+			g_Game->logMsg(LOGTYPE_WARNING, "Failed to parse ViewModelConfigSettings.%s: %s. Using default value.", name, e.what());
+		}
+	};
+
+	parse("PositionOffset", out.m_PositionOffset);
+	parse("AngleOffset", out.m_AngleOffset);
+	parse("CanUseAssistBeam", out.m_CanUseAssistBeam);
+	parse("AssistBeamAttachment", out.m_AssistBeamAttachment);
+	parse("CanUseLeftHand", out.m_CanUseLeftHand);
+}
 #pragma endregion
 
 void CreateRT(SharedTextureHolder* target, const char* name, int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat format, MaterialRenderTargetDepth_t depth = MATERIAL_RT_DEPTH_SEPARATE, UINT textureFlags = TEXTUREFLAGS_NOMIP);
@@ -287,40 +387,34 @@ std::pair<int, SharedTextureHolder*> PopNextTexture();
 class VR
 {
 public:
-	//====================
-	// Variables
-	//====================
+	friend class PCCM;
 
+#pragma region Variables
 	Game* m_Game = nullptr;
-
 	vr::IVRSystem *m_System = nullptr;
 	vr::IVRInput *m_Input = nullptr;
 	vr::IVROverlay *m_Overlay = nullptr;
 	vr::IVRCompositor* m_Compositor = nullptr;
 
 	Overlay m_MainOverlay;
-	//vr::VROverlayHandle_t m_HUDHandle;
+	Overlay m_HUDOverlay;
 
-	float m_HorizontalOffsetLeft = 0;
-	float m_VerticalOffsetLeft = 0;
-	float m_HorizontalOffsetRight = 0;
-	float m_VerticalOffsetRight = 0;
-
+	float m_WScaleDownRatio, m_HScaleDownRatio, m_WScaleUpRatio, m_HScaleUpRatio;
 	uint32_t m_RenderWidth = 0, m_RenderHeight = 0;
 	float m_Aspect = 0;
 	float m_Fov = 0;
+	float m_Ipd = 0;
+	float m_EyeZ = 0;
 
-	vr::VRTextureBounds_t m_TextureBounds[2];
-	vr::TrackedDevicePose_t m_Poses[vr::k_unMaxTrackedDeviceCount] = {};
 
 	Vector m_EyeToHeadTransformPosLeft = { 0,0,0 };
 	Vector m_EyeToHeadTransformPosRight = { 0,0,0 };
 
+	Vector m_LastHmdPos;
+
 	Vector m_HmdForward;
 	Vector m_HmdRight;
 	Vector m_HmdUp;
-
-	Vector m_HmdPosLocalInWorld = { 0,0,0 };
 
 	Vector m_LeftControllerForward;
 	Vector m_LeftControllerRight;
@@ -342,14 +436,10 @@ public:
 	Vector m_HmdPosRelative = { 0,0,0 };
 	Vector m_HmdPosRelativePrev = { 0,0,0 };
 
-	Vector m_AimPos = { 0, 0, 0 };
-	bool m_Traced = false;
+	Vector m_AimPos = { 0, 0, 0 }; //Traced from controller
 
 	Vector m_Center = { 0,0,0 };
 	Vector m_SetupOrigin = { 0,0,0 };
-
-	float m_HeightOffset = 0.0;
-	bool m_RoomscaleActive = false;
 
 	Vector m_LeftControllerPosAbs;											
 	QAngle m_LeftControllerAngAbs;
@@ -359,13 +449,21 @@ public:
 	Vector m_ViewmodelPosOffset;
 	QAngle m_ViewmodelAngOffset;
 
-	Vector m_ViewmodelPosCustomOffset; // Custom (from config) viewmodel position offset applied on top of hardcoded ones
-    QAngle m_ViewmodelAngCustomOffset; // Custom (from config) viewmodel angle offset applied on top of hardcoded ones
-
-	float m_Ipd = 0;															
-	float m_EyeZ = 0;
-
 	Vector m_IntendedPositionOffset = { 0,0,0 };
+
+	TrackedDevicePoseData m_HmdPose;
+	TrackedDevicePoseData m_LeftControllerPose;
+	TrackedDevicePoseData m_RightControllerPose;
+
+	QAngle m_PortalRotationOffset = { 0, 0, 0 };
+	QAngle m_RotationOffset = { 0, 0, 0 };
+
+	std::chrono::steady_clock::time_point m_PrevFrameTime;
+
+#pragma region Textures
+	vr::VRTextureBounds_t m_TextureBounds[2];
+	vr::TrackedDevicePose_t m_Poses[vr::k_unMaxTrackedDeviceCount] = {};
+	vr::EVRCompositorError m_LastLeftEyeError = vr::VRCompositorError_None, m_LastRightEyeError = vr::VRCompositorError_None;
 
 	SharedTextureHolder m_LeftEye;
 	SharedTextureHolder m_RightEye;
@@ -373,105 +471,145 @@ public:
 	SharedTextureHolder m_BlankTexture;
 	SharedTextureHolder m_MenuTexture;
 	SharedTextureHolder m_HudTexture;
+#pragma endregion
 
+#pragma region StateToggles
 	bool m_IsVREnabled = false;
 	bool m_IsInitialized = false;
 	bool m_CreatedVRTextures = false;
 	bool m_PressedTurn = false;
 	bool m_IsRightEye = false;
-	bool m_ParticleCreated = false;
-
-	float m_WScaleDownRatio, m_HScaleDownRatio, m_WScaleUpRatio, m_HScaleUpRatio;
-
-	std::unordered_map<std::string, std::string> m_BackgroundMapping{}; //Map map names to background names
-	std::unordered_map<VPANEL, PanelCaptureInfo> m_PanelCaptureMap{}; //Captures the children of the parent panel
-	std::unordered_map<std::string, OverrideLayout> m_PanelLayoutOverride{}; //Override layout for loaded panels
-	std::unordered_map<std::string, std::function<bool(const char* cmd, Panel* panel, KeyValues* message)>> m_PanelCommands{}; //Listen or override commands from panels
-	std::unordered_map<std::string, PanelSettings> m_PanelSettings{}; //Used to modify panel settings
-
-	std::unordered_map<std::string, std::function<void(Panel* panel, float Percentage)>> m_SlideRead;
-
+	bool m_ParticleCached = false;
 	bool m_BuiltCaptureMap = false;
 	bool m_IsLevelBackground = false;
 	bool m_IsCredits = false;
 	bool m_OverrideControllerUI = false;
 	bool m_LevelExitFix = false; //Disconnects from level before exiting level to fix soft lock
 	bool m_3DMenuLoading = false;
+	bool m_ApplyPortalRotationOffset = false;
+	bool m_OverrideEyeAngles = false;
+	bool m_CurrentWeaponSettingsStale = false;
+#pragma endregion
 
-	vr::EVRCompositorError m_LastLeftEyeError = vr::VRCompositorError_None, m_LastRightEyeError = vr::VRCompositorError_None;
+#pragma region Maps
+	std::unordered_map<std::string, std::string> m_BackgroundMapping{}; //Map map names to background names
+	std::unordered_map<VPANEL, PanelCaptureInfo> m_PanelCaptureMap{}; //Captures the children of the parent panel
+	std::unordered_map<std::string, OverrideLayout> m_PanelLayoutOverride{}; //Override layout for loaded panels
+	std::unordered_map<std::string, std::function<bool(const char* cmd, Panel* panel, KeyValues* message)>> m_PanelCommands{}; //Listen or override commands from panels
+	std::unordered_map<std::string, PanelSettings> m_PanelSettings{}; //Used to modify panel settings
+	std::unordered_map<std::string, std::function<void(Panel* panel, float Percentage)>> m_SlideRead;
+#pragma endregion
 
-	// action set
+#pragma region ActionsAndBinds
 	vr::VRActionSetHandle_t m_ActionSet = {};
 	vr::VRActiveActionSet_t m_ActiveActionSet = {};
-
-	// actions
 	std::vector<VRBindings> m_Bindings;
 	vr::VRActionHandle_t m_ActionWalk = vr::k_ulInvalidActionHandle;
+#pragma endregion
 
-	TrackedDevicePoseData m_HmdPose;
-	TrackedDevicePoseData m_LeftControllerPose;
-	TrackedDevicePoseData m_RightControllerPose;
+#pragma region Configs
+	ConfigSettings m_Config;
+	std::unordered_map<std::string, ViewModelConfigSettings> m_VMConfig; //Viewmodel config settings
+#pragma endregion
 
-	bool m_ApplyPortalRotationOffset = false;
-	QAngle m_PortalRotationOffset = {0, 0, 0};
-	QAngle m_RotationOffset = { 0, 0, 0 };
-	bool m_OverrideEyeAngles = false;
-	std::chrono::steady_clock::time_point m_PrevFrameTime;
+	std::pair<std::string, ViewModelConfigSettings> m_CurrentWeapon;
+	CNewParticleEffect* m_AssistBeam;
+#pragma endregion
 
-	//Settings
-	float m_TurnSpeed = 0.15;
-	bool m_SnapTurning = false;
-	float m_SnapTurnAngle = 45.0;
-	bool m_LeftHanded = false;
-	float m_VRScale = 43.2;
-	float m_IpdScale = 1.0;
-	bool m_6DOF = true;
-	int m_AimMode = 2;
-	bool m_3DMenu = false;
-	bool m_RenderWindow = false;
-	int m_ExperimentalOptimizations = 0;
-	float m_PortallingDetectionDistanceThreshold = 35;
-	bool m_SmoothRotation = false;
-	float m_CameraUprightRecoverySpeed = 0.2f;
-	bool m_UsePCCM = false;
-	uint32_t m_AntiAliasing = 0;
-
-	//===============
-	//	Helpers
-	//===============
-
-	template<typename T>
+#pragma region Helpers
+	template <typename T>
 	void WriteConfigEntry(const std::string& key, const T& value)
 	{
-		std::ifstream inFile("VR\\config.txt");
+		const char* filePath = "VR\\config.json";
 
+		std::ifstream inFile(filePath);
 		if (!inFile.is_open())
+		{
+			g_Game->logMsg(LOGTYPE_WARNING, "Could not open config file for writing: %s", filePath);
 			return;
+		}
 
 		std::vector<std::string> lines;
 		std::string line;
+
 		std::string valueStr;
 
 		if constexpr (std::is_same_v<T, bool>)
+		{
 			valueStr = value ? "true" : "false";
+		}
+		else if constexpr (std::is_same_v<T, std::string>)
+		{
+			nlohmann::json jsonValue = value;
+			valueStr = jsonValue.dump();
+		}
+		else if constexpr (std::is_arithmetic_v<T>)
+		{
+			nlohmann::json jsonValue = value;
+			valueStr = jsonValue.dump();
+		}
 		else
-			valueStr = std::to_string(value);
+		{
+			g_Game->logMsg(LOGTYPE_WARNING, "Unsupported config type for key: %s",key.c_str());
+			return;
+		}
+
+		bool found = false;
 
 		while (std::getline(inFile, line))
 		{
-			// Find key=value
-			const size_t equalsPos = line.find('=');
+			const std::string quotedKey = "\"" + key + "\"";
+			const size_t keyPos = line.find(quotedKey);
 
-			if (equalsPos != std::string::npos)
+			if (keyPos != std::string::npos)
 			{
-				std::string currentKey = line.substr(0, equalsPos);
-
-				if (currentKey == key)
+				const size_t colonPos = line.find(':', keyPos + quotedKey.length());
+				if (colonPos != std::string::npos)
 				{
-					// Preserve comments
-					const size_t commentPos = line.find('#');
+					size_t valueStart = colonPos + 1;
 
-					std::string newLine = key + "=" + valueStr;
+					while (valueStart < line.length() && std::isspace(static_cast<unsigned char>(line[valueStart])))
+					{
+						++valueStart;
+					}
+
+					size_t commentPos = line.find("//", valueStart);
+					size_t valueEnd;
+
+					if (commentPos != std::string::npos)
+					{
+						valueEnd = commentPos;
+						while (valueEnd > valueStart && std::isspace(static_cast<unsigned char>(line[valueEnd - 1])))
+						{
+							--valueEnd;
+						}
+					}
+					else
+					{
+						valueEnd = line.length();
+
+						while (valueEnd > valueStart && std::isspace(static_cast<unsigned char>(line[valueEnd - 1])))
+						{
+							--valueEnd;
+						}
+					}
+
+					bool hasComma = false;
+					if (valueEnd > valueStart && line[valueEnd - 1] == ',')
+					{
+						hasComma = true;
+						--valueEnd;
+
+						while (valueEnd > valueStart && std::isspace(static_cast<unsigned char>(line[valueEnd - 1])))
+						{
+							--valueEnd;
+						}
+					}
+
+					std::string newLine = line.substr(0, valueStart);
+					newLine += valueStr;
+
+					if (hasComma) newLine += ",";
 
 					if (commentPos != std::string::npos)
 					{
@@ -480,6 +618,7 @@ public:
 					}
 
 					line = newLine;
+					found = true;
 				}
 			}
 
@@ -487,14 +626,25 @@ public:
 		}
 
 		inFile.close();
+		if (!found)
+		{
+			g_Game->logMsg(LOGTYPE_WARNING, "Could not find config entry: %s", key.c_str());
+			return;
+		}
 
-		std::ofstream outFile("VR\\config.txt", std::ios::trunc);
+		std::ofstream outFile(filePath, std::ios::trunc);
+		if (!outFile.is_open())
+		{
+			g_Game->logMsg(LOGTYPE_WARNING, "Could not open config file for writing: %s", filePath);
+			return;
+		}
 
 		for (const auto& l : lines)
-			outFile << l << "\n";
+			outFile << l << '\n';
 
 		outFile.close();
 	}
+
 
 	float MinMaxInverse(float val, float min, float max)
 	{
@@ -530,11 +680,7 @@ public:
 	template<typename MapType>
 	bool LoadStringMap(const char* filePath, const char* key, MapType& map)
 	{
-		static_assert(
-			std::is_same_v<typename MapType::key_type, std::string>,
-			"LoadStringMap requires std::string keys"
-			);
-
+		static_assert(std::is_same_v<typename MapType::key_type, std::string>, "LoadStringMap requires std::string keys");
 		using ValueType = typename MapType::mapped_type;
 
 		std::ifstream file(filePath);
@@ -544,42 +690,11 @@ public:
 			return false;
 		}
 
-		//Filter out comments
-		std::stringstream buffer;
-		buffer << file.rdbuf();
-		file.close();
-
-		std::string contents = buffer.str();
-
-		std::string jsonText;
-		jsonText.reserve(contents.size());
-
-		bool inString = false;
-
-		for (size_t i = 0; i < contents.size(); i++)
-		{
-			char c = contents[i];
-
-			if (c == '"' && (i == 0 || contents[i - 1] != '\\'))
-				inString = !inString;
-
-			if (!inString && c == '/' && i + 1 < contents.size() && contents[i + 1] == '/')
-			{
-				while (i < contents.size() && contents[i] != '\n')
-					i++;
-
-				jsonText += '\n';
-				continue;
-			}
-
-			jsonText += c;
-		}
-
 		//Parse file
 		nlohmann::json json;
 		try
 		{
-			json = nlohmann::json::parse(jsonText);
+			json = nlohmann::json::parse(file, nullptr, true, true);
 		}
 		catch (const nlohmann::json::parse_error& e)
 		{
@@ -686,12 +801,54 @@ public:
 		}
 	}
 
+	void CheckWeaponType()
+	{
+		C_BasePlayer* player = m_Game->GetPlayer();
+		if (!player)
+		{
+			m_CurrentWeapon.second = {};
+			m_CurrentWeapon.second.m_Failed = true;
+			return;
+		}
+
+		C_BaseCombatWeapon* weapon = player->GetActiveWeapon();
+		if (!weapon)
+		{
+			m_CurrentWeapon.second = {};
+			m_CurrentWeapon.second.m_Failed = true;
+			return;
+		}
+
+		const char* weaponName = weapon->GetWeaponClassName();
+		if (!m_CurrentWeaponSettingsStale && !std::strcmp(m_CurrentWeapon.first.c_str(), weaponName))
+			return;
+
+		m_CurrentWeaponSettingsStale = false;
+		auto it = m_VMConfig.find(weaponName);
+		if (it == m_VMConfig.end())
+		{
+			m_Game->logMsg(LOGTYPE_WARNING, "Weapon: %s not mapped to any view model config.", weaponName);
+
+			m_CurrentWeapon.first = weaponName;
+			m_CurrentWeapon.second = {};
+			return;
+		}
+
+		m_Game->logMsg(LOGTYPE_DEBUG, "Weapon set: %s", weaponName);
+
+		m_CurrentWeapon.first = weaponName;
+		m_CurrentWeapon.second = it->second;
+		m_CurrentWeapon.second.m_IsValid = true;
+
+		//Particle needs to be recreated
+		DestroyParticle(m_AssistBeam);
+	}
+#pragma endregion
+
 	//====================
 	// Functions
 	//====================
-
-	//===== Setup =====
-
+#pragma region Setup
 	VR() {};
 	VR(Game *game);
 	~VR();
@@ -699,10 +856,10 @@ public:
 	void CreateHashMaps(); //Post initialization setup stage
 	int SetActionManifest(const char *fileName);
 	void InstallApplicationManifest(const char *fileName);
+	void SetBinding(const char* pchActionName, VRBindingType bindingType, StringPair cmds, VRBindingMode mode = VRBindingMode_Button, std::function<void(vr::VRActionHandle_t handle)> func = [](vr::VRActionHandle_t) {});
+#pragma endregion
 
-
-	//===== Rendering/Texture =====
-
+#pragma region Rendering/Texture
 	void PreUpdate();
 	void PostUpdate();
 	void FirstFrameUpdate();
@@ -711,10 +868,11 @@ public:
 	void DeviceReset(); //When D3D reset's this is called
 	void BuildCaptureMap();
 	int Load3DMenu();
-	bool ShouldCapture(CaptureConditions con);
+	CaptureConditions ShouldCapture(CaptureConditions con);
+	void CreateAssistBeam(Vector vecDestintaion);
+#pragma endregion
 
-
-	//===== UI =====
+#pragma region UI
 	//Captures children and descendances of parent panel
 	// - VPANEL is used because the capture happens inside the draw function so speed is needed
 	// - Return in Lamba function is used to Decide to capture or not
@@ -738,17 +896,15 @@ public:
 
 	//Attach mode ignores RotFlags and inherits position and rotation from reference.
 	void RepositionOverlay(Overlay& overlay, vr::TrackedDeviceIndex_t referenceDevice, OverlayRel con, Vector offset, OverlayRotation rot = {});
+#pragma endregion
 
-
-	//===== Config/File Parser's =====
-
-	void ParseConfigFile();
+#pragma region ConfigFileParsers
+	void ParseConfigFile(const std::filesystem::path& file);
 	void WaitForConfigUpdate();
 	std::string GetMapFromSave(const char* fileName);
 	std::string GetNewestPortal2SavePath(const std::string& baseDir);
+#pragma endregion
 
-	//Used to set binds
-	void SetBinding(const char* pchActionName, VRBindingType bindingType, StringPair cmds, VRBindingMode mode = VRBindingMode_Button, std::function<void(vr::VRActionHandle_t handle)> func = [](vr::VRActionHandle_t) {});
 	void GetPoses();
 	void UpdatePosesAndActions();
 	void GetViewParameters();

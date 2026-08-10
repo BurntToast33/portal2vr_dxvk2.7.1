@@ -9,7 +9,7 @@ struct ParalaxMapInfo
 	std::string m_ImagePath;
 	int m_Width;
 	int m_Height;
-	int m_MipLevels;
+	UINT m_MipLevels;
 	D3DFORMAT m_Format;
 
 	float m_CaptureHeight;
@@ -18,22 +18,14 @@ struct ParalaxMapInfo
 
 	bool m_Error = false; //This will prvent maps that failed parsing from loading
 };
-
-enum PCCM_GENERATION_STATE {
-	PCCM_GENERATION_STATE_ERROR = -1,
-	PCCM_GENERATION_STATE_DISABLED,
-	PCCM_GENERATION_STATE_ENABLED,
-	PCCM_GENERATION_STATE_CMTSET //CubeMapTexture
-};
-
-inline void from_json(const nlohmann::json& j, ParalaxMapInfo& info)
+inline void from_json(const nlohmann::json& j, ParalaxMapInfo& out)
 {
 	try
 	{
-		j.at("imagePath").get_to(info.m_ImagePath);
-		j.at("captureHeight").get_to(info.m_CaptureHeight);
-		j.at("boxMin").get_to(info.m_BoxMin);
-		j.at("boxMax").get_to(info.m_BoxMax);
+		j.at("ImagePath").get_to(out.m_ImagePath);
+		j.at("CaptureHeight").get_to(out.m_CaptureHeight);
+		j.at("BoxMin").get_to(out.m_BoxMin);
+		j.at("BoxMax").get_to(out.m_BoxMax);
 	}
 	catch (const std::exception& e)
 	{
@@ -42,6 +34,13 @@ inline void from_json(const nlohmann::json& j, ParalaxMapInfo& info)
 		);
 	}
 }
+
+enum PCCM_GENERATION_STATE {
+	PCCM_GENERATION_STATE_ERROR = -1,
+	PCCM_GENERATION_STATE_DISABLED,
+	PCCM_GENERATION_STATE_ENABLED,
+	PCCM_GENERATION_STATE_CMTSET //CubeMapTexture
+};
 
 class PCCM
 {
@@ -56,6 +55,8 @@ public:
 	dxvk::D3D9DeviceEx* m_DxDevice = nullptr;
 
 	IDirect3DCubeTexture9* m_CubeMap = nullptr;
+
+	bool m_Intilized = false;
 
 	UINT GetMipSize(UINT width, UINT height, D3DFORMAT format)
 	{
