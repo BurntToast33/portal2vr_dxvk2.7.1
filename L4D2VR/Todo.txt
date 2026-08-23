@@ -2,13 +2,13 @@ V0.2.3
 - Test co-op
 - Add splitscreen support
 - Add gesture menu support
-- Add lua support for the hud system to be able to make a per game ui condition map
 
 
 V0.2.2
 Todo:
+- Add lua support for the hud system to be able to make a per game ui condition map
 - Update to dxvk 3.0
-- Finish Overlay based aiming
+
 - Fix MSAA (I don't know how, everything is transparent so run without msaa for now)
 - Add cube map transisions between levels to stay in the aptiure envrionment while loading
 	- Need to GetPlayer Pos to calculate capture height when saving json entrie
@@ -19,7 +19,8 @@ Todo:
 	- Make Render function to render both eyes
 
 - Add grab point system
-	- Define action, posistion, bounding box, what it's attached to and it's activation parameters. Then it will call a callback function 
+	- Define action, posistion, bounding box, what it's attached to and it's activation parameters. Then it will call a callback function
+	- Add setting to show bounding boxes
 
 - Add room scale movment
 	- Disconnect camera from player
@@ -37,6 +38,8 @@ Done:
 - Added new launch arg `-overrideVRAssets` which will force the asset loading system to load the vr assets even in 2D mode. 
 - Added new launch arg `-vrDevMode` which will force 2D mode and enable vr asset devolpment tools.
 - Added new config file `viewmodel_config.json` which will handle vr viewmodel settings for weapons removing hardcoded paramters.
+
+- Reworked UI aiming to use overlay-based positioning for improved accuracy.
 
 
 V0.2.1

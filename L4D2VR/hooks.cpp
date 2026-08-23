@@ -121,7 +121,7 @@ void __fastcall Hooks::dRenderView(void *ecx, void *edx, CViewSetup &setup, CVie
 	hudViewSetup.m_nUnscaledWidth = m_VR->m_RenderWidth;
 	hudViewSetup.m_nUnscaledHeight = m_VR->m_RenderHeight;
 	hudViewSetup.fov = m_VR->m_Fov;
-	hudViewSetup.fovViewmodel = m_VR->m_Fov;
+	//hudViewSetup.fovViewmodel = m_VR->m_Fov;
 	hudViewSetup.m_flAspectRatio = m_VR->m_Aspect;
 
 	Vector position = setup.origin;

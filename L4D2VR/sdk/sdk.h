@@ -1621,6 +1621,7 @@ public:
 
 class IClientEntity : public IClientUnknown, IClientRenderable
 {
+public:
 	virtual Vector &GetAbsOrigin() = 0;
 	virtual QAngle &GetAbsAngles() = 0;
 	virtual void *GetMouth() = 0;

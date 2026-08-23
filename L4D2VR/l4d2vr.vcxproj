@@ -109,7 +109,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <TargetName>d3d9</TargetName>
-    <IncludePath>$(DXSDK_DIR)Include;$(SolutionDir)thirdparty\minhook\include;$(SolutionDir)thirdparty\openvr\include;$(ProjectDir)sdk;$(SolutionDir)dxvk\include;$(SolutionDir)dxvk\src\d3d9\shaders;$(SolutionDir)dxvk\include\shaders;$(ProjectDir);$(SolutionDir);$(SolutionDir)dxvk\src\d3d9;$(SolutionDir)thirdparty\nlohmann_json\include;$(SolutionDir)thirdparty\zydis;$(SolutionDir)thirdparty\directxtex\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)lua;$(DXSDK_DIR)Include;$(SolutionDir)thirdparty\minhook\include;$(SolutionDir)thirdparty\openvr\include;$(ProjectDir)sdk;$(SolutionDir)dxvk\include;$(SolutionDir)dxvk\src\d3d9\shaders;$(SolutionDir)dxvk\include\shaders;$(ProjectDir);$(SolutionDir);$(SolutionDir)dxvk\src\d3d9;$(SolutionDir)thirdparty\nlohmann_json\include;$(SolutionDir)thirdparty\zydis;$(SolutionDir)thirdparty\directxtex\include;$(IncludePath)</IncludePath>
     <ExecutablePath>$(ProjectDir)include;$(ExecutablePath)</ExecutablePath>
     <LibraryPath>$(SolutionDir)thirdparty\directxtex\lib;$(SolutionDir)thirdparty\openvr\lib\win32;$(SolutionDir)thirdparty\minhook\lib\$(Configuration);$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
@@ -592,6 +592,35 @@
     <ClInclude Include="..\dxvk\src\wsi\wsi_window.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="hooks.h" />
+    <ClInclude Include="lua\luamanager.h" />
+    <ClInclude Include="lua\src\lapi.h" />
+    <ClInclude Include="lua\src\lauxlib.h" />
+    <ClInclude Include="lua\src\lcode.h" />
+    <ClInclude Include="lua\src\lctype.h" />
+    <ClInclude Include="lua\src\ldebug.h" />
+    <ClInclude Include="lua\src\ldo.h" />
+    <ClInclude Include="lua\src\lfunc.h" />
+    <ClInclude Include="lua\src\lgc.h" />
+    <ClInclude Include="lua\src\ljumptab.h" />
+    <ClInclude Include="lua\src\llex.h" />
+    <ClInclude Include="lua\src\llimits.h" />
+    <ClInclude Include="lua\src\lmem.h" />
+    <ClInclude Include="lua\src\lobject.h" />
+    <ClInclude Include="lua\src\lopcodes.h" />
+    <ClInclude Include="lua\src\lopnames.h" />
+    <ClInclude Include="lua\src\lparser.h" />
+    <ClInclude Include="lua\src\lprefix.h" />
+    <ClInclude Include="lua\src\lstate.h" />
+    <ClInclude Include="lua\src\lstring.h" />
+    <ClInclude Include="lua\src\ltable.h" />
+    <ClInclude Include="lua\src\ltm.h" />
+    <ClInclude Include="lua\src\lua.h" />
+    <ClInclude Include="lua\src\lua.hpp" />
+    <ClInclude Include="lua\src\luaconf.h" />
+    <ClInclude Include="lua\src\lualib.h" />
+    <ClInclude Include="lua\src\lundump.h" />
+    <ClInclude Include="lua\src\lvm.h" />
+    <ClInclude Include="lua\src\lzio.h" />
     <ClInclude Include="offsets.h" />
     <ClInclude Include="PCCM.h" />
     <ClInclude Include="sdk\bitbuf.h" />
@@ -770,6 +799,39 @@
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="hooks.cpp" />
+    <ClCompile Include="lua\luamanager.cpp" />
+    <ClCompile Include="lua\src\lapi.c" />
+    <ClCompile Include="lua\src\lauxlib.c" />
+    <ClCompile Include="lua\src\lbaselib.c" />
+    <ClCompile Include="lua\src\lcode.c" />
+    <ClCompile Include="lua\src\lcorolib.c" />
+    <ClCompile Include="lua\src\lctype.c" />
+    <ClCompile Include="lua\src\ldblib.c" />
+    <ClCompile Include="lua\src\ldebug.c" />
+    <ClCompile Include="lua\src\ldo.c" />
+    <ClCompile Include="lua\src\ldump.c" />
+    <ClCompile Include="lua\src\lfunc.c" />
+    <ClCompile Include="lua\src\lgc.c" />
+    <ClCompile Include="lua\src\linit.c" />
+    <ClCompile Include="lua\src\liolib.c" />
+    <ClCompile Include="lua\src\llex.c" />
+    <ClCompile Include="lua\src\lmathlib.c" />
+    <ClCompile Include="lua\src\lmem.c" />
+    <ClCompile Include="lua\src\loadlib.c" />
+    <ClCompile Include="lua\src\lobject.c" />
+    <ClCompile Include="lua\src\lopcodes.c" />
+    <ClCompile Include="lua\src\loslib.c" />
+    <ClCompile Include="lua\src\lparser.c" />
+    <ClCompile Include="lua\src\lstate.c" />
+    <ClCompile Include="lua\src\lstring.c" />
+    <ClCompile Include="lua\src\lstrlib.c" />
+    <ClCompile Include="lua\src\ltable.c" />
+    <ClCompile Include="lua\src\ltablib.c" />
+    <ClCompile Include="lua\src\ltm.c" />
+    <ClCompile Include="lua\src\lundump.c" />
+    <ClCompile Include="lua\src\lutf8lib.c" />
+    <ClCompile Include="lua\src\lvm.c" />
+    <ClCompile Include="lua\src\lzio.c" />
     <ClCompile Include="PCCM.cpp" />
     <ClCompile Include="sdk\bitbuf.cpp" />
     <ClCompile Include="sdk\checksum_crc.cpp" />
@@ -787,6 +849,7 @@
   <ItemGroup>
     <None Include="..\dxvk\src\d3d9\d3d9.def" />
     <None Include="..\dxvk\src\d3d9\d3d9.sym" />
+    <None Include="lua\Documentation.md" />
     <None Include="viewmodel_config.json" />
   </ItemGroup>
   <ItemGroup>

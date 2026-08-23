@@ -7,6 +7,7 @@
 #include "offsets.h"
 #include "sigscanner.h"
 #include "PCCM.h"
+#include "luamanager.h"
 
 static std::mutex logMutex;
 
@@ -82,6 +83,8 @@ void Game::Initialize(bool IECheck)
     {
         m_VR = new VR(this);
         m_VR->CreateHashMaps(); //Need to build hash maps after m_VR and m_PCCM is created
+
+        //m_LuaManager = new LuaManager(this);
     }
 
     m_Hooks = new Hooks(this);
@@ -108,9 +111,7 @@ void Game::logMsg(LOGTYPE logtype, const char* fmt, ...)
     std::time_t now_c = std::chrono::system_clock::to_time_t(now);
 
     char timebuf[20]{};
-    std::strftime(timebuf, sizeof(timebuf),
-        "%Y-%m-%d %H:%M:%S",
-        std::localtime(&now_c));
+    std::strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", std::localtime(&now_c));
 
     const char* typeStr = "UNKNOWN";
     switch (logtype)
@@ -118,7 +119,8 @@ void Game::logMsg(LOGTYPE logtype, const char* fmt, ...)
         case LOGTYPE_DEBUG:   typeStr = "DEBUG";   break;
         case LOGTYPE_WARNING: typeStr = "WARNING"; break;
         case LOGTYPE_ERROR:   typeStr = "ERROR";   break;
-        case LOGTYPE_INFO:    typeStr = "INFO";   break;
+        case LOGTYPE_INFO:    typeStr = "INFO";    break;
+        case LOGTYPE_LUA:     typeStr = "LUA";     break;
     }
 
     char buffer[1024];
@@ -142,19 +144,10 @@ void Game::logMsg(LOGTYPE logtype, const char* fmt, ...)
         case LOGTYPE_WARNING: color = ANSI_YELLOW; break;
         case LOGTYPE_ERROR:   color = ANSI_RED;    break;
         case LOGTYPE_INFO:    color = ANSI_GREEN;  break;
+        case LOGTYPE_LUA:     color = ANSI_BLUE;   break;
     }
 
-    printf("%s[%s][%s] %s%s\n",
-        color,
-        timebuf,
-        typeStr,
-        buffer,
-        ANSI_RESET);
-}
-
-void Game::SetColorANSI(const char* color)
-{
-    printf("%s", color);
+    printf("%s[%s][%s] %s%s\n", color, timebuf, typeStr, buffer, ANSI_RESET);
 }
 
 void Game::clearLog()

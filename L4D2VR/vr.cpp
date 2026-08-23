@@ -4,6 +4,7 @@
 #include "hooks.h"
 #include "trace.h"
 #include "PCCM.h"
+#include "luamanager.h"
 #include <Windows.h>
 #include <iostream>
 #include <fstream>
@@ -137,8 +138,9 @@ VR::VR(Game *game)
 
     m_Overlay = vr::VROverlay();
 
-    m_MainOverlay.m_Name = "MenuOverlay";
-    m_Overlay->CreateOverlay("MenuOverlayKey", m_MainOverlay.m_Name, &m_MainOverlay.m_Handle);
+    m_MainOverlay.Initialize("MainOverlay");
+    m_HudOverlay.Initialize("HudOverlay");
+
     m_MainOverlay.SetOverlayInputMethod(vr::VROverlayInputMethod_Mouse);
     m_Overlay->SetOverlayFlag(m_MainOverlay.m_Handle, vr::VROverlayFlags_SendVRDiscreteScrollEvents, true);
 
@@ -146,10 +148,19 @@ VR::VR(Game *game)
     m_Overlay->SetOverlayCurvature(m_MainOverlay.m_Handle, 0.15f);
     m_Overlay->SetOverlayMouseScale(m_MainOverlay.m_Handle, &mouseScaleMenu);
 
-    vr::VRTextureBounds_t bounds{ 0, 0, 1, 1 };
-    m_Overlay->SetOverlayTextureBounds(m_MainOverlay.m_Handle, &bounds);
+    vr::VRTextureBounds_t boundsA{ 0, 0, 1, 1 };
+    m_Overlay->SetOverlayTextureBounds(m_MainOverlay.m_Handle, &boundsA);
     m_Overlay->SetOverlayTexelAspect(m_MainOverlay.m_Handle, 1.0f);
-    m_MainOverlay.SetOverlayWidthInMeters(1.5f * (1.0f / m_HScaleDownRatio));
+
+    float squarePixels = m_Game->m_WindowHeight * 0.25f;
+    float verticalCrop = 0.60f;
+
+    float uSize = squarePixels / m_Game->m_WindowWidth;
+    float vSize = (squarePixels * verticalCrop) / m_Game->m_WindowHeight;
+
+    vr::VRTextureBounds_t boundsB{0.5f - uSize, 0.5f - vSize, 0.5f + uSize, 0.5f + vSize};
+    m_Overlay->SetOverlayTextureBounds(m_HudOverlay.m_Handle, &boundsB);
+    m_Overlay->SetOverlayTexelAspect(m_HudOverlay.m_Handle, 1.0f);
 
     UpdatePosesAndActions();
 
@@ -175,6 +186,7 @@ void VR::CreateHashMaps()
 {
     //Using msaa surface as a lower res render target instead of a msaa surface
     m_MenuTexture.m_OverrideMSAASurface.emplace(m_RenderWidth, m_RenderHeight);
+    m_HudTexture.m_OverrideMSAASurface.emplace(m_RenderWidth, m_RenderHeight);
 
     //Background mappings
     char path[MAX_STR_LEN]{};
@@ -201,6 +213,10 @@ void VR::CreateHashMaps()
         m_Game->m_PCCM->UploadPCCMMap(ParalaxInfo);
     }
     m_Game->logMsg(static_cast<LOGTYPE>(!ParalaxInfo.size()), "Loaded %zu PCCM mappings.", ParalaxInfo.size());
+
+
+    //LuaManager
+    //m_Game->m_LuaManager->Initialize();
         
 
     //UI stuff from here
@@ -561,14 +577,27 @@ void VR::InstallApplicationManifest(const char *fileName)
 
 void VR::PreUpdate()
 {
+    //m_Game->m_LuaManager->Lua_PreUpdate();
+
+    RECT ScaleRect = { 0, 0, m_Game->m_WindowWidth, m_Game->m_WindowHeight };
+
     //Scaling Menu textures
     if (ShouldCapture(Capture_MenuUI) || ShouldCapture(Capture_HudUI))
     {
-        static RECT Rect = { 0, 0, m_Game->m_WindowWidth, m_Game->m_WindowHeight };
         m_Game->m_DxDevice->StretchRect(
-            m_MenuTexture.m_MSAASurface, &Rect,
+            m_MenuTexture.m_MSAASurface, &ScaleRect,
             m_MenuTexture.m_Surface, nullptr,
             D3DTEXF_LINEAR
+        );
+    }
+
+    //Cropping Texture
+    if (m_Config.m_AimMode == AimMode_Overlay)
+    {
+        m_Game->m_DxDevice->StretchRect(
+            m_HudTexture.m_MSAASurface, &ScaleRect,
+            m_HudTexture.m_Surface, nullptr,
+            D3DTEXF_NONE
         );
     }
 
@@ -600,6 +629,7 @@ void VR::PostUpdate()
     {
         m_IsCredits = false; //Reset once out of level
         m_Game->m_CachedArmsModel = false;
+        DestroyParticle(m_AssistBeam);
 
         if (m_Config.m_3DBackground && !m_3DMenuLoading && !m_IsLevelBackground && m_CreatedVRTextures &&
             !m_Game->m_EngineClient->IsDrawingLoadingImage() && !inGame && m_Game->m_PCCM->m_Intilized
@@ -626,14 +656,21 @@ void VR::PostUpdate()
     }
 
     //Clearing menu ui for next frame
+    IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
     if (ShouldCapture(Capture_MenuUI) || ShouldCapture(Capture_HudUI)) 
     {
-        IMatRenderContext* rndrContext = m_Game->m_MaterialSystem->GetRenderContext();
         rndrContext->SetRenderTarget(m_MenuTexture.m_MSAAITex);
         m_Game->m_DxDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
-        rndrContext->SetRenderTarget(NULL);
-        rndrContext->Release();
     }
+
+    if (m_Config.m_AimMode == AimMode_Overlay) 
+    {
+        rndrContext->SetRenderTarget(m_HudTexture.m_MSAAITex);
+        m_Game->m_DxDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
+    }
+
+    rndrContext->SetRenderTarget(NULL);
+    rndrContext->Release();
 
     //Pulling ui state
     vr::VREvent_t event;
@@ -682,6 +719,8 @@ void VR::CreateVRTextures()
     m_WScaleUpRatio = (float)m_RenderWidth / m_Game->m_WindowWidth;
     m_HScaleUpRatio = (float)m_RenderHeight / m_Game->m_WindowHeight;
     m_MainOverlay.SetOverlayWidthInMeters(1.5f * (1.0f / m_HScaleDownRatio));
+
+    m_HudOverlay.SetOverlayWidthInMeters(1.0f);
 
     m_Game->m_MaterialSystem->isGameRunning = false;
     m_Game->m_MaterialSystem->BeginRenderTargetAllocation();
@@ -748,7 +787,7 @@ void VR::SubmitVRTextures()
             {
                 //This forces forward spawn on background levels
                 if (!m_IsLevelBackground)
-                    RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, { RotFlag_UseYaw });
+                    RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpaceForward, { -0.10f, 0.0f, 3.0f }, OverlayRotation(RotFlag_UseYaw));
 
                 else
                     RepositionOverlay(m_MainOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_WorldSpace, { -0.10f, 1.25f, 3.0f });
@@ -779,6 +818,7 @@ void VR::SubmitVRTextures()
         }
     }
 
+    if (m_HudOverlay.m_Visible) m_Overlay->SetOverlayTexture(m_HudOverlay.m_Handle, &m_HudTexture.m_VRTexture);
     if (result != Capture_2D)
     {
         eyeTex[vr::Eye_Left] = &m_LeftEye.m_VRTexture;
@@ -851,58 +891,72 @@ void VR::RepositionOverlay(Overlay& overlay, vr::TrackedDeviceIndex_t referenceD
 
     switch (con)
     {
-        case OverlayRel_WorldSpace:
-        {
-            Vector trackingRight = { 1, 0, 0 };
-            Vector trackingUp = { 0, 1, 0 };
-            Vector trackingForward = { 0, 0, -1 };
+    case OverlayRel_WorldSpace:
+    {
+        Vector trackingRight = { 1, 0, 0 };
+        Vector trackingUp = { 0, 1, 0 };
+        Vector trackingForward = { 0, 0, -1 };
 
-            finalPos =
-                trackingRight * offset.x +
-                trackingUp * offset.y +
-                trackingForward * offset.z;
-            break;
-        }
-        case OverlayRel_DeviceSpace:
-        {
-            finalPos = devicePos + offset;
-            break;
-        }
-        case OverlayRel_DeviceSpaceForward:
-        {
-            finalPos =
-                devicePos +
-                deviceRight * offset.x +
-                deviceUp * offset.y -
-                deviceForward * offset.z;
-            break;
-        }
-        case OverlayRel_Attached:
-        {
-            finalPos = Vector(offset.x, offset.y, -offset.z);
-            break;
-        }
-        default:
-            return;
+        finalPos =
+            trackingRight * offset.x +
+            trackingUp * offset.y +
+            trackingForward * offset.z;
+        break;
+    }
+    case OverlayRel_DeviceSpace:
+    {
+        finalPos = devicePos + offset;
+        break;
+    }
+    case OverlayRel_DeviceSpaceForward:
+    {
+        finalPos =
+            devicePos +
+            deviceRight * offset.x +
+            deviceUp * offset.y -
+            deviceForward * offset.z;
+        break;
+    }
+    case OverlayRel_Attached:
+    {
+        finalPos = Vector(offset.x, offset.y, -offset.z);
+        break;
+    }
+    default:
+        return;
     }
 
     //Rotation flags
     bool inheritRotation = (con != OverlayRel_Attached);
+    bool faceDevice = (rot.m_flags & RotFlag_FaceDevice);
 
-    float yaw =
-        (inheritRotation && (rot.flags & RotFlag_UseYaw))
-        ? atan2f(deviceForward.x, deviceForward.z) + rot.yawOffset
-        : rot.yawOffset;
+    float yaw;
+    float pitch;
+    float roll;
 
-    float pitch =
-        (inheritRotation && (rot.flags & RotFlag_UsePitch))
-        ? -atan2f(deviceForward.y, sqrtf(deviceForward.x * deviceForward.x + deviceForward.z * deviceForward.z)) + 
-        rot.pitchOffset : rot.pitchOffset;
+    if (faceDevice)
+    {
+        Vector forward = devicePos - finalPos;
+        VectorNormalize(forward);
 
-    float roll =
-        (inheritRotation && (rot.flags & RotFlag_UseRoll))
-        ? atan2f(deviceRight.y, deviceUp.y) + rot.rollOffset
-        : rot.rollOffset;
+        yaw = atan2f(forward.x, forward.z);
+        pitch = -atan2f(forward.y, sqrtf(forward.x * forward.x + forward.z * forward.z));
+        roll = 0.0f;
+    }
+    else
+    {
+        yaw = (inheritRotation && (rot.m_flags & RotFlag_UseYaw))
+            ? atan2f(deviceForward.x, deviceForward.z) + rot.m_yawOffset
+            : rot.m_yawOffset;
+
+        pitch = (inheritRotation && (rot.m_flags & RotFlag_UsePitch))
+            ? -atan2f(deviceForward.y, sqrtf(deviceForward.x * deviceForward.x + deviceForward.z * deviceForward.z)) + rot.m_pitchOffset
+            : rot.m_pitchOffset;
+
+        roll = (inheritRotation && (rot.m_flags & RotFlag_UseRoll))
+            ? atan2f(deviceRight.y, deviceUp.y) + rot.m_rollOffset
+            : rot.m_rollOffset;
+    }
 
     float cy = cosf(yaw);
     float sy = sinf(yaw);
@@ -953,14 +1007,14 @@ void VR::RepositionOverlay(Overlay& overlay, vr::TrackedDeviceIndex_t referenceD
     transform.m[1][3] = finalPos.y;
     transform.m[2][3] = finalPos.z;
 
-    if(!inheritRotation)
+    if (!inheritRotation)
         m_Overlay->SetOverlayTransformTrackedDeviceRelative(overlay.m_Handle, referenceDevice, &transform);
 
     else
         m_Overlay->SetOverlayTransformAbsolute(overlay.m_Handle, trackingOrigin, &transform);
 
 
-    if (m_Game->m_VRDebuglvl > 2) 
+    if (m_Game->m_VRDebuglvl > 2)
     {
         m_Game->logMsg(LOGTYPE_DEBUG, "Overlay transform: %s", overlay.m_Name);
         m_Game->logMsg(LOGTYPE_DEBUG, "Overlay tracking condition: %s", OverlayRelToString(con));
@@ -992,7 +1046,7 @@ void VR::GetPoses()
     vr::TrackedDeviceIndex_t leftControllerIndex = m_System->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_LeftHand);
     vr::TrackedDeviceIndex_t rightControllerIndex = m_System->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_RightHand);
     
-    if (m_Config.m_LeftHanded && (m_CurrentWeapon.second.m_CanUseLeftHand || m_CurrentWeapon.second.UsableEntry()))
+    if (m_Config.m_LeftHanded && (m_CurrentWeapon.second.UsableEntry() && m_CurrentWeapon.second.m_CanUseLeftHand))
         std::swap(leftControllerIndex, rightControllerIndex);
 
     GetPoseData(m_Poses[vr::k_unTrackedDeviceIndex_Hmd], m_HmdPose);
@@ -1465,23 +1519,66 @@ void VR::UpdateTracking()
     UpdateHMDAngles();
     m_HmdPosRelative = hmdPosCorrected * m_Config.m_VRScale;
 
-    //Laser pointer thingy
-    if (m_Config.m_AimMode == 2) {
+    //Aim modes
+    if (m_Config.m_AimMode) {
         m_AimPos = Trace((uint32_t*)localPlayer);
 
-        if (m_CurrentWeapon.second.UsableEntry() && m_CurrentWeapon.second.m_CanUseAssistBeam) {
-            if (m_AssistBeam) {
-                m_AssistBeam->SetControlPoint(1, m_AimPos);
-                m_AssistBeam->SetControlPoint(2, m_Game->m_singlePlayerPortalColors[
-                    reinterpret_cast<CWeaponPortalBase*>(m_Game->GetPlayer()->GetActiveWeapon())->m_iLastFiredPortal] * 0.5f);
-            }
-            else
-                CreateAssistBeam(m_AimPos);
-        }
-        else if (m_AssistBeam)
+        switch (m_Config.m_AimMode)
         {
-            DestroyParticle(m_AssistBeam);
-            m_Game->logMsg(LOGTYPE_DEBUG, "Assist beam destroyed");
+            case AimMode_None:
+            {
+                DestroyParticle(m_AssistBeam);
+                m_HudOverlay.HideOverlay();
+                break;
+            }
+            case AimMode_Overlay: 
+            {
+                DestroyParticle(m_AssistBeam);
+                m_HudOverlay.ShowOverlay();
+
+                Vector PlayerHeadPos = (m_Config.m_UseRoomScale) ? reinterpret_cast<C_BaseEntity*>(localPlayer)->GetAbsOrigin() + m_HmdPosRelative : m_SetupOrigin;
+                Vector gameDirection = (m_AimPos - PlayerHeadPos).Normalized();
+
+                Vector vrDirection{
+                    gameDirection.y,
+                    gameDirection.z,
+                    gameDirection.x
+                };
+
+                float yaw = DEG2RAD(m_RotationOffset.y + 180);
+                float cosYaw = cosf(yaw);
+                float sinYaw = sinf(yaw);
+
+                float x = vrDirection.x;
+                float z = vrDirection.z;
+
+                vrDirection.x = x * cosYaw - z * sinYaw;
+                vrDirection.z = x * sinYaw + z * cosYaw;
+                
+                RepositionOverlay(m_HudOverlay, vr::k_unTrackedDeviceIndex_Hmd, OverlayRel_DeviceSpace, vrDirection * m_Config.m_CrosshairDistance,
+                    OverlayRotation(RotFlag_FaceDevice));
+                break;
+            }
+            case AimMode_AssistBeam: 
+            {
+                m_HudOverlay.HideOverlay();
+                if (m_CurrentWeapon.second.UsableEntry() && m_CurrentWeapon.second.m_CanUseAssistBeam) {
+                    if (m_AssistBeam) {
+                        m_AssistBeam->SetControlPoint(1, m_AimPos);
+                        m_AssistBeam->SetControlPoint(2, m_Game->m_singlePlayerPortalColors[
+                            reinterpret_cast<CWeaponPortalBase*>(m_CurrentWeapon.second.m_ActiveWeapon)->m_iLastFiredPortal] * 0.5f);
+                    }
+                    else
+                        CreateAssistBeam(m_AimPos);
+                }
+                else if (m_AssistBeam)
+                {
+                    DestroyParticle(m_AssistBeam);
+                    m_Game->logMsg(LOGTYPE_DEBUG, "Assist beam destroyed");
+                }
+
+                break;
+            }
         }
     }
 
@@ -1890,6 +1987,8 @@ CaptureConditions VR::ShouldCapture(CaptureConditions con)
 
 void VR::BuildCaptureMap()
 {
+    //m_Game->m_LuaManager->Lua_TextureMapping();
+
     RegisterPanelCaptureRoot(m_Game->m_EnginePanel->GetPanel(PANEL_GAMEUIDLL), m_MenuTexture.m_MSAAITex,
         [this]() { return this->ShouldCapture(Capture_MenuUI); });
 
@@ -1899,10 +1998,10 @@ void VR::BuildCaptureMap()
     VPANEL panel = FindParentOf(m_Game->m_EnginePanel->GetPanel(PANEL_CLIENTDLL), "HudWeapon");
     RegisterPanelCaptureRoot(panel, m_MenuTexture.m_MSAAITex, [this]() { return this->ShouldCapture(Capture_HudUI); },
     { 
-        std::make_pair("HudCrosshair", m_HudTexture.m_ITex),
-        std::make_pair("HUDQuickInfo", m_HudTexture.m_ITex),
-        std::make_pair("HudWeapon", m_HudTexture.m_ITex),
-        std::make_pair("HUDAutoAim", m_HudTexture.m_ITex)
+        std::make_pair("HudCrosshair", m_HudTexture.m_MSAAITex),
+        std::make_pair("HUDQuickInfo", m_HudTexture.m_MSAAITex),
+        std::make_pair("HudWeapon", m_HudTexture.m_MSAAITex),
+        std::make_pair("HUDAutoAim", m_HudTexture.m_MSAAITex)
     });
    
     m_BuiltCaptureMap = true;
@@ -1993,4 +2092,47 @@ void VR::CreateAssistBeam(Vector vecDestintaion)
         m_Game->logMsg(LOGTYPE_DEBUG, "Failed to create Assist Beam");
 
     m_Game->m_Hooks->PopBoneAccess("pingpointer");
+}
+
+void VR::CheckWeaponType() 
+{
+    C_BasePlayer* player = m_Game->GetPlayer();
+    if (!player)
+    {
+        m_CurrentWeapon.second.ResetPreserveWeapon();
+        m_CurrentWeapon.second.m_Failed = true;
+        return;
+    }
+
+    m_CurrentWeapon.second.m_ActiveWeapon = player->GetActiveWeapon();
+    if (!m_CurrentWeapon.second.m_ActiveWeapon)
+    {
+        m_CurrentWeapon.second.ResetPreserveWeapon();
+        m_CurrentWeapon.second.m_Failed = true;
+        return;
+    }
+
+    const char* weaponName = m_CurrentWeapon.second.m_ActiveWeapon->GetWeaponClassName();
+    if (!m_CurrentWeaponSettingsStale && !std::strcmp(m_CurrentWeapon.first.c_str(), weaponName))
+        return;
+
+    m_CurrentWeaponSettingsStale = false;
+    auto it = m_VMConfig.find(weaponName);
+    if (it == m_VMConfig.end())
+    {
+        m_Game->logMsg(LOGTYPE_WARNING, "Weapon: %s not mapped to any view model config.", weaponName);
+
+        m_CurrentWeapon.first = weaponName;
+        m_CurrentWeapon.second.ResetPreserveWeapon();
+        return;
+    }
+
+    m_Game->logMsg(LOGTYPE_DEBUG, "Weapon set: %s", weaponName);
+
+    m_CurrentWeapon.first = weaponName;
+    m_CurrentWeapon.second = it->second;
+    m_CurrentWeapon.second.m_IsValid = true;
+
+    //Particle needs to be recreated
+    DestroyParticle(m_AssistBeam);
 }

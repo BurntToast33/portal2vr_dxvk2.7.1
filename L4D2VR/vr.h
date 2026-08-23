@@ -98,10 +98,26 @@ struct Overlay
 	vr::VROverlayHandle_t m_Handle = 0;
 	int m_StateFlag = 0; //Can be used for anything
 	bool m_Visible = false;
-	const char* m_Name = nullptr;
+	std::string m_Name;
 	vr::VROverlayInputMethod m_InputMethod = vr::VROverlayInputMethod_None;
 	vr::VROverlayInputMethod m_SaveStateMethod = vr::VROverlayInputMethod_None;
 	float m_WidthInMeters = 0;
+
+	Overlay() {}
+	~Overlay() 
+	{
+		if (m_Handle) vr::VROverlay()->DestroyOverlay(m_Handle);
+	}
+
+	void Initialize(std::string name)
+	{
+		vr::IVROverlay* overlay = vr::VROverlay();
+		std::string key = name + "Key";
+
+		overlay->CreateOverlay(key.c_str(), name.c_str(), &m_Handle);
+		overlay->GetOverlayWidthInMeters(m_Handle, &m_WidthInMeters);
+		m_Visible = vr::VROverlay()->IsOverlayVisible(m_Handle);
+	}
 
 	void ShowOverlay() 
 	{
@@ -181,16 +197,41 @@ enum OverlayRotationFlags : uint32_t
 	RotFlag_UseYaw = 1 << 0,
 	RotFlag_UsePitch = 1 << 1,
 	RotFlag_UseRoll = 1 << 2,
-	RotFlag_UseAll = RotFlag_UseYaw | RotFlag_UsePitch | RotFlag_UseRoll
+	RotFlag_UseAll = RotFlag_UseYaw | RotFlag_UsePitch | RotFlag_UseRoll,
+
+	RotFlag_FaceDevice = 1 << 3
 };
 
 struct OverlayRotation
 {
-	OverlayRotationFlags flags = RotFlag_None; //Used to define what axis is inherited from target
+	OverlayRotationFlags m_flags = RotFlag_None; //Used to define what axis is inherited from target
 
-	float pitchOffset = 0.0f;
-	float yawOffset = 0.0f;
-	float rollOffset = 0.0f;
+	float m_pitchOffset = 0.0f;
+	float m_yawOffset = 0.0f;
+	float m_rollOffset = 0.0f;
+
+	OverlayRotation() {}
+
+	OverlayRotation(OverlayRotationFlags flag)
+	{
+		m_flags = flag;
+	}
+
+	OverlayRotation(OverlayRotationFlags flag, const Vector& vector)
+	{
+		m_flags = flag;
+		m_pitchOffset = vector.x;
+		m_yawOffset = vector.y;
+		m_rollOffset = vector.z;
+	}
+
+	OverlayRotation(OverlayRotationFlags flag, const QAngle& vector)
+	{
+		m_flags = flag;
+		m_pitchOffset = vector.x;
+		m_yawOffset = vector.y;
+		m_rollOffset = vector.z;
+	}
 };
 
 enum OverlayRel
@@ -249,6 +290,13 @@ enum VRBindingMode {
 	VRBindingMode_Repeat   // Press repeatedly while held
 };
 
+enum AimMode
+{
+	AimMode_None,
+	AimMode_Overlay,
+	AimMode_AssistBeam
+};
+
 struct VRBindings
 {
 	vr::VRActionHandle_t m_Handle = vr::k_ulInvalidActionHandle;
@@ -287,8 +335,9 @@ struct ConfigSettings
 	bool m_SnapTurning = false;
 	float m_SnapTurnAngle = 45.0f;
 	bool m_LeftHanded = false;
-	int m_AimMode = 2;
+	AimMode m_AimMode = AimMode_AssistBeam;
 	bool m_6DOF = true;
+	float m_CrosshairDistance = 1.0f;
 
 	float m_VRScale = 43.2f;
 	float m_IpdScale = 1.0f;
@@ -324,6 +373,7 @@ inline void from_json(const nlohmann::json& j, ConfigSettings& out)
 	parse("LeftHanded", out.m_LeftHanded);
 	parse("AimMode", out.m_AimMode);
 	parse("6DOF", out.m_6DOF);
+	parse("CrosshairDistance", out.m_CrosshairDistance);
 
 	parse("VRScale", out.m_VRScale);
 	parse("IPDScale", out.m_IpdScale);
@@ -351,9 +401,19 @@ struct ViewModelConfigSettings {
 	bool m_IsValid = false;
 	bool m_Failed = false; //Mark failure to even get the player or weapon
 
+	C_BaseCombatWeapon* m_ActiveWeapon = nullptr;
+
 	bool UsableEntry()
 	{
 		return (m_IsValid && !m_Failed);
+	}
+
+	void ResetPreserveWeapon() 
+	{
+		C_BaseCombatWeapon* temp = m_ActiveWeapon;
+		
+		*this = ViewModelConfigSettings{};
+		m_ActiveWeapon = temp;
 	}
 };
 inline void from_json(const nlohmann::json& j, ViewModelConfigSettings& out)
@@ -397,7 +457,7 @@ public:
 	vr::IVRCompositor* m_Compositor = nullptr;
 
 	Overlay m_MainOverlay;
-	Overlay m_HUDOverlay;
+	Overlay m_HudOverlay;
 
 	float m_WScaleDownRatio, m_HScaleDownRatio, m_WScaleUpRatio, m_HScaleUpRatio;
 	uint32_t m_RenderWidth = 0, m_RenderHeight = 0;
@@ -645,7 +705,6 @@ public:
 		outFile.close();
 	}
 
-
 	float MinMaxInverse(float val, float min, float max)
 	{
 		return max - (val - min);
@@ -800,49 +859,6 @@ public:
 			default: return "Unknown";
 		}
 	}
-
-	void CheckWeaponType()
-	{
-		C_BasePlayer* player = m_Game->GetPlayer();
-		if (!player)
-		{
-			m_CurrentWeapon.second = {};
-			m_CurrentWeapon.second.m_Failed = true;
-			return;
-		}
-
-		C_BaseCombatWeapon* weapon = player->GetActiveWeapon();
-		if (!weapon)
-		{
-			m_CurrentWeapon.second = {};
-			m_CurrentWeapon.second.m_Failed = true;
-			return;
-		}
-
-		const char* weaponName = weapon->GetWeaponClassName();
-		if (!m_CurrentWeaponSettingsStale && !std::strcmp(m_CurrentWeapon.first.c_str(), weaponName))
-			return;
-
-		m_CurrentWeaponSettingsStale = false;
-		auto it = m_VMConfig.find(weaponName);
-		if (it == m_VMConfig.end())
-		{
-			m_Game->logMsg(LOGTYPE_WARNING, "Weapon: %s not mapped to any view model config.", weaponName);
-
-			m_CurrentWeapon.first = weaponName;
-			m_CurrentWeapon.second = {};
-			return;
-		}
-
-		m_Game->logMsg(LOGTYPE_DEBUG, "Weapon set: %s", weaponName);
-
-		m_CurrentWeapon.first = weaponName;
-		m_CurrentWeapon.second = it->second;
-		m_CurrentWeapon.second.m_IsValid = true;
-
-		//Particle needs to be recreated
-		DestroyParticle(m_AssistBeam);
-	}
 #pragma endregion
 
 	//====================
@@ -932,6 +948,7 @@ public:
 	Vector Trace(uint32_t* localPlayer);
 	Vector TraceEye(uint32_t* localPlayer, Vector cameraPos, Vector eyePos, QAngle& eyeAngle);
 	void OnMapLoading(const char* mapName, bool isBackground);
+	void CheckWeaponType();
 };
 
 //Ques up textures that use msaa to be resolved before compositing

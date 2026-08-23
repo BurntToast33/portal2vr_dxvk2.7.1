@@ -6,9 +6,10 @@
 	"LeftHanded": false,
 	"AimMode": 2, //0 = None, 1 = Crosshair (does not work properly), 2 = Laser sight/beam
 	"6DOF": true,
+	"CrosshairDistance": 1.0,
 
 	//Rendering settings
-	"VRScale": 43.2, //Real world units to source units scale
+	"VRScale": 52.5, //Meter to source units
 	"IPDScale": 1, //Scale of interpupillary distance
 	"AntiAliasing": 0, //0, 2, 4, 8 (Currently broken and disabled)
 	"RenderWindow": false, //Enables spectator view

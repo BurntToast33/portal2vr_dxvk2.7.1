@@ -1484,3 +1484,15 @@ inline float DotProductXZ(const Vector& a, const Vector& b)
 {
 	return a.x * b.x + a.z * b.z;
 }
+
+inline vec_t Vector::NormalizeInPlace()
+{
+	return VectorNormalize(*this);
+}
+
+inline Vector Vector::Normalized() const
+{
+	Vector norm = *this;
+	VectorNormalize(norm);
+	return norm;
+}

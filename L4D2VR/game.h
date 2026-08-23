@@ -14,6 +14,7 @@
 #define ANSI_GREEN  "\x1b[32m"
 #define ANSI_YELLOW "\x1b[33m"
 #define ANSI_GRAY  "\x1b[90m"
+#define ANSI_BLUE "\033[34m"
 
 constexpr auto DLL_CLIENT = "client.dll";
 constexpr auto DLL_SERVER = "server.dll";
@@ -42,6 +43,7 @@ class C_Portal_Player;
 class ISteamUser;
 class ICvar;
 class PCCM;
+class LuaManager;
 struct model_t;
 
 
@@ -86,7 +88,8 @@ enum LOGTYPE
     LOGTYPE_DEBUG,
     LOGTYPE_WARNING,
     LOGTYPE_ERROR,
-    LOGTYPE_INFO
+    LOGTYPE_INFO,
+    LOGTYPE_LUA
 };
 
 enum GAMETYPE
@@ -125,7 +128,7 @@ public:
     VR *m_VR = nullptr;
     Hooks *m_Hooks = nullptr;
     PCCM* m_PCCM = nullptr;
-
+    LuaManager* m_LuaManager = nullptr;
 
     // === DirectX Device ===
     dxvk::D3D9DeviceEx* m_DxDevice = nullptr;
@@ -171,7 +174,6 @@ public:
     void clearLog();
     static void logMsg(LOGTYPE logType, const char* fmt, ...);
     static void errorMsg(const char* msg);
-    static void SetColorANSI(const char* color);
 
 
     // === Command Execution ===
