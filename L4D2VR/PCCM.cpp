@@ -59,23 +59,22 @@ void BuildPCCM(const CCommand& args)
     g_Game->m_PCCM->m_GeneratingCubeMapState = PCCM_GENERATION_STATE_ENABLED;
     g_Game->logMsg(LOGTYPE_DEBUG, "Building PCCM");
 }
-static ConCommand con_BuildPCCM("Build_PCCM", BuildPCCM, "Builds a cube map on the players camera posistion at the specified resolution, Saves to root/VR/PCCM", FCVAR_CHEAT);
+
 
 
 PCCM::PCCM(Game* game) : m_Game(game), m_DxDevice(game->m_DxDevice) 
 {
     if (m_Game->m_VRDevMode) 
     {
-        m_Game->m_MaterialSystem->isGameRunning = false;
+        /*m_Game->m_MaterialSystem->isGameRunning = false;
         m_Game->m_MaterialSystem->BeginRenderTargetAllocation();
         m_Game->m_MaterialSystem->isGameRunning = true;
 
         CreateRT(&m_GenerationTexture, "PCCMGenTex", m_GenerationResolution, m_GenerationResolution, RT_SIZE_NO_CHANGE, m_Game->m_MaterialSystem->GetBackBufferFormat());
-        m_Game->m_MaterialSystem->EndRenderTargetAllocation();
-
-        //m_Game->m_ICvar->RegisterConCommand(&con_BuildPCCM);
+        m_Game->m_MaterialSystem->EndRenderTargetAllocation();*/
     }
 
+    static ConCommand con_BuildPCCM("Build_PCCM", BuildPCCM, "Builds a cube map on the players camera posistion at the specified resolution, Saves to root/VR/PCCM", FCVAR_CHEAT);
     m_Game->logMsg(LOGTYPE_DEBUG, "PCCM Initilized");
 }
 

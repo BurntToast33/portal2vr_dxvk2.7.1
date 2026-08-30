@@ -24,6 +24,7 @@ constexpr auto DLL_ENGINE = "engine.dll";
 constexpr auto DLL_MATERIALSYSTEM = "materialsystem.dll";
 constexpr auto DLL_VSTDLIB = "vstdlib.dll";
 constexpr auto DLL_STEAMAPI = "steam_api.dll";
+constexpr auto DLL_FILESYSTEM_STDIO = "filesystem_stdio.dll";
 
 class IClientEntityList;
 class IEngineVGui;
@@ -37,11 +38,11 @@ class IMaterial;
 class IInput;
 class ISurface;
 class IPanel;
+class IFileSystem;
 class CBaseEntity;
 class C_BasePlayer;
 class C_Portal_Player;
 class ISteamUser;
-class ICvar;
 class PCCM;
 class LuaManager;
 struct model_t;
@@ -121,7 +122,7 @@ public:
     ISurface* m_VguiSurface = nullptr;
     IPanel* m_VguiIPanel = nullptr;
     ISteamUser* m_ISteamUser = nullptr;
-    ICvar* m_ICvar = nullptr;
+    IFileSystem* m_FileSystem = nullptr;
 
     // === Internal Systems ===
     Offsets *m_Offsets = nullptr;
@@ -186,7 +187,7 @@ public:
     void SetVRDlcDisabled();
 };
 
-static HMODULE GetModuleWithTimeout(const char* dllname, int timeoutMs = 20000, int pollMs = 50)
+static HMODULE GetModuleWithTimeout(const char* dllname, int timeoutMs = 20000, int pollMs = 10)
 {
     std::string name(dllname);
     for (const auto& [cachedName, handle] : dllList)
@@ -245,7 +246,10 @@ static void* GetInterfaceSafe(const char* dllname, const char* interfacename)
         mod = GetModuleWithTimeout(dllname);
 
     if (!mod)
+    {
+        Game::errorMsg(("Failed to get dll: " + std::string(dllname)).c_str());
         return nullptr;
+    }
 
     auto CreateInterface = reinterpret_cast<tCreateInterface>(GetProcAddress(mod, "CreateInterface"));
     if (!CreateInterface)
@@ -268,6 +272,8 @@ static void* GetInterfaceSafe(const char* dllname, const char* interfacename)
         return nullptr;
     }
 
+
+    Game::logMsg(LOGTYPE_DEBUG, "Found Interface: %s", interfacename);
     cache[key] = iface;
     return iface;
 }

@@ -12,7 +12,6 @@
 #include <string>
 #include <filesystem>
 #include <thread>
-#include <type_traits>
 #include <algorithm>
 #include <d3d9_vr.h>
 
@@ -46,6 +45,8 @@ void CreateRT(SharedTextureHolder* target, const char* name, int w, int h, Rende
 {
     if (g_Game->m_VRDebuglvl > 1) g_Game->logMsg(LOGTYPE_DEBUG, "CreateRT: %s, W: %d, H: %d", name, w, h);
     target->Release();
+
+    target->m_Name = name;
 
     PushTexture(target, false);
     target->m_ITex = g_Game->m_MaterialSystem->CreateNamedRenderTargetTextureEx(name, w, h, sizeMode, format, depth, textureFlags);
@@ -171,6 +172,8 @@ VR::VR(Game *game)
 
 VR::~VR()
 {
+    m_Game->m_LuaManager->Shutdown();
+
     m_IsInitialized = false;
     m_IsVREnabled = false;
 
@@ -216,8 +219,8 @@ void VR::CreateHashMaps()
 
 
     //LuaManager
-    //m_Game->m_LuaManager->Initialize();
-        
+    m_Game->m_LuaManager->Initialize();
+    m_Game->m_LuaManager->Lua_CreateControllerBindings();
 
     //UI stuff from here
     OverridePanelLayout("options.res", { "resource/ui/vr_options.res" });
@@ -2033,7 +2036,7 @@ void VR::ModifyPanelSettings(std::string PanelName, std::function<bool(Panel* pa
 void VR::SetBinding(const char* pchActionName, VRBindingType bindingType, StringPair cmds, VRBindingMode mode, std::function<void(vr::VRActionHandle_t handle)> func)
 {
     std::string path = pchActionName;
-    VRBindings Bind = VRBindings(path.substr(path.find_last_of('/') + 1).c_str(), bindingType, cmds.pressCommand, cmds.releaseCommand, func, mode);
+    VRBindings Bind = VRBindings(path.substr(path.find_last_of('/') + 1).c_str(), bindingType, cmds.m_Str1.c_str(), cmds.m_Str2.c_str(), func, mode);
 
     m_Input->GetActionHandle(pchActionName, &Bind.m_Handle);
     m_Bindings.push_back(Bind);

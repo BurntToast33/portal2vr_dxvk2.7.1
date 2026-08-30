@@ -621,6 +621,7 @@
     <ClInclude Include="lua\src\lundump.h" />
     <ClInclude Include="lua\src\lvm.h" />
     <ClInclude Include="lua\src\lzio.h" />
+    <ClInclude Include="lua\wrappers.h" />
     <ClInclude Include="offsets.h" />
     <ClInclude Include="PCCM.h" />
     <ClInclude Include="sdk\bitbuf.h" />

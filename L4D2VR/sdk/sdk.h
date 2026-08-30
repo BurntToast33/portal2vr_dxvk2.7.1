@@ -231,6 +231,31 @@ typedef struct player_info_s
 	char pad_big[0x200];
 } player_info_t;
 
+typedef void* (*CreateInterfaceFn)(const char* pName, int* pReturnCode);
+
+enum InitReturnVal_t
+{
+	INIT_FAILED = 0,
+	INIT_OK,
+
+	INIT_LAST_VAL,
+};
+
+class IAppSystem
+{
+public:
+	// Here's where the app systems get to learn about each other 
+	virtual bool Connect(CreateInterfaceFn factory) = 0;
+	virtual void Disconnect() = 0;
+
+	// Here's where systems can access other interfaces implemented by this object
+	// Returns NULL if it doesn't implement the requested interface
+	virtual void* QueryInterface(const char* pInterfaceName) = 0;
+
+	// Init, shutdown
+	virtual InitReturnVal_t Init() = 0;
+	virtual void Shutdown() = 0;
+};
 
 class IClientEngineTools
 {
@@ -3188,89 +3213,6 @@ typedef VPlane Frustum[FRUSTUM_NUMPLANES];
 
 typedef int CVarDLLIdentifier_t;
 
-class IConCommandBaseAccessor;
-class ConCommandBase
-{
-	friend class ConCommand;
-
-	// FIXME: Remove when ConVar changes are done
-	friend class CDefaultCvar;
-
-public:
-	ConCommandBase(void);
-	ConCommandBase(const char* pName, const char* pHelpString = 0,
-		int flags = 0);
-
-	virtual						~ConCommandBase(void);
-
-	virtual	bool				IsCommand(void) const;
-
-	// Check flag
-	virtual bool				IsFlagSet(int flag) const;
-	// Set flag
-	virtual void				AddFlags(int flags);
-
-	// Return name of cvar
-	virtual const char* GetName(void) const;
-
-	// Return help text for cvar
-	virtual const char* GetHelpText(void) const;
-
-	// Deal with next pointer
-	const ConCommandBase* GetNext(void) const;
-	ConCommandBase* GetNext(void);
-
-	virtual bool				IsRegistered(void) const;
-
-	// Returns the DLL identifier
-	virtual void	GetDLLIdentifierStub();
-
-protected:
-	virtual void				CreateBase(const char* pName, const char* pHelpString = 0,
-		int flags = 0);
-
-	// Used internally by OneTimeInit to initialize/shutdown
-	virtual void				Init();
-	void						Shutdown();
-
-	// Internal copy routine ( uses new operator from correct module )
-	void CopyStringSub();
-
-private:
-	// Next ConVar in chain
-	// Prior to register, it points to the next convar in the DLL.
-	// Once registered, though, m_pNext is reset to point to the next
-	// convar in the global list
-	ConCommandBase* m_pNext;
-
-	// Has the cvar been added to the global list?
-	bool						m_bRegistered;
-
-	// Static data
-	const char* m_pszName;
-	const char* m_pszHelpString;
-
-	// ConVar flags
-	int							m_nFlags;
-
-protected:
-	// ConVars add themselves to this list for the executable. 
-	// Then ConVar_Register runs through  all the console variables 
-	// and registers them into a global list stored in vstdlib.dll
-	static ConCommandBase* s_pConCommandBases;
-
-	// ConVars in this executable use this 'global' to access values.
-	static IConCommandBaseAccessor* s_pAccessor;
-};
-
-class IConCommandBaseAccessor
-{
-public:
-	// Flags is a combination of FCVAR flags in cvar.h.
-	// hOut is filled in with a handle to the variable.
-	virtual bool RegisterConCommandBase(ConCommandBase* pVar) = 0;
-};
-
 struct characterset_t
 {
 	char set[256];
@@ -3278,67 +3220,76 @@ struct characterset_t
 
 class CCommand
 {
-public:
-	CCommand();
-	CCommand(int nArgC, const char** ppArgV); //Dosen't do anything
-	void TokenizeStub(const char* pCommand, characterset_t* pBreakSet = NULL);
-	void Reset();
-
-	int ArgC() const;
-	const char** ArgV() const;
-	const char* ArgS() const;					// All args that occur after the 0th arg, in string form
-	const char* GetCommandString() const;		// The entire command in string form, including the 0th arg
-	const char* operator[](int nIndex) const;	// Gets at arguments
-	const char* Arg(int nIndex) const;		// Gets at arguments
-
 private:
 	enum
 	{
 		COMMAND_MAX_ARGC = 64,
-		COMMAND_MAX_LENGTH = 512,
+		COMMAND_MAX_LENGTH = 512
 	};
 
-	int		m_nArgc;
-	int		m_nArgv0Size;
-	char	m_pArgSBuffer[COMMAND_MAX_LENGTH];
-	char	m_pArgvBuffer[COMMAND_MAX_LENGTH];
+	int m_nArgc;
+	int m_nArgv0Size;
+	char m_pArgSBuffer[COMMAND_MAX_LENGTH];
+	char m_pArgvBuffer[COMMAND_MAX_LENGTH];
 	const char* m_ppArgv[COMMAND_MAX_ARGC];
+
+public:
+	int ArgC() const
+	{
+		return m_nArgc;
+	}
+
+	const char** ArgV() const
+	{
+		return m_nArgc ? (const char**)m_ppArgv : NULL;
+	}
+
+	inline const char* ArgS() const
+	{
+		return m_nArgv0Size ? &m_pArgSBuffer[m_nArgv0Size] : "";
+	}
+
+	inline const char* GetCommandString() const
+	{
+		return m_nArgc ? m_pArgSBuffer : "";
+	}
+
+	const char* Arg(int nIndex) const
+	{
+		if (nIndex < 0 || nIndex >= m_nArgc)
+			return "";
+
+		return m_ppArgv[nIndex];
+	}
+
+	const char* operator[](int nIndex) const
+	{
+		return Arg(nIndex);
+	}
+
+	const char* FindArg(const char* pName) const
+	{
+		int nArgC = ArgC();
+
+		for (int i = 1; i < nArgC; i++)
+		{
+			if (_stricmp(Arg(i), pName) == 0)
+				return (i + 1) < nArgC ? Arg(i + 1) : "";
+		}
+
+		return nullptr;
+	}
+
+	int FindArgInt(const char* pName, int nDefaultVal) const
+	{
+		const char* pVal = FindArg(pName);
+		if (pVal)
+			return atoi(pVal);
+
+		else
+			return nDefaultVal;
+	}
 };
-
-inline int CCommand::ArgC() const
-{
-	return m_nArgc;
-}
-
-inline const char** CCommand::ArgV() const
-{
-	return m_nArgc ? (const char**)m_ppArgv : NULL;
-}
-
-inline const char* CCommand::ArgS() const
-{
-	return m_nArgv0Size ? &m_pArgSBuffer[m_nArgv0Size] : "";
-}
-
-inline const char* CCommand::GetCommandString() const
-{
-	return m_nArgc ? m_pArgSBuffer : "";
-}
-
-inline const char* CCommand::Arg(int nIndex) const
-{
-	// FIXME: Many command handlers appear to not be particularly careful
-	// about checking for valid argc range. For now, we're going to
-	// do the extra check and return an empty string if it's out of range
-	if (nIndex < 0 || nIndex >= m_nArgc)
-		return "";
-	return m_ppArgv[nIndex];
-}
-
-inline const char* CCommand::operator[](int nIndex) const
-{
-	return Arg(nIndex);
-}
 
 #define COMMAND_COMPLETION_MAXITEMS		64
 #define COMMAND_COMPLETION_ITEM_LENGTH	64
@@ -3347,80 +3298,22 @@ typedef void (*FnCommandCallbackVoid_t)(void);
 typedef void (*FnCommandCallback_t)(const CCommand& command);
 typedef int  (*FnCommandCompletionCallback)(const char* partial, char commands[COMMAND_COMPLETION_MAXITEMS][COMMAND_COMPLETION_ITEM_LENGTH]);
 
-class ICommandCallback
+class ConCommand
 {
 public:
-	virtual void CommandCallback(const CCommand& command) = 0;
-};
-
-class ICommandCompletionCallback
-{
-public:
-	virtual void  CommandCompletionCallbackStub() = 0;
-};
-
-class ConCommand : public ConCommandBase
-{
-public:
-	typedef ConCommandBase BaseClass;
-
-	ConCommand(const char* pName, FnCommandCallbackVoid_t callback,
-		const char* pHelpString = 0, int flags = 0, FnCommandCompletionCallback completionFunc = 0);
-	ConCommand(const char* pName, FnCommandCallback_t callback,
-		const char* pHelpString = 0, int flags = 0, FnCommandCompletionCallback completionFunc = 0);
-	ConCommand(const char* pName, ICommandCallback* pCallback,
-		const char* pHelpString = 0, int flags = 0, ICommandCompletionCallback* pCommandCompletionCallback = 0);
-
-	virtual ~ConCommand(void);
-
-	virtual	bool IsCommand(void) const;
-
-	virtual void AutoCompleteSuggestStub();
-
-	virtual bool CanAutoComplete(void);
-
-	// Invoke the function
-	virtual void Dispatch(const CCommand& command);
-
-private:
-	// NOTE: To maintain backward compat, we have to be very careful:
-	// All public virtual methods must appear in the same order always
-	// since engine code will be calling into this code, which *does not match*
-	// in the mod code; it's using slightly different, but compatible versions
-	// of this class. Also: Be very careful about adding new fields to this class.
-	// Those fields will not exist in the version of this class that is instanced
-	// in mod code.
-
-	// Call this function when executing the command
-	union
+	ConCommand(const char* pName, FnCommandCallbackVoid_t callback, const char* pHelpString = 0, int flags = 0, FnCommandCompletionCallback completionFunc = 0)
 	{
-		FnCommandCallbackVoid_t m_fnCommandCallbackV1;
-		FnCommandCallback_t m_fnCommandCallback;
-		ICommandCallback* m_pCommandCallback;
-	};
+		using tConCommand_Void = void* (__thiscall*)(void* thisptr, const char* pName, FnCommandCallbackVoid_t callback, const char* pHelpString, int flags, FnCommandCompletionCallback completionFunc);
+		if (g_Game->m_Offsets->ConCommand.available)
+			CallFunction<tConCommand_Void>(g_Game->m_Offsets->ConCommand_VOID.address, this, pName, callback, pHelpString, flags, completionFunc);
+	}
 
-	union
+	ConCommand(const char* pName, FnCommandCallback_t callback, const char* pHelpString = 0, int flags = 0, FnCommandCompletionCallback completionFunc = 0)
 	{
-		FnCommandCompletionCallback	m_fnCompletionCallback;
-		ICommandCompletionCallback* m_pCommandCompletionCallback;
-	};
-
-	bool m_bHasCompletionCallback : 1;
-	bool m_bUsingNewCommandCallback : 1;
-	bool m_bUsingCommandCallbackInterface : 1;
-};
-
-class ICvar
-{
-public:
-	virtual int AllocateDLLIdentifier() = 0;
-
-	virtual void RegisterConCommand(void* pCommandBase) = 0;
-	virtual void UnregisterConCommand(void* pCommandBase) = 0;
-	virtual void UnregisterConCommands(int id) = 0;
-	virtual const char* GetCommandLineValue(const char* pVariableName) = 0;
-	virtual ConCommandBase* FindCommandBase(const char* name) = 0;
-	virtual const ConCommandBase* FindCommandBase(const char* name) const = 0;
+		using tConCommand = void* (__thiscall*)(void* thisptr, const char* pName, FnCommandCallback_t callback, const char* pHelpString, int flags, FnCommandCompletionCallback completionFunc);
+		if (g_Game->m_Offsets->ConCommand_VOID.available)
+			CallFunction<tConCommand>(g_Game->m_Offsets->ConCommand.address, this, pName, callback, pHelpString, flags, completionFunc);
+	}
 };
 
 // ConVar Systems
@@ -3437,3 +3330,37 @@ public:
 #define	FCVAR_NOTIFY			(1<<8)	// notifies players when changed
 #define	FCVAR_USERINFO			(1<<9)	// changes the client's info string
 #define FCVAR_CHEAT				(1<<14) // Only useable in singleplayer / debug / multiplayer & sv_cheats
+
+enum SearchPathAdd_t
+{
+	PATH_ADD_TO_HEAD,		// First path searched
+	PATH_ADD_TO_TAIL,		// Last path searched
+};
+
+enum FSReturnCode_t
+{
+	FS_OK,
+	FS_MISSING_GAMEINFO_FILE,
+	FS_INVALID_GAMEINFO_FILE,
+	FS_INVALID_PARAMETERS,
+	FS_UNABLE_TO_INIT,
+	FS_MISSING_STEAM_DLL
+};
+
+class IFileSystem
+{
+public:
+	inline void AddSearchPath(const char* pPath, const char* pathID, SearchPathAdd_t addType = PATH_ADD_TO_TAIL)
+	{
+		using tAddSearchPath = void(__thiscall*)(void* thisptr, const char* pPath, const char* pathID, SearchPathAdd_t addType);
+		CallVFunc<tAddSearchPath>(this, 10, pPath, pathID, addType);  //index 10 / this + 40 bytes
+	}
+
+	inline void PrintSearchPaths()
+	{
+		using tPrintSeachPaths = void(__thiscall*)(void* thisptr);
+		CallVFunc<tPrintSeachPaths>(this, 65); //index 65 / this + 260 bytes
+	}
+};
+
+class CFSSearchPathsInit;

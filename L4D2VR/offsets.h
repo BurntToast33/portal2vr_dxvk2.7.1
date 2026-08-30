@@ -12,8 +12,11 @@ struct Offset
     std::string signature;
     int sigOffset = 0;
 
-    Offset(std::string hookName = "", std::string moduleName = "", int currentOffset = 0, 
-        std::string signature = "", int sigOffset = 0)
+    bool critical = true;
+    bool available = false;
+
+    Offset(const std::string& hookName = "", const std::string& moduleName = "", int currentOffset = 0, const std::string& signature = "",
+        int sigOffset = 0, bool critical = true, const std::string& unavailableMessage = "")
     {
         if (hookName.empty() && moduleName.empty() && currentOffset == 0 && signature.empty() && sigOffset == 0)
             return;
@@ -23,23 +26,44 @@ struct Offset
         this->offset = currentOffset;
         this->signature = signature;
         this->sigOffset = sigOffset;
+        this->critical = critical;
 
         int newOffset = SigScanner::VerifyOffset(hookName, moduleName, currentOffset, signature, sigOffset);
         if (newOffset > 0)
             this->offset = newOffset;
 
-        if (newOffset == -1)
+        else if (newOffset == -1)
+        {
+            if (critical)
+                Game::errorMsg((hookName + ": Signature verification failed").c_str());
+
+            else
+            {
+                Game::logMsg(LOGTYPE_WARNING, "%s: Signature verification failed", hookName);
+                Game::logMsg(LOGTYPE_INFO, "%s", unavailableMessage);
+            }
+                
             return;
+        }
 
         HMODULE hMod = GetModuleHandle(moduleName.c_str());
         if (!hMod)
         {
-            Game::errorMsg((hookName + ": Module not found: " + moduleName).c_str());
+            if (critical)
+                Game::errorMsg((hookName + ": Module not found: " + moduleName).c_str());
+
+            else
+            {
+                Game::logMsg(LOGTYPE_WARNING, "%s: Module not found: %s", hookName, moduleName);
+                Game::logMsg(LOGTYPE_INFO, "%s", unavailableMessage);
+            }
+
             return;
         }
 
         uintptr_t base = reinterpret_cast<uintptr_t>(hMod);
         this->address = base + this->offset;
+        this->available = true;
     }
 };
 
@@ -109,8 +133,14 @@ public:
     //Multiplayer
     Offset GetOwner = { "GetOwner", DLL_SERVER, 0xD7C00, "8B 81 ? ? ? ? 83 F8 FF 74 23 8B 15 ? ? ? ?"};
 
-    //Map related
+    //Map
     Offset LevelInit; //CServerGameDLL
+
+    //Cvar
+    Offset ConCommand_VOID = { "ConCommand_VOID", DLL_CLIENT, 0x632120, "55 8B EC 8b 45 0C 53 33 DB 56 8B F1 8B 4D 18 80 66 20 F9", 
+        false, "ConCommand - Void constructor unavaible. Expect reduced functionality" };
+    Offset ConCommand = { "ConCommand", DLL_CLIENT, 0x6321C0, "55 8B EC 8B 45 0C 53 33 DB 56 8B F1 8B 4D 18 80 4E 20 02", 
+        false, "ConCommand - constructor unavaible. Expect reduced functionality" };
 
 
     Offsets(GAMETYPE GameType) :

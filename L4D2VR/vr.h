@@ -48,6 +48,8 @@ struct SharedTextureHolder
 	vr::VRVulkanTextureData_t m_VulkanData{};
 	vr::Texture_t m_VRTexture{};
 
+	std::string m_Name;
+
 	//Engine handles
 	ITexture* m_ITex = nullptr;
 	ITexture* m_MSAAITex = nullptr;
@@ -325,8 +327,21 @@ struct VRBindings
 };
 
 struct StringPair {
-	const char* pressCommand = nullptr;
-	const char* releaseCommand = nullptr;
+	std::string m_Str1;
+	std::string m_Str2;
+
+	StringPair() {}
+
+	StringPair(std::string str1)
+	{
+		m_Str1 = str1;
+	}
+
+	StringPair(std::string str1, std::string str2) 
+	{
+		m_Str1 = str1;
+		m_Str2 = str2;
+	}
 };
 
 struct ConfigSettings 

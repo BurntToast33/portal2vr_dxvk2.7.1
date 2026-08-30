@@ -53,11 +53,12 @@ void Game::Initialize(bool IECheck)
 
     //Waiting for dll's to be loaded
     GetModuleWithTimeout(DLL_CLIENT);
+    GetModuleWithTimeout(DLL_SERVER);
     GetModuleWithTimeout(DLL_ENGINE);
     GetModuleWithTimeout(DLL_MATERIALSYSTEM);
-    GetModuleWithTimeout(DLL_SERVER);
     GetModuleWithTimeout(DLL_VGUI2);
     GetModuleWithTimeout(DLL_VGUIMATSURFACE);
+    //GetModuleWithTimeout(DLL_FILESYSTEM_STDIO);
     HMODULE steamAPI = GetModuleWithTimeout(DLL_STEAMAPI);
 
     //Getting interfaces
@@ -71,20 +72,26 @@ void Game::Initialize(bool IECheck)
     m_VguiInput = static_cast<IInput*>(GetInterfaceSafe(DLL_VGUI2, "VGUI_InputInternal001"));
     m_VguiSurface = static_cast<ISurface*>(GetInterfaceSafe(DLL_VGUIMATSURFACE, "VGUI_Surface031"));
     m_VguiIPanel = static_cast<IPanel*>(GetInterfaceSafe(DLL_VGUI2, "VGUI_Panel009"));
-    m_ICvar = static_cast<ICvar*>(GetInterfaceSafe(DLL_VSTDLIB, "VEngineCvar007"));
     m_ISteamUser = GetSteamUserInterface(steamAPI);
+    m_FileSystem = static_cast<IFileSystem*>(GetInterfaceSafe(DLL_FILESYSTEM_STDIO, "VFileSystem017"));
 
     m_Offsets = new Offsets(m_GameType.second);
     LoadCommands();
 
     m_PCCM = new PCCM(this);
 
+    std::string path = std::string(m_GameDir) + "\\VR\\content";
+    //m_FileSystem->AddSearchPath(path.c_str(), "mod", PATH_ADD_TO_TAIL);
+    //m_FileSystem->AddSearchPath(path.c_str(), "game", PATH_ADD_TO_TAIL);
+
+    //m_FileSystem->PrintSearchPaths();
+
     if (!m_VRDevMode)
     {
         m_VR = new VR(this);
-        m_VR->CreateHashMaps(); //Need to build hash maps after m_VR and m_PCCM is created
+        m_LuaManager = new LuaManager(this);
 
-        //m_LuaManager = new LuaManager(this);
+        m_VR->CreateHashMaps(); //Need to build hash maps after m_VR and m_PCCM is created
     }
 
     m_Hooks = new Hooks(this);

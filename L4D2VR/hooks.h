@@ -130,7 +130,7 @@ using tUTIL_Portal_AngleTransform = void(__cdecl*)(const VMatrix& matThisToLinke
 using tEntindex = int(__thiscall*)(void* thisptr);
 using tGetOwner = void* (__thiscall*)(void* thisptr);
 
-//Map related
+//Map
 using tLevelInit = bool(__thiscall*)(void* thisptr, const char* pMapName, char const* pMapEntities, char const* pOldLevel, char const* pLandmarkName, bool loadGame, bool background); 
 
 
@@ -185,7 +185,7 @@ public:
 	static inline Hook<tGetFOV> hkGetFOV;
 	static inline Hook<tGetViewModelFOV> hkGetViewModelFOV;
 
-	//Map related
+	//Map
 	static inline Hook<tLevelInit> hkLevelInit;
 
 
@@ -288,6 +288,6 @@ public:
 	static double __fastcall dGetFOV(void* ecx, void* edx);
 	static double __fastcall dGetViewModelFOV(void* ecx, void* edx);
 
-	//Map related
+	//Map
 	static bool __fastcall dLevelInit(void* ecx, void* edx, const char* pMapName, char const* pMapEntities, char const* pOldLevel, char const* pLandmarkName, bool loadGame, bool background);
 };

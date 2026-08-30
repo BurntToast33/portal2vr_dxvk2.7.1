@@ -1182,6 +1182,9 @@
     <ClInclude Include="lua\luamanager.h">
       <Filter>Source Files\lua</Filter>
     </ClInclude>
+    <ClInclude Include="lua\wrappers.h">
+      <Filter>Source Files\lua</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
